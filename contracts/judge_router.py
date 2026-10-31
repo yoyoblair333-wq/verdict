@@ -616,7 +616,12 @@ def _leader_payload_ok(payload, n: int, jurors: int) -> bool:
 # --------------------------------------------------------------------------- #
 
 class JudgeRouter(gl.Contract):
+    # Two roles (same split as pattern_ledger.py). The OWNER is the deployer:
+    # Blair's own wallet, which is the contract's creator on GenLayer. The
+    # RELAYER is the hot key the relayer signs with; it may run the case
+    # lifecycle but never the admin functions. Empty relayer = the deployer.
     owner: Address
+    relayer: Address
     paused: bool
     next_id: u256
     daily_limit: u32                    # per-sender cases per UTC day; 0 = off
@@ -624,8 +629,9 @@ class JudgeRouter(gl.Contract):
     daily_counts: TreeMap[str, u32]     # "<sender hex>:<YYYY-MM-DD>" -> count
     refs: TreeMap[str, u256]            # "<sender hex>:<client_ref>" -> case id
 
-    def __init__(self, daily_limit: int = 0):
+    def __init__(self, daily_limit: int = 0, relayer: str = ""):
         self.owner = gl.message.sender_address
+        self.relayer = Address(relayer) if relayer != "" else gl.message.sender_address
         self.paused = False
         self.next_id = u256(1)
         self.daily_limit = u32(int(daily_limit))
@@ -644,8 +650,18 @@ class JudgeRouter(gl.Contract):
             raise gl.vm.UserError(f"{ERR_EXPECTED} only owner")
 
     def _require_creator_or_owner(self, case: Case, what: str) -> None:
+        """Revoke: the case's creator or the owner. The relayer role does NOT
+        extend to revoke on cases it did not create."""
         sender = gl.message.sender_address
         if sender != case.creator and sender != self.owner:
+            raise gl.vm.UserError(f"{ERR_EXPECTED} only case creator can {what}")
+
+    def _require_operator(self, case: Case, what: str) -> None:
+        """Case lifecycle (judge, appeal, finalize, confirm_verdict): the case's
+        creator, the owner, or the current relayer. A rotated relayer key keeps
+        working on cases the previous key opened."""
+        sender = gl.message.sender_address
+        if sender != case.creator and sender != self.owner and sender != self.relayer:
             raise gl.vm.UserError(f"{ERR_EXPECTED} only case creator can {what}")
 
     def _get_case(self, case_id: int) -> Case:
@@ -880,7 +896,7 @@ class JudgeRouter(gl.Contract):
         # Audit P1-2: like appeal/finalize/confirm/revoke, only the case
         # creator (the relayer) or the owner may judge; a stranger could
         # otherwise judge first and strand the relayer's case.
-        self._require_creator_or_owner(case, "judge")
+        self._require_operator(case, "judge")
         self._require_digest(case, package_digest)
         self._require_live(case)
         if case.status != STATUS_PENDING:
@@ -907,7 +923,7 @@ class JudgeRouter(gl.Contract):
         if self.paused:
             raise gl.vm.UserError(f"{ERR_EXPECTED} paused")
         case = self._get_case(case_id)
-        self._require_creator_or_owner(case, "appeal")
+        self._require_operator(case, "appeal")
         self._require_digest(case, package_digest)
         self._require_live(case)
         if case.status not in (STATUS_JUDGED, STATUS_APPEALED):
@@ -951,7 +967,7 @@ class JudgeRouter(gl.Contract):
     def finalize(self, case_id: int, package_digest: str = "") -> None:
         """Close the appeal window (creator or owner)."""
         case = self._get_case(case_id)
-        self._require_creator_or_owner(case, "finalize")
+        self._require_operator(case, "finalize")
         self._require_digest(case, package_digest)
         self._require_live(case)
         if case.status not in (STATUS_JUDGED, STATUS_APPEALED):
@@ -966,7 +982,7 @@ class JudgeRouter(gl.Contract):
         relayer claim - the contract cannot observe consensus finality - but
         it is what locks the case against revocation and unlocks the appeal."""
         case = self._get_case(case_id)
-        self._require_creator_or_owner(case, "confirm")
+        self._require_operator(case, "confirm")
         self._require_digest(case, package_digest)
         self._require_live(case)
         if case.status not in (STATUS_JUDGED, STATUS_APPEALED, STATUS_FINAL) or int(case.winner_index) < 0:
@@ -1038,6 +1054,12 @@ class JudgeRouter(gl.Contract):
     def transfer_ownership(self, new_owner: str) -> None:
         self._require_owner()
         self.owner = Address(new_owner)
+
+    @gl.public.write
+    def set_relayer(self, relayer: str) -> None:
+        """Owner only: point the relayer role at a new hot key (or rotate it)."""
+        self._require_owner()
+        self.relayer = Address(relayer)
 
     # ----------------------------------------------------------------- views
 
@@ -1113,6 +1135,7 @@ class JudgeRouter(gl.Contract):
     def get_config(self) -> dict:
         return {
             "owner": self.owner.as_hex,
+            "relayer": self.relayer.as_hex,
             "paused": self.paused,
             "next_id": int(self.next_id),
             "daily_limit": int(self.daily_limit),
