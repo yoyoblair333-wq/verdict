@@ -37,7 +37,7 @@ Fixes:
 | V-PUB-04 withdraw before T4 | Y | `POST /quick/:id/consent/withdraw`; `409` after submission (on-chain revoke/takedown routes apply) |
 | V-PUB-05 normal package, `noticeVersion = publish-onchain-v1`, Tier 1 via `open_case_package` + `judge` | Y | publish test checks the broadcast package's notice version and both calls; no contract change for Publish |
 | V-PUB-06 free, 3 per LA day, restored on a failed Tier 1, 429 with reset time | Y | cap test across LA midnight; refund test on a reverted Tier 1; no credit touched |
-| V-PUB-07 queue when the gas budget is out | N | V-OPS-04 breaker not built |
+| V-PUB-07 queue when the budget is out | Y | ADR-022 publish budget: FIFO queue, never falls back to the preview, no network claim while queued |
 | V-PUB-08 network ruling replaces the preview; line + receipt only at FINALIZED_SUCCESS | Y (relayer) / P (web copy "Provisional, being checked") | card tests; `GET /quick/:id` stops returning the preview verdict after Publish |
 | V-PUB-09 "The network overruled the preview." Tier 1 only | Y | `overruled_preview` + `overruled_line` on Tier 1; Tier 2/3 keep the flag but not the line |
 | V-PUB-10 / ADR-021 item 1 finalized line scope | Y (relayer) / N (copy lint) | `footer` only on FINALIZED_SUCCESS cards; never on Quick Verdict, practice or SHADOW bodies |
@@ -45,8 +45,13 @@ Fixes:
 | V-PUB-12 unpublished → `409 publish_first`; UI Appeal leads to Publish | Y | route test + prototype |
 | V-PUB-13 SHADOW copy | P | SHADOW results say "Test run · Not public yet"; no public URLs exist yet in any mode |
 | V-PUB-14 keep preview winner only; analytics events | P | `preview.winnerIndex` kept on the case meta; the six events are not emitted (no analytics pipeline) |
+| V-PUB-15 global monthly budget (ADR-022) | Y | `PUBLISH_BUDGET_CENTS_MONTH` default 50000, ceiling 100000 (boot refuses above it); reset each LA month; durable; reservation released when nothing was opened. Budget accounting uses `PUBLISH_FEE_ESTIMATE_CENTS` until fees are measured in cents |
+| V-PUB-16 queue UX | Y (relayer) / N (web) | exact queued copy + position, either side cancels, withdraw leaves the line, 72 h expiry not applied in line, FIFO across restarts and the month boundary. The prototype has no queued state yet |
+| V-PUB-17 fee measurement | P | `fees.jsonl` row per terminal tx and admin `GET /ops/fees`. The GenLayer tx field that carries the fee is not confirmed; studionet rows read `unavailable` until it is (weekly report vs the model's bands not built) |
 
 Also from ADR-021: publish requests lapse after 72 h with "The other side didn't agree to go public." (item 6); the free-appeal counter now resets at 00:00 Los Angeles (item 4; Settle It case caps stay per UTC day as rate limits); pattern submissions use the LA clock too.
+
+Correction applied (lead, round 4): `open_case_package` stays callable by anyone (web visitors sign their own cases with burner accounts); the relayer's gallery and `GET /cases/:id` still show only cases this relayer opened through a moderated, consented package (new stand-in guard test with a foreign on-chain case).
 
 ### Scam Pattern Ledger wiring
 

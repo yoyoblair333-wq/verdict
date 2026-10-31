@@ -564,3 +564,19 @@ test("one-shot /judge waits for finality and returns the card", async () => {
     h.close();
   }
 });
+
+test("guard: cases opened on-chain by anyone else (e.g. a web visitor's burner account) never reach the relayer's gallery or GET /cases/:id", async () => {
+  const h = await harness();
+  try {
+    const o = await openAndJudge(h);
+    const mine = h.chain.cases.get(o.id)!;
+    // Someone else opened case 99 directly on the contract: same shape, not opened through this relayer.
+    h.chain.cases.set(99, { ...mine, id: 99, package_digest: "ab".repeat(32) });
+    h.chain.listRecent = async () => [...h.chain.cases.values()];
+    const g = await h.get("/cases");
+    assert.deepEqual(g.json.cases.map((c: { id: number }) => c.id), [o.id], "gallery: relayer-opened, moderated cases only");
+    assert.equal((await h.get("/cases/99")).status, 404);
+  } finally {
+    h.close();
+  }
+});

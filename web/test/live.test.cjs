@@ -130,6 +130,71 @@ async function main() {
     await ctx.close();
   }
 
+  // Hostile chain text. The RPC is blocked and snapshot.json is replaced by a
+  // stub, so the page renders exactly these get_case results.
+  {
+    const ctx = await browser.newContext({ viewport: { width: 375, height: 812 } });
+    const page = await ctx.newPage();
+    page.on("pageerror", (e) => errors.push(`xss: ${e.message}`));
+    page.on("dialog", (d) => {
+      errors.push(`xss: dialog opened (${d.message()})`);
+      d.dismiss();
+    });
+    const IMG = `<img src=x onerror="window.__xss=1;alert(1)">`;
+    const base = (id, extra) => ({
+      id, surface: "settle", status: "judged", tier: 2, jurors: 7, winner_index: 0, scores: [70, 30],
+      juror_votes: [0, 0, 0, 0, 0, 1, 0], split: "6-1", created_at: "2026-10-31T19:00:00Z", updated_at: "2026-10-31T19:01:00Z",
+      package_digest: "a".repeat(64), request_key: "r".repeat(16), provenance: [{ entry_source: "participant_submitted", assurance: "self_asserted" }],
+      appeal_deadline: "", revoked_by: -1, confirmed_tier: 2, juror_names: ["Marlowe", "Dahlia", "Frank", "Tiff", "Theo", "Augustine", IMG],
+      creator: `0x${"1".repeat(40)}${IMG}`, ...extra,
+    });
+    const stub = {
+      snapshotAt: "2026-10-31T19:00:00Z", contract: "0x7DBc10d8922A5Ba498007D212F2088872F2aCe06",
+      pin: { state: "match", digest: "3ef39cc8a02f7c2bdbf3f3b7d19340622439a381192ced7cbcd799232139ea25" },
+      config: { owner: IMG, paused: false, next_id: 4, tier_jurors: { 1: 5, 2: 7, 3: 9 } },
+      cases: [
+        base(901, {
+          rubric: `Custom ${IMG}`, entries: [`Take one ${IMG}`, `<script>window.__xss=2</script><svg onload="window.__xss=3">`],
+          reason: `<a href="javascript:window.__xss=4">click</a>`, history: [{ tier: 1, split: "5-0", winner_index: 0, reason: IMG, at: "x" }],
+        }),
+        base(902, { rubric: "Who's right? Pick the entry.", entries: ["mail me at someone@example.com", "fine"], reason: "ok", history: [] }),
+        base(3, { rubric: "Pettiest text. Pick.", entries: ["operator-hidden text one", "two"], reason: "r", history: [] }),
+      ],
+    };
+    await page.route("https://studio.genlayer.com/**", (r) => r.abort());
+    await page.route("**/verdict/snapshot.json", (r) => r.fulfill({ contentType: "application/json", body: JSON.stringify(stub) }));
+    await step("escaping: hostile chain strings render as text, never as HTML", async () => {
+      await page.goto(url, { waitUntil: "domcontentloaded" });
+      await page.waitForSelector('.case[data-case-id="901"] .split', { timeout: 60_000 });
+      await page.waitForTimeout(500);
+      assert.equal(await page.evaluate(() => window.__xss), undefined, "injected script ran");
+      assert.equal(await page.locator("#cases img, #cases script, #cases svg, #facts img, #cases a[href^='javascript']").count(), 0, "chain text became elements");
+      const t = await page.locator('.case[data-case-id="901"]').textContent();
+      assert.ok(t.includes(`Take one ${IMG}`), "hostile entry text not shown literally");
+      assert.ok(t.includes("<script>window.__xss=2</script>"), "script text not shown literally");
+    });
+    await step("display filter: flagged text hidden, numbers/receipt/txs kept", async () => {
+      const c = page.locator('.case[data-case-id="902"]');
+      const t = await c.textContent();
+      assert.ok(t.includes("Hidden by VERDICT's display filter"), "no filter label");
+      assert.ok(!/null/.test(t.replace(/[a-f0-9]{64}/g, "")), "stray null rendered");
+      assert.ok(!t.includes("someone@example.com") && !t.includes("fine"), "flagged case leaked text");
+      assert.equal(await c.locator(".split").innerText(), "6-1");
+      assert.ok(t.includes("a".repeat(64)), "receipt number missing");
+      assert.ok((await c.locator(".entry .sc").count()) === 2, "scores missing");
+      assert.equal(await c.locator(".hiddennote").getAttribute("data-hidden"), "filter");
+    });
+    await step("hidden-cases.json: operator-hidden case shows no text", async () => {
+      const c = page.locator('.case[data-case-id="3"]');
+      const t = await c.textContent();
+      assert.equal(await c.locator(".hiddennote").getAttribute("data-hidden"), "operator");
+      assert.ok(!t.includes("operator-hidden text one"), "operator-hidden case leaked text");
+      assert.equal(await c.locator(".split").innerText(), "6-1");
+    });
+    await page.screenshot({ path: path.join(OUT, "safety-375.png"), fullPage: true });
+    await ctx.close();
+  }
+
   if (process.env.VERDICT_WEB_WRITE === "1") {
     const ctx = await browser.newContext({ viewport: { width: 375, height: 812 }, deviceScaleFactor: 2 });
     const page = await ctx.newPage();

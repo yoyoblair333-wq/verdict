@@ -51,6 +51,15 @@ for (const t of run.transactions ?? []) {
   if (cur === null) continue;
   (cases[cur] ??= []).push({ fn: t.fn, hash: t.hash });
 }
+// Operator hidden list (src/hidden-cases.json) + takedowns recorded in the run.
+const hc = JSON.parse(await readFile(path.join(web, "src/hidden-cases.json"), "utf8"));
+if (String(hc.contract).toLowerCase() !== String(run.contract).toLowerCase()) throw new Error("hidden-cases.json is for another contract");
+const hidden = [];
+for (const x of hc.hidden ?? []) {
+  if (!Number.isSafeInteger(x.id) || x.id < 1) throw new Error(`hidden-cases.json: bad id ${JSON.stringify(x.id)}`);
+  hidden.push({ id: x.id, reason: typeof x.reason === "string" ? x.reason : "" });
+}
+for (const id of takenDown) if (!hidden.some((x) => x.id === id)) hidden.push({ id, reason: "" });
 const evidence = {
   source: "docs/live/studionet-run.json",
   network: run.network,
@@ -58,6 +67,7 @@ const evidence = {
   recordedAt: run.startedAt,
   cases,
   takenDown,
+  hidden,
 };
 await writeFile(path.join(dist, "evidence.json"), JSON.stringify(evidence, null, 2));
-console.log(`evidence.json: ${Object.keys(cases).length} cases, ${Object.values(cases).flat().length} txs, takenDown=${JSON.stringify(takenDown)}`);
+console.log(`evidence.json: ${Object.keys(cases).length} cases, ${Object.values(cases).flat().length} txs, hidden=${JSON.stringify(hidden.map((x) => x.id))}`);

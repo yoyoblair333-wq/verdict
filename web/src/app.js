@@ -8,6 +8,7 @@ import { transactionsStatusNumberToName } from "genlayer-js/types";
 import * as C from "./config.js";
 import { buildPackage, localCheck, preflight, randomRequestKey, sha256Hex } from "./lib/package.js";
 import { classifyTx, revertReason, voteSummary } from "./lib/finality.js";
+import { hideDecision } from "./lib/display.js";
 
 const NUM_TO_NAME = transactionsStatusNumberToName;
 const TIER_NAME = { 1: "Verdict", 2: "Appeals Court", 3: "Supreme Court" };
@@ -103,7 +104,7 @@ const state = {
   pin: null, // {state, digest}
   source: null, // {kind: "live"|"snapshot", at}
   evidence: {}, // caseId -> [{fn, hash}]
-  takenDown: [], // case ids hidden after an off-chain takedown (still on-chain)
+  hidden: [], // [{id, reason}]: operator list (src/hidden-cases.json) + recorded takedowns
   cases: [],
 };
 
@@ -133,7 +134,7 @@ async function loadEvidence() {
       const j = await r.json();
       if (j.contract?.toLowerCase() === C.CONTRACT_ADDRESS.toLowerCase()) {
         state.evidence = j.cases ?? {};
-        state.takenDown = Array.isArray(j.takenDown) ? j.takenDown : [];
+        state.hidden = Array.isArray(j.hidden) ? j.hidden : [];
       }
     }
   } catch {
@@ -279,21 +280,25 @@ async function checkTx(hash, st) {
   }
 }
 
+// Every chain string below goes through h(), which appends text nodes and
+// uses setAttribute: nothing from the chain is ever parsed as HTML.
 function caseCard(c) {
+  const hide = hideDecision(c, state.hidden);
   const n = c.entries?.length ?? 0;
   const judged = c.winner_index >= 0;
   const body = h("div", { class: "casebody" });
-  body.append(h("p", { class: "rubric" }, h("b", {}, rubricLabel(c)), ` · ${SURFACE_NAME[c.surface] ?? c.surface} · opened ${fmtTime(c.created_at)}`));
+  body.append(h("p", { class: "rubric" }, h("b", {}, hide ? "Text hidden" : rubricLabel(c)), ` · ${SURFACE_NAME[c.surface] ?? c.surface} · opened ${fmtTime(c.created_at)}`));
+  if (hide) body.append(h("p", { class: "hiddennote", "data-hidden": hide.kind }, h("b", {}, hide.label), h("br"), hide.note));
 
   if (c.status === "revoked") {
     body.append(h("p", { class: "reason" }, `Revoked by side ${letter(c.revoked_by)}: the takes were cleared from contract state.`));
   } else if (judged) {
     body.append(
-      h("div", { class: "verdictline" },
+      ...[h("div", { class: "verdictline" },
         h("span", { class: "split" }, c.split),
         h("span", { class: "who" }, `Take ${letter(c.winner_index)} wins`, h("small", {}, `${c.jurors} jurors · ${TIER_NAME[c.tier]}`)),
       ),
-      h("p", { class: "reason" }, `“${c.reason}”`),
+      hide ? null : h("p", { class: "reason" }, `“${c.reason}”`)].filter(Boolean),
     );
   } else {
     body.append(h("p", { class: "reason" }, c.status === "stale" ? "Expired before it was judged." : "Waiting for the jury."));
@@ -305,7 +310,7 @@ function caseCard(c) {
         c.entries.map((text, i) =>
           h("div", { class: `entry ${judged && i === c.winner_index ? "win" : ""}` },
             h("span", { class: "lt" }, letter(i)),
-            h("span", { class: "tx" }, text),
+            hide ? h("span", { class: "tx muted" }, "Text hidden") : h("span", { class: "tx" }, text),
             judged ? h("span", { class: "sc" }, score(c.scores?.[i]), h("small", {}, "mean")) : null,
           ),
         ),
@@ -328,7 +333,7 @@ function caseCard(c) {
         ladder.map((x) =>
           h("li", { class: x.cur ? "cur" : "" },
             h("b", {}, `${TIER_NAME[x.tier] ?? `Tier ${x.tier}`} · ${x.split} for ${letter(x.winner_index)}`),
-            h("span", { class: "r" }, x.reason),
+            hide ? null : h("span", { class: "r" }, x.reason),
           ),
         ),
       ),
@@ -359,7 +364,7 @@ function caseCard(c) {
   body.append(det);
 
   const card = h("article", { class: "case", "data-case-id": c.id },
-    h("div", { class: "casehead" }, h("span", { class: "no" }, `Case #${c.id}`), h("span", { class: "chips" }, statusChips(c))),
+    h("div", { class: "casehead" }, h("span", { class: "no" }, `Case #${c.id}`), h("span", { class: "chips" }, hide ? h("span", { class: "chip" }, "hidden") : null, statusChips(c))),
     body,
   );
   return card;
@@ -377,15 +382,6 @@ function renderCases() {
     return;
   }
   for (const c of state.cases) {
-    if (state.takenDown.includes(c.id)) {
-      box.append(
-        h("article", { class: "case", "data-case-id": c.id },
-          h("div", { class: "casehead" }, h("span", { class: "no" }, `Case #${c.id}`), h("span", { class: "chips" }, h("span", { class: "chip" }, "hidden"))),
-          h("div", { class: "casebody" }, h("p", { class: "meta" }, "Hidden from VERDICT's gallery after a takedown request. The text remains in the public blockchain's history and cannot be erased.")),
-        ),
-      );
-      continue;
-    }
     box.append(caseCard(c));
   }
 }

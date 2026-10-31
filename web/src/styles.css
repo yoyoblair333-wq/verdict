@@ -158,3 +158,5 @@ footer{margin:44px 0 28px;padding-top:14px;border-top:1px solid var(--line);font
   .entries{grid-template-columns:1fr 1fr}
   .split{font-size:80px}
 }
+.hiddennote{border-left:4px solid var(--fg);padding:6px 10px;margin:0 0 12px;font-size:14px;overflow-wrap:anywhere}
+.tx.muted{color:var(--muted);font-style:italic}

@@ -6,12 +6,13 @@
 //
 // Usage: node scripts/snapshot.mjs   (behind a proxy: NODE_USE_ENV_PROXY=1)
 import { createHash } from "node:crypto";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createClient } from "genlayer-js";
 import { studionet } from "genlayer-js/chains";
 import { CONTRACT_ADDRESS, CONTRACT_CODE_DIGEST, RPC_URL } from "../src/config.js";
+import { hideDecision, redactCase } from "../src/lib/display.js";
 
 const dist = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../dist");
 const client = createClient({ chain: studionet, endpoint: RPC_URL });
@@ -38,8 +39,23 @@ async function withRetry(fn, tries = 4) {
 
 const config = await withRetry(() => view("get_config"));
 const recent = await withRetry(() => view("list_recent", [50, ""]));
+// Same display filter as the page: a hidden or flagged case is stored with
+// its text removed, so the published JSON never carries it either.
+let hidden = [];
+try {
+  hidden = JSON.parse(await readFile(path.join(dist, "evidence.json"), "utf8")).hidden ?? [];
+} catch {
+  hidden = JSON.parse(await readFile(path.join(dist, "../src/hidden-cases.json"), "utf8")).hidden ?? [];
+}
 const cases = [];
-for (const row of recent) cases.push(await withRetry(() => view("get_case", [row.id])));
+let redacted = 0;
+for (const row of recent) {
+  const c = await withRetry(() => view("get_case", [row.id]));
+  if (hideDecision(c, hidden)) {
+    cases.push(redactCase(c));
+    redacted++;
+  } else cases.push(c);
+}
 const code = await withRetry(() => client.getContractCode(CONTRACT_ADDRESS));
 const digest = createHash("sha256").update(code, "utf8").digest("hex");
 
@@ -53,4 +69,4 @@ const snap = {
 };
 await mkdir(dist, { recursive: true });
 await writeFile(path.join(dist, "snapshot.json"), JSON.stringify(snap, null, 2));
-console.log(`snapshot.json: ${cases.length} cases at ${snap.snapshotAt}, pin ${snap.pin.state}`);
+console.log(`snapshot.json: ${cases.length} cases (${redacted} redacted) at ${snap.snapshotAt}, pin ${snap.pin.state}`);

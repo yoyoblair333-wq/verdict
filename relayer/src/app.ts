@@ -174,7 +174,7 @@ export function buildApp(deps: Deps): VerdictApp {
   const inbox = deps.inbox ?? new Inbox(cfg.inboxPath);
   const fees = new FeesJournal(cfg.feesPath);
   const pipeline = new Pipeline({ cfg, chain, outbox, clock, fees, ...(deps.sleep ? { sleep: deps.sleep } : {}) });
-  const live = cfg.mode === "live";
+  const live = true;
 
   // Off-chain metadata. In-memory for the reference implementation.
   // Durable (file-backed) off-chain state: survives restarts.
