@@ -281,14 +281,14 @@ footer{margin:40px 0 28px;padding-top:14px;border-top:1px solid var(--line);font
       <div class="slips">
         <div class="slip">
           <span class="vs" aria-hidden="true">Side A</span>
-          <input id="nameA" maxlength="16" placeholder="Your first name or handle" aria-label="Side A first name or handle" autocomplete="off">
+          <input id="nameA" maxlength="16" placeholder="Your @username" aria-label="Side A @username" autocomplete="off">
           <textarea id="takeA" maxlength="280" placeholder="Your side of it." aria-label="Side A take"></textarea>
           <div class="count" id="countA" aria-live="polite">0/280</div>
           <label class="consent"><input type="checkbox" id="consentA"><span>My take becomes public on GenLayer and can’t be erased from the chain. I can withdraw before the verdict is final.</span></label>
         </div>
         <div class="slip">
           <span class="vs" aria-hidden="true">Side B</span>
-          <input id="nameB" maxlength="16" placeholder="Their first name or handle" aria-label="Side B first name or handle" autocomplete="off">
+          <input id="nameB" maxlength="16" placeholder="Their @username" aria-label="Side B @username" autocomplete="off">
           <textarea id="takeB" maxlength="280" placeholder="Their side of it." aria-label="Side B take"></textarea>
           <div class="count" id="countB" aria-live="polite">0/280</div>
           <label class="consent"><input type="checkbox" id="consentB"><span>My take becomes public on GenLayer and can’t be erased from the chain. I can withdraw before the verdict is final.</span></label>
@@ -311,9 +311,11 @@ footer{margin:40px 0 28px;padding-top:14px;border-top:1px solid var(--line);font
     <p class="overruled" id="overruledBanner" role="status" hidden>The network overruled the preview.</p>
     <p class="pubfoot" id="pubFoot" hidden><span class="simtag">Simulated</span>The live card footer reads: Checked by GenLayer · Finalized, with the network’s receipt number.</p>
     <div class="publish" id="publishBox" hidden>
-      <p class="pubhead"><strong>This is a Quick Verdict: a private preview.</strong> It isn’t public and isn’t checked by the network. Publish it and the network re-hears the case; its ruling replaces this preview. Publishing is free (3 a day) and isn’t an appeal. You both have to agree.</p>
+      <p class="pubhead"><strong>This is a Quick Verdict: a private preview.</strong> It isn’t public and isn’t checked by the network. Publish it and the network re-hears the case; its ruling replaces this preview. Publishing is free (3 a day) and isn’t an appeal. You both have to agree, each on your own device.</p>
       <label class="consent"><input type="checkbox" id="pubConsentA"><span id="pubConsentAText">Side A: our takes become public and permanent.</span></label>
-      <label class="consent"><input type="checkbox" id="pubConsentB"><span id="pubConsentBText">Side B: our takes become public and permanent.</span></label>
+      <p class="note" id="inviteNote">Side B agrees on their own device. Send them their one-time invite link: it opens their private copy of both takes and the preview. Nobody else can agree for them.</p>
+      <button class="btn2" id="inviteBtn" type="button">Send side B the invite <span class="simtag">Simulated</span></button>
+      <label class="consent" id="pubConsentBRow" style="display:none"><input type="checkbox" id="pubConsentB"><span id="pubConsentBText">Side B, on their own device: our takes become public and permanent.</span></label>
       <button class="btn2 appeal" id="publishBtn" type="button">Publish</button>
       <p class="note wait" id="publishWait" role="status" hidden></p>
       <p class="note"><span class="simtag">Simulated</span>In this prototype the network’s re-hearing runs in your browser.</p>
@@ -336,7 +338,7 @@ footer{margin:40px 0 28px;padding-top:14px;border-top:1px solid var(--line);font
 
   <footer>
     <span>Prototype: votes here are simulated in your browser. The live version runs the jury in a GenLayer Intelligent Contract.</span>
-    <span>18+ only. Rulings are for fun, not advice. Use first names or handles, never anyone's full name.</span>
+    <span>18+ only. Rulings are for fun, not advice. Use @usernames, never anyone's real name.</span>
   </footer>
   </div>
 <!-- GAMES-HTML:BEGIN -->
@@ -586,8 +588,8 @@ const RUBRICS = [
 
 const CASE_OF_DAY = {
   title:'The leftovers', rubric:'right',
-  a:{name:'Priya',  take:"My roommate ate my leftover pad thai and said \"it was going bad anyway.\" I made it Sunday. It was Tuesday. I had plans for that pad thai."},
-  b:{name:'Marcus', take:"If it's in the shared fridge 3 days with no name on it, it's community property. Label your food or donate it to the cause. I was saving it from the trash."}
+  a:{name:'@padthai_owner',  take:"My roommate ate my leftover pad thai and said \"it was going bad anyway.\" I made it Sunday. It was Tuesday. I had plans for that pad thai."},
+  b:{name:'@fridge_lawyer', take:"If it's in the shared fridge 3 days with no name on it, it's community property. Label your food or donate it to the cause. I was saving it from the trash."}
 };
 
 /* ---------- icons ---------- */
@@ -1108,9 +1110,13 @@ function showResult(){
 
 function syncPublish(){
   if(!current) return;
-  const {a, b} = current.c, ca = $('#pubConsentA').checked, cb = $('#pubConsentB').checked;
+  const {a, b} = current.c, ca = $('#pubConsentA').checked, cb = !!current.bJoined && $('#pubConsentB').checked;
   $('#pubConsentAText').textContent = `${a.name}: our takes become public and permanent.`;
-  $('#pubConsentBText').textContent = `${b.name}: our takes become public and permanent.`;
+  $('#pubConsentBText').textContent = `${b.name}, on their own device: our takes become public and permanent.`;
+  // Side B's consent exists only after side B opened its own one-time invite (relayer POST /quick/:id/join).
+  $('#pubConsentBRow').style.display = current.bJoined ? '' : 'none';
+  $('#inviteBtn').style.display = current.bJoined ? 'none' : '';
+  $('#inviteNote').textContent = current.bJoined ? `${b.name} joined with their own invite.` : `${b.name} agrees on their own device. Send them their one-time invite link: it opens their private copy of both takes and the preview. Nobody else can agree for them.`;
   const left = PUBLISH_CAP - publishesToday();
   const btn = $('#publishBtn'), wait = $('#publishWait');
   btn.disabled = left <= 0;
@@ -1119,16 +1125,18 @@ function syncPublish(){
     const missing = ca ? b.name : cb ? a.name : `${a.name} and ${b.name}`;
     btn.textContent = `Waiting for ${missing}…`;
     wait.hidden = false;
-    wait.textContent = (ca || cb) ? `Waiting for ${missing} to accept. Nothing is published yet.` : 'Consent withdrawn. Nothing was published.';
+    wait.textContent = (ca && !current.bJoined) ? `Waiting for ${b.name} to open their invite and accept. Nothing is published yet.` : (ca || cb) ? `Waiting for ${missing} to accept. Nothing is published yet.` : 'Consent withdrawn. Nothing was published.';
   } else {
     btn.textContent = ca && cb ? 'Publish: both agreed' : 'Publish';
     wait.hidden = true;
   }
 }
 ['#pubConsentA','#pubConsentB'].forEach(id => $(id).addEventListener('change', syncPublish));
+// Simulated: on the live version side B opens the invite link on their own device.
+$('#inviteBtn').addEventListener('click', () => { if(!current) return; current.bJoined = true; syncPublish(); });
 $('#publishBtn').addEventListener('click', async () => {
   if(!current || current.published) return;
-  const ca = $('#pubConsentA').checked, cb = $('#pubConsentB').checked;
+  const ca = $('#pubConsentA').checked, cb = !!current.bJoined && $('#pubConsentB').checked;
   if(!ca && !cb){ current.publishAsked = false; const w = $('#publishWait'); w.hidden = false; w.textContent = 'Tick your consent first. Nothing is published without both of you.'; return; }
   current.publishAsked = true;
   if(!(ca && cb)){ syncPublish(); return; } // Publish waits for the other side
@@ -1179,7 +1187,7 @@ function backToCompose(){
   $('#result').classList.remove('on'); $('#declined').classList.remove('on');
   $('#compose').style.display = ''; scrollTo(0,0);
 }
-$('#newBtn').addEventListener('click', () => { backToCompose(); current = null; $('#pubConsentA').checked = false; $('#pubConsentB').checked = false; });
+$('#newBtn').addEventListener('click', () => { backToCompose(); current = null; $('#pubConsentA').checked = false; $('#pubConsentB').checked = false; $('#pubConsentBRow').style.display = 'none'; $('#inviteBtn').style.display = ''; });
 $('#declinedBack').addEventListener('click', backToCompose);
 $('#home').addEventListener('click', e => { e.preventDefault(); backToCompose(); });
 

@@ -272,3 +272,10 @@ test("app: Settle It flow still present", () => {
     assert.ok(!/fetch\(|XMLHttpRequest|sendBeacon/.test(html.slice(html.indexOf("function syncPublish"), html.indexOf("$('#appealBtn').addEventListener"))), "the simulated publish makes no network call");
   }
 });
+
+test("assertQuickHonest: the queue's future tense ('to be checked by the network') is not a claim; the past tense still is", async () => {
+  const { QUEUED_MESSAGE } = await import("../../src/lib/publishBudget.js");
+  assert.doesNotThrow(() => assertQuickHonest({ message: QUEUED_MESSAGE }));
+  assert.throws(() => assertQuickHonest({ message: "This was checked by the network." }));
+  assert.throws(() => assertQuickHonest({ message: "Finalized on GenLayer" }));
+});

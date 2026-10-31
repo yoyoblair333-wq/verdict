@@ -793,6 +793,7 @@ export function registerQuickRoutes(app: Express, ctx: QuickCtx): void {
         send(res, 200, quickFrame({
           ...common, outcome: "stopped_at_door", ruling: "SUS", stamp: "SUS", tally: null, tally_text: null, bench: null,
           flags: flags.map((c) => ({ code: c, label: FLAG_CODES[c] })),
+          warn_ticket: issueTicket("SUS", flags, text), warn_ticket_expires_in_sec: RULING_TICKET_TTL_MS / 1000,
           subline: "This message contains instructions aimed at an AI, so the jury didn't read it.", next_step: RULING_COPY.SUS.next,
         }));
         return;
@@ -816,6 +817,8 @@ export function registerQuickRoutes(app: Express, ctx: QuickCtx): void {
         tally_text: r.tallyText,
         forced_by: r.forcedBy,
         flags: r.flags.map((c) => ({ code: c, label: FLAG_CODES[c] })),
+        // Only a SCAM or SUS ruling can be offered "Help warn others" (ADR-020).
+        ...(r.ruling === "SCAM" || r.ruling === "SUS" ? { warn_ticket: issueTicket(r.ruling, r.flags, text), warn_ticket_expires_in_sec: RULING_TICKET_TTL_MS / 1000 } : {}),
         what_still_to_check: r.ruling === "LOOKS LEGIT" ? STILL_TO_CHECK : [],
         standing_line: r.ruling === "LOOKS LEGIT" ? LEGIT_STANDING : null,
         subline: RULING_COPY[r.ruling].subline,
@@ -827,9 +830,13 @@ export function registerQuickRoutes(app: Express, ctx: QuickCtx): void {
 
   // ------------------------------------------- Scam Pattern Ledger (opt-in)
   // "Help warn others" after a SCAM or SUS ruling (default off). The browser
-  // re-sends its own redacted text; the relayer redacts it twice more and holds
-  // it only for this request (ADR-021 item 8). Only an abstract pattern record
-  // can reach the chain: never the message, the sender or the user.
+  // re-sends the redacted text /redflag returned plus that ruling's warn_ticket.
+  // The ruling and flags come ONLY from the server-signed ticket (ADR-020 item 2,
+  // V-PL-02; AUDIT-2 P1-4); a client-sent ruling or flag that the ticket does not
+  // carry is refused. The ticket is bound to the text's hash, expires after 15
+  // minutes and works once. The relayer redacts the text twice more and holds it
+  // only for this request (ADR-021 item 8). Only an abstract pattern record can
+  // reach the chain: never the message, the sender or the user.
   app.post(
     "/redflag/warn",
     wrap(async (req, res) => {
@@ -839,9 +846,20 @@ export function registerQuickRoutes(app: Express, ctx: QuickCtx): void {
       if (body.optIn !== true) throw new HttpError(422, "optIn must be exactly true: warning others is opt-in", { code: "opt_in_required" });
       if (typeof body.text !== "string" || body.text.trim() === "") throw new HttpError(400, "text must be the redacted message, as a non-empty string");
       if (measure(redact(body.text).text) > RED_FLAG_MAX_CHARS) throw new HttpError(400, `text exceeds ${RED_FLAG_MAX_CHARS} characters`);
-      if (typeof body.ruling !== "string" || !PATTERN_RULINGS.includes(body.ruling as Ruling)) throw new HttpError(400, "ruling must be SCAM, SUS or LOOKS LEGIT");
-      if (!Array.isArray(body.flags) || !body.flags.every((f) => typeof f === "string") || body.flags.length > 32) throw new HttpError(400, "flags must be an array of flag codes");
+      // Optional echo of the ruling and flags: allowed only if the ticket says the same.
+      if (body.ruling !== undefined && (typeof body.ruling !== "string" || !PATTERN_RULINGS.includes(body.ruling as Ruling))) throw new HttpError(400, "ruling must be SCAM, SUS or LOOKS LEGIT");
+      if (body.flags !== undefined && (!Array.isArray(body.flags) || !body.flags.every((f) => typeof f === "string") || body.flags.length > 32)) throw new HttpError(400, "flags must be an array of flag codes");
       const provider = needProvider();
+      const t = redeemTicket(body.ticket, body.text.trim());
+      const unredeem = () => usedTickets.delete(t.nonce);
+      if (body.ruling !== undefined && body.ruling !== t.ruling) {
+        unredeem();
+        throw new HttpError(422, "ruling does not match the server's ruling for this text", { code: "ruling_mismatch" });
+      }
+      if (Array.isArray(body.flags) && !(body.flags as string[]).every((f) => t.flags.includes(f))) {
+        unredeem();
+        throw new HttpError(422, "flags must come from the server's ruling for this text", { code: "flags_mismatch" });
+      }
       const out = await submitPattern(
         {
           mode: pw.cfg.mode,
@@ -849,11 +867,15 @@ export function registerQuickRoutes(app: Express, ctx: QuickCtx): void {
           ...(pw.chain ? { chain: pw.chain } : {}),
           limiter: pw.limiter,
           userKey: accountKey(req),
+          sightings,
+          sightingUser: stableKey(req),
           clock,
         },
-        { ruling: body.ruling as Ruling, flags: body.flags as string[], text: body.text },
+        { ruling: t.ruling, flags: t.flags, text: body.text },
         true,
       );
+      // Our own technical failures give the ticket back, so the user can try again.
+      if (out.status === "summary_failed" || out.status === "submit_failed") unredeem();
       const status = PATTERN_HTTP[out.status];
       switch (out.status) {
         case "skipped":
@@ -866,6 +888,10 @@ export function registerQuickRoutes(app: Express, ctx: QuickCtx): void {
           res.status(status).json({ status: out.status, error: "we couldn't write a safe summary of this pattern; nothing was recorded" });
           return;
         case "rejected_locally":
+          if (out.reason === "duplicate_user") {
+            res.status(status).json({ status: out.status, reason: out.reason, code: "pattern_duplicate_user", error: "you already warned others about this pattern in the last 30 days; nothing new was recorded" });
+            return;
+          }
           res.status(status).json({ status: out.status, reason: out.reason, error: "the summary failed the privacy screen; nothing was recorded" });
           return;
         case "shadow":
@@ -896,7 +922,14 @@ export function registerQuickRoutes(app: Express, ctx: QuickCtx): void {
       } catch (e) {
         throw new HttpError(502, `the pattern ledger could not be read: ${(e as Error).message}`);
       }
-      res.json({ title: "Scams going around", since, days, mode: ctx.pattern!.cfg.mode, patterns: Array.isArray(patterns) ? patterns : [], proof_line: "Recorded on GenLayer" });
+      // "Recorded on GenLayer" only in live mode, on a ledger read that succeeded (ADR-020
+      // items 9 and 13; AUDIT-2 P2-2). SHADOW says it is a test run instead.
+      const live = ctx.pattern!.cfg.mode === "live";
+      res.json({
+        title: "Scams going around", since, days, mode: ctx.pattern!.cfg.mode, patterns: Array.isArray(patterns) ? patterns : [],
+        proof_line: live ? "Recorded on GenLayer" : null,
+        ...(live ? {} : { label: ctx.shadowLabel }),
+      });
     }),
   );
 

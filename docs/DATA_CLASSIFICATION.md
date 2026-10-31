@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Document | `docs/DATA_CLASSIFICATION.md` |
-| Version | v1.2 |
+| Version | v1.3 |
 | Date | 2026-10-31 |
 | Owner | Specifications lead |
 | Status | Approved baseline |
-| Implements | `docs/SPEC.md` V-PRIV-01 to V-PRIV-12, V-SEC-02, -03, -07, -09, -10, -15; v1.1: V-QV-01, -05, -07, V-RF-05, -06, -09, -13, V-JB-01, -03 to -06, -11 (ADR-013 to ADR-015); v1.2: V-PUB-01, -03, -06, -14, V-PL-01 to -04, -13 to -15 (ADR-019, ADR-020) |
+| Implements | `docs/SPEC.md` V-PRIV-01 to V-PRIV-12, V-SEC-02, -03, -07, -09, -10, -15; v1.1: V-QV-01, -05, -07, V-RF-05, -06, -09, -13, V-JB-01, -03 to -06, -11 (ADR-013 to ADR-015); v1.2: V-PUB-01, -03, -06, -14, V-PL-01 to -04, -13 to -15 (ADR-019, ADR-020); v1.3: V-PL-17, V-PUB-18, V-SEC-20, V-WEB-01 to -05 (ADR-023) |
 
 ---
 
@@ -209,6 +209,20 @@ Anything an entry's author types into an entry is public once the case reaches P
 | Private-run records on the localnet (C10, before counsel sign-off) | CONFIDENTIAL | Practice court localnet | Wiped at each review cycle | Operator, counsel, security reviewer |
 | Weekly digest "Scams going around" (codes, category, summary, sightings, receipt) | Public (after G-PL) | CMS / web | Indefinite | Public |
 
+### 4.13 AUDIT-2 fixes and the public web app (v1.3, ADR-023)
+
+The first four rows describe fixes that are in progress (SPEC status IP). They are listed now so the fixes collect nothing this document does not allow (rule 1).
+
+| Element | Class | Stored where | Retention | Who can read |
+|---|---|---|---|---|
+| Red Flag ruling ticket: HMAC over (ruling, flag codes, expiry), V-PL-17 | CONFIDENTIAL, transient. Holds no message text, hash of the message, user id or IP | The browser that received the `/redflag` response; verified statelessly by the relayer | Until `RULING_TICKET_TTL` expires | The user's browser, the relayer |
+| Ticket signing key | **SECRET** | Secret manager | Rotated on suspected exposure (rule 5) | Relayer process only |
+| Side B invite token (Quick Verdict), V-PUB-18 | **SECRET** (a side token: the side-token rows in §4.3 apply, so only its SHA-256 is stored; claimable once) | Relayer DB (hash); the invite link's URL fragment | As other side tokens | Holder of the link; relayer compares hashes |
+| API key identity used for caps, V-SEC-20 | Keys are **SECRET**; counters key on the hashed, validated key or on HMAC(IP) | Relayer memory / DB | Counter: 48 h | Relayer |
+| Web visitor burner key (per browser), C12 | **SECRET** to that visitor | The visitor's browser storage only. VERDICT never receives it | Until the visitor clears site data | The visitor |
+| Visitor-opened case: package, texts, self-asserted consent, 18+, moderation and provenance | **PUBLIC-ON-CHAIN**, self-asserted. VERDICT holds no consent record for it and cannot take it down from the chain | `JudgeRouter` | Permanent | Public. The web app shows it only with the visitor label (V-WEB-01) or hides it |
+| Operator hide list `hidden-cases.json` (case id, reason) | Public (shipped with the static site). The reason MUST NOT quote the hidden text or name anyone | `web/` build | Indefinite | Public |
+
 ## 5. Handling rules that apply to every class
 
 1. A data element not listed here MUST NOT be collected until this document lists it (new version, change log line).
@@ -220,12 +234,14 @@ Anything an entry's author types into an entry is public once the case reaches P
 7. (v1.1) Sealed attempts and disclosure reports are readable only by the Security reviewer role, and every access is logged.
 8. (v1.2) Pattern records are the only Red Flag-derived data that may go on-chain. They go only through `PatternLedger`'s fixed fields, and only after counsel sign-off (V-PL-13). Rule 6 still holds: no word a non-participant wrote is stored or published.
 9. (v1.2) No store may join a user to a pattern id beyond the 30-day HMAC sighting key. Analytics and logs never hold a pattern id, summary, `request_key` or ledger tx hash (V-PL-15).
-10. (v1.2) Nothing from a preview becomes public except through Publish with both sides' `publish-onchain-v1` consent.
+10. (v1.2) Nothing from a preview becomes public except through Publish with both sides' `publish-onchain-v1` consent. *(v1.3)* Until V-PUB-18 is verified, one caller can hold both side tokens, so this is link-holder consent (THREAT_MODEL T68).
+11. (v1.3) A visitor-opened case is not VERDICT's data and carries no VERDICT consent record. VERDICT's pages MUST NOT present it as checked (ADR-023); the only control VERDICT has is not to show it.
 
 ## 6. Change log
 
 | Version | Date | Change |
 |---|---|---|
+| v1.3 | 2026-10-31 | AUDIT-2 follow-up and ADR-023. Added §4.13: Red Flag ruling ticket and its signing key (V-PL-17), side B invite token (V-PUB-18), validated API-key identity for caps (V-SEC-20), web visitor burner key, visitor-opened cases (public, self-asserted, no VERDICT consent record), and the operator hide list. Rule 10 note (link-holder consent until V-PUB-18) and rule 11. |
 | v1.2 | 2026-10-31 | ADR-019 and ADR-020. Added §4.11 Publish (consents, cap counter, preview winner index, preview votes deleted ≤ 24 h after Tier 1 is final, published record) and §4.12 Scam Pattern Ledger (public pattern-record fields, transient summary inputs, opt-in record without pattern id, 30-day HMAC sighting key, rejection codes, private-run records, digest); PUBLIC-ON-CHAIN rule for pattern records; §4.10 notes; handling rules 8–10. |
 | v1.1 | 2026-10-31 | Added the Security reviewer role; §4.8 Red Flag Court (raw paste never received, message text request-only, ruling records 30 d, flag aggregates 35 d); §4.9 Jailbreak attempts (door/bench 12 months, sealed until patched + 90 d, re-runs public on testnet, disclosure inbox); §4.10 Quick Verdict Settle It cases; analytics forbidden list; handling rules 6–7. |
 | v1.0 | 2026-10-31 | First baseline. Covers the package schema v1 fields, receipt inbox, side tokens, API keys, IPs, credits, payment IDs, Twitch tokens and analytics. |

@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Document | `docs/THREAT_MODEL.md` |
-| Version | v1.3 |
+| Version | v1.4 |
 | Date | 2026-10-31 |
 | Owner | Specifications lead |
 | Status | Approved baseline. Review at every gate in `docs/SPEC.md` §10 and after any incident. |
-| Depends on | `docs/SPEC.md` v1.3 (requirement IDs), `docs/DATA_CLASSIFICATION.md` v1.2, `docs/DECISIONS.md` ADR-013 to ADR-020 |
+| Depends on | `docs/SPEC.md` v1.3.1 (requirement IDs), `docs/DATA_CLASSIFICATION.md` v1.3, `docs/DECISIONS.md` ADR-013 to ADR-023, `AUDIT-2.md` |
 
 **Method.** STRIDE per trust boundary. Likelihood (L) and Impact (I) are High / Medium / Low, judged for the testnet-to-public-launch period. Risk = the higher of the two when either is High, otherwise Medium. "Residual" is what is left after the listed mitigations are in place, not today's state; today's state is the Status column of the cited requirements. Category **H** (v1.2) marks harm, safety and legal threats that sit outside STRIDE but matter as much (misreading, gambling exposure, reputational abuse).
 
@@ -56,6 +56,7 @@
 | AC16 | Ledger poisoner (v1.3): a scammer or their helpers | Untrusted | Seed the Pattern Ledger with fake or skewed patterns so a real scam looks "known" or benign, or so the digest points away from it. |
 | AC17 | Competitor or brand-motivated actor (v1.3) | Untrusted | Farm sightings to push a pattern up the digest or bury another, or tie a category to a rival. |
 | AC18 | Preview winner who doesn't want the network to hear the case (v1.3) | Untrusted | Withhold publish consent so the loser can't appeal. |
+| AC19 | Web visitor with a burner key (v1.4) | Untrusted; writes straight to the contract | Open cases that look checked by VERDICT; flood the public page; publish abuse under the VERDICT brand. |
 
 ## 3. Trust boundaries
 
@@ -71,6 +72,7 @@
 | TB8 | Relayer ↔ moderation provider | entry text (before chain) | provider API key | Third party sees pre-chain text. |
 | TB9 | Relayer ↔ LLM processor (Quick Verdict, C9) | redacted Red Flag text, Quick Verdict takes, prompts | processor API key | Third party sees off-chain text; no-retention terms required. |
 | TB10 | Relayer ↔ practice court localnet (C10) | Jailbreak attempts, house take, practice verdicts | localnet keys | Private network we run; must not be reachable from the internet. |
+| TB11 | Visitor browser (web app C12, burner key) ↔ GenLayer (v1.4) | direct `open_case_package`, `judge`, `appeal`, `confirm_verdict` writes; the page's reads of every case | burner key signature only | Never passes the relayer. Everything a visitor writes is self-asserted (ADR-023). |
 
 *(v1.3)* Publish writes cross TB2 like any case. Pattern Ledger (C11) writes also cross TB2. The summary is generated across TB9.
 
@@ -181,7 +183,7 @@ Format: ID · STRIDE (S spoofing, T tampering, R repudiation, I information disc
 
 | ID | S/T/R/I/D/E/H | TB | Threat | L | I | Mitigations | Residual |
 |---|---|---|---|---|---|---|---|
-| T54 | S/E | TB1 | **Consent forged for the other side:** one person ticks `publish-onchain-v1` for both sides (holding both tokens, a forwarded invite link, or a request body naming the other side), or a relayer bug dispatches on one consent. | M | H | Each consent needs that side's own token or account; side derived from the token, never the body (V-SEC-02, V-PUB-03); dispatch only from CONSENTED with two consent rows (§6.7 P2, P4); package carries `publish-onchain-v1` (V-PRIV-03); consent records kept as evidence (T17). | **Medium.** As T03/T04, possessing an invite link is the authority. One person holding both links can publish their own two takes. |
+| T54 | S/E | TB1 | *(v1.4: the default-path version of this threat is T68.)* **Consent forged for the other side:** one person ticks `publish-onchain-v1` for both sides (holding both tokens, a forwarded invite link, or a request body naming the other side), or a relayer bug dispatches on one consent. | M | H | Each consent needs that side's own token or account; side derived from the token, never the body (V-SEC-02, V-PUB-03); dispatch only from CONSENTED with two consent rows (§6.7 P2, P4); package carries `publish-onchain-v1` (V-PRIV-03); consent records kept as evidence (T17). | **Medium.** As T03/T04, possessing an invite link is the authority. One person holding both links can publish their own two takes. |
 | T55 | D | TB1/TB2 | **Publish-cap abuse costing fees:** sybil accounts, two colluding accounts, or scripted previews made only to be published, so VERDICT pays many Tier 1 fees. | H | M | 3 per user per LA day charged at T4 (V-PUB-06); once per case (V-PUB-02); new-account limits (V-SEC-06); both sides must consent; V-OPS-04 budget breaker queues instead of sending (V-PUB-07); publish cap alerts (`publish_cap_hit`). Testnet fee is $0 (ADR-008). | **Medium**, accepted: cost is bounded per account and by the breaker. Revisit at G-MAINNET with the fee profile. |
 | T56 | H | — | **Preview/network mismatch read as a bug** or as proof the app is rigged ("it told me I won"). | M | M | The card says "The network overruled the preview." (V-PUB-09); the notice says the network's ruling counts (§11a); the preview is private and never circulates (V-PUB-01); trust-page row (§9.10); overrule rate tracked (`preview_overruled`). A rate far above the expected model variance is treated as Quick Verdict/contract drift (V-QV-06). | **Low-Medium.** Some users will still feel cheated, but the copy makes it an expected outcome. |
 | T57 | I | TB9/TB2 | **Pattern summary leaks personal data:** a name, number, brand, place or unusual detail from the paste survives into the summary and becomes public and permanent. | M | H | Two redaction passes (V-RF-05, V-RF-06); LLM instructed to abstract (V-PL-03); deterministic screen in relayer and contract (V-PL-04); validator judgment (a) (V-PL-05); 200-character cap; no public-network write before counsel sign-off, then SHADOW (V-PL-13); G-PL review set of ≥ 200 records with 0 leaks; staff digest review (V-PL-12); rate monitoring (V-PL-16). | **Medium.** Irreversible on-chain; a quasi-identifier (rare job title, small town) can pass every check. Largest new accepted risk. |
@@ -192,6 +194,20 @@ Format: ID · STRIDE (S spoofing, T tampering, R repudiation, I information disc
 | T62 | I | — | **Linking a user to a public pattern:** opt-in, sighting-dedupe or analytics records reveal who reported which pattern (for example who was targeted by a romance scam). | L | M | No user id on-chain (V-PL-02); opt-in record without pattern id (V-PL-01); HMAC sighting key deleted after 30 days (V-PL-14); no pattern id, summary or tx hash in analytics or logs (V-PL-15); random `request_key`. | **Low.** |
 | T63 | H | — | **Affiliation misread:** "Checked by GenLayer" or "Recorded on GenLayer" is read as GenLayer endorsing VERDICT or a verdict. | M | L | Lines scoped (V-PUB-10, V-PL-11); affiliation and "arbitration" claims banned (V-LEGAL-09); positioning in the design brief §3. | **Low.** |
 | T64 | I | — | **Digest re-identification:** a pattern with very few sightings, shown in the digest, is traced back to one person's situation. | L | M | Summary is abstract and screened (T57 mitigations); staff review (V-PL-12); open question SPEC §13 item 11 (minimum sightings to show). | **Low-Medium** until question 11 is decided. |
+
+
+### 4.9 AUDIT-2 findings: caps, ledger input, budget, consent and the web page (v1.4)
+
+Each threat below was found by AUDIT-2 with a working proof of concept. Engineering has a fix in flight for each one. **Status for all six: fixed in code (pending verify).** Until the fix is verified by its acceptance test, treat the "Before the fix" column as today's state.
+
+| ID | S/T/R/I/D/E/H | TB | Threat | L | I | Before the fix | Mitigations (fix in flight) | Status | Residual after the fix |
+|---|---|---|---|---|---|---|---|---|---|
+| T65 | S/D | TB1/TB6 | **Forged API keys bypass per-user caps.** The game routes (`/quick`, `/redflag`, `/redflag/warn`, `/practice/attempts`) used any `x-api-key` as the account identity without checking it, so a random key per request was a fresh account. AUDIT-2 PoC: 15 of 15 Quick Verdicts accepted against a cap of 10; 8 of 8 ledger warnings against a cap of 5. Each call costs an LLM run, and a live ledger warning costs a transaction VERDICT pays for. | H | M | Caps V-RF-15, V-JB-08, V-PL-09 and the Quick Verdict cap are not enforced against a scripted client. | Validate the key against the configured keys before using it as an identity; unknown key → 401; no key → HMAC(IP) (V-SEC-20, V-SEC-06). | **Fixed in code (pending verify).** | **Medium**, as T28/T35: sybil IPs still scale slowly until accounts exist. |
+| T66 | T/S | TB1→TB2 | **Client-forged Red Flag rulings feed the ledger.** `/redflag/warn` took `ruling` and `flags` from the request body, with no link to a real `/redflag` ruling, so anyone could push pattern records or sightings through the relayer without a SCAM or SUS ruling on a real paste. With T65 it was unbounded. Contradicts ADR-020 item 2 and V-PL-02. | H | M | T58 and T59 mitigations that rely on "a ruling on a real paste" do not hold. | `/redflag` returns a short-lived, server-signed ruling ticket; `/redflag/warn` takes ruling and flags only from a valid ticket (V-PL-17). The per-user sighting window (V-PL-14) is still not built. | **Fixed in code (pending verify).** | **Medium** (T58/T59 level) once the ticket ships. Sighting farming stays easier than designed until V-PL-14 is built. |
+| T67 | D/T | TB2 | **Budget double refund.** When a queued publish failed to dispatch, the budget reservation was released twice (once in `dispatch`, again in `requeueFront`). AUDIT-2 PoC: `spent` fell from 180 to 0 while one real publish was still spent. In an RPC outage the 60-second drain loop repeats it, so a month can overspend past the "hard ceiling". | M | M | The ADR-022 ceiling is not hard; spend can exceed `PUBLISH_BUDGET_CENTS_MONTH`. No test covered `requeueFront`. | Reserve and refund are idempotent per publish: each reservation is released at most once on every failure path (V-PUB-19, V-PUB-15). | **Fixed in code (pending verify).** | **Low.** Testnet fee is $0 (ADR-008); the ceiling holds once V-PUB-19 is tested. |
+| T68 | S/E/I | TB1 | **One person consents for both sides.** `POST /quick` returned both side tokens to the one caller, who could tick `publish-onchain-v1` with each and publish the "other side's" text permanently. The other side need not exist or know. AUDIT-2 PoC reached `ready` from one client. This is the default path, not the forwarded-link case T54 describes, and it can put a non-participant's words on a public chain (V-SAFE-09). | H | H | "Both sides must consent" (ADR-019 item 3, V-PUB-03) is single-party in practice. | `POST /quick` returns only side A's token; side B's token is minted for an invite link and claimable once; side B's consent must come from the session that claimed it (V-PUB-18). Until verified, copy says "link-holder consent", never "both sides agreed". | **Fixed in code (pending verify).** | **Medium**, as T03/T54: whoever holds the claimed invite link is side B. Possession, not identity. |
+| T69 | D/H | TB11 | **Web spam pushes evidence off the page.** Any burner can open cases. The page reads `list_recent(50)` and the deployed `daily_limit` is 0, so 50 spam cases push the relayer and evidence cases off the public page, and the spam is shown under the VERDICT brand. The web live test's "case 1 present" assertion then fails. | M | M | Evidence cases can vanish from the public page; abusive text outside the injection, threat and PII patterns is shown until an operator rebuild. | Paginate or fetch relayer and evidence cases by id; relayer cases first, visitor cases behind their own control; operator hide list; non-zero on-chain `daily_limit` (V-WEB-04, V-WEB-05, ADR-023 items 4–5). | **Fixed in code (pending verify).** | **Medium.** The display filter is not moderation; the hide list needs an operator rebuild. |
+| T70 | S/H | TB11 | **Visitor cases wear VERDICT's labels.** A visitor opens a `settle` case asserting `verified_participant`, consent and moderation "pass", then self-confirms a tier. The page printed "checked by the VERDICT relayer" and "Tier N finalized" for it. | H | M | Anyone can manufacture a case that looks checked and finalized by VERDICT. | Visitor cases labelled "Visitor case · not moderated by VERDICT"; relayer wording only when `creator` is the relayer; visitor `confirmed_tier` shown as "creator says final" (V-WEB-01 to -03, ADR-023 items 1–3, V-SEC-12 amended). | **Fixed in code (pending verify).** | **Low-Medium.** Screenshots can still be faked (T13); the record view is the check. |
 
 ---
 
@@ -218,15 +234,22 @@ Format: ID · STRIDE (S spoofing, T tampering, R repudiation, I information disc
 | 17 | T55 Publish-cap abuse | Medium | REL, OPS | Capped per user and by the budget breaker; $0 on testnet. |
 | 18 | T58 / T59 Ledger poisoning and sighting farming | Medium | REL, OPS | The ledger decides nothing; caps, dedupe, staff digest review. |
 | 19 | T61 Preview winner withholds Publish | Medium | — | Consent outranks the appeal before anything is public. |
+| 20 | T68 One person consents for both sides (until V-PUB-18 is verified: **High**) | Medium | REL, WEB | Fixed in code (pending verify). Link possession is the authority, as T03. |
+| 21 | T66 Client-forged rulings feed the ledger (until V-PL-17 is verified) | Medium | REL | Fixed in code (pending verify). Ledger stays SHADOW until counsel sign-off. |
+| 22 | T65 Forged API keys bypass caps (until V-SEC-20 is verified) | Medium | REL | Fixed in code (pending verify). LLM cost per call is small. |
+| 23 | T70 Visitor cases wear VERDICT's labels | Low-Medium | WEB | Fixed in code (pending verify). The web page is already public, so verify first. |
+| 24 | T69 Web spam pushes evidence off the page | Medium | WEB, OPS | Fixed in code (pending verify). Operator hide list is the backstop. |
+| 25 | T67 Budget double refund | Low | REL | Fixed in code (pending verify). $0 on testnet. |
 
 ## 6. Review triggers
 
-Re-run this model when: a gate in SPEC §10 is attempted (including G-QV, G-RF, G-JB, G-JB-RERUN, G-PUB, G-PL); any field is proposed for the pattern record; the ledger is proposed as an input to any ruling; a new surface, game, payment method or integration is added; any bounty or contest is proposed; Red Flag text is proposed for any chain; any SEV incident; GenLayer SDK or consensus version changes; any change to the package schema.
+Re-run this model when: engineering reports the T65–T70 fixes ready for verification (move each to a verified residual, or back to open); a gate in SPEC §10 is attempted (including G-QV, G-RF, G-JB, G-JB-RERUN, G-PUB, G-PL); any field is proposed for the pattern record; the ledger is proposed as an input to any ruling; a new surface, game, payment method or integration is added; any bounty or contest is proposed; Red Flag text is proposed for any chain; any SEV incident; GenLayer SDK or consensus version changes; any change to the package schema.
 
 ## 7. Change log
 
 | Version | Date | Change |
 |---|---|---|
+| v1.4 | 2026-10-31 | AUDIT-2 follow-up. Added actor AC19 (web visitor with a burner key), boundary TB11 (visitor browser ↔ GenLayer), and §4.9 threats T65 (forged API keys bypass caps), T66 (client-forged Red Flag rulings feed the ledger), T67 (budget double refund), T68 (one person consents for both sides), T69 (web spam pushes evidence off the page) and T70 (visitor cases wear VERDICT's labels). Each is marked fixed in code (pending verify). Residual ranks 20–25; T54 points to T68; new review trigger. |
 | v1.3 | 2026-10-31 | Publish and Scam Pattern Ledger (ADR-019, ADR-020). Added assets AS14–AS16, actors AC16–AC18, a TB2/TB9 note, threats T54–T64 (§4.8), residual ranks 15–19, new review triggers, and a pointer from T53 to the Publish path. |
 | v1.2 | 2026-10-31 | Quick Verdict and security games (ADR-013 to ADR-017). Added category H, assets AS11–AS13, actors AC13–AC15, boundaries TB9–TB10, threats T43–T53 (§4.7), residual ranks 10–14 and new review triggers. |
 | v1.1 | 2026-10-31 | Added T42 (winner blocks appeal via revocation), mitigated by ADR-012. |

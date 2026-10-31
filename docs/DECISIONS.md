@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Document | `docs/DECISIONS.md` |
-| Version | v1.4 |
+| Version | v1.7 |
 | Date | 2026-10-31 |
 | Owner | Specifications lead (decisions are Blair's; this log records them) |
 | Status | Living log. Append new ADRs; never edit an accepted ADR's decision, supersede it. |
@@ -31,7 +31,10 @@ Each ADR: **Context** (forces), **Decision**, **Alternatives** (and why not), **
 | 017 | Trust page is "Try to rig it."; every claim maps to a test | Accepted | 2026-10-31 |
 | 018 | Lead calls on the v1.2 open questions | Accepted (item 1 superseded by ADR-019) | 2026-10-31 |
 | 019 | Publish = network check | Accepted | 2026-10-31 |
-| 020 | Scam Pattern Ledger | Accepted (ships in SHADOW until counsel signs off; G-PL) | 2026-10-31 |
+| 020 | Scam Pattern Ledger | Accepted (ships in SHADOW until counsel signs off; G-PL). Items 2, 9 and 13 carry v1.7 notes | 2026-10-31 |
+| 021 | Lead calls on the ADR-019/020 conflicts | Accepted | 2026-10-31 |
+| 022 | Global publish budget and queue | Accepted (context and item 5 revised in v1.7) | 2026-10-31 |
+| 023 | Web app trust model | Accepted | 2026-10-31 |
 
 ---
 
@@ -47,7 +50,7 @@ Each ADR: **Context** (forces), **Decision**, **Alternatives** (and why not), **
 |---|---|---|
 | NINES (outage cover) | 4 | Cut: low usage |
 | DelayPay (flight-delay pool) | 3 | Cut: low usage |
-| Milestone Vault (grants) | 2 | Cut: low usage |
+| Milestone Vault (milestone payouts) | 2 | Cut: low usage |
 | Escrow-style ideas | — | Cut: out of scope |
 
 **Round 2: Final judge round, 10/30/2026.** Six finalists, 7 criteria, each scored /10, total /70.
@@ -67,7 +70,7 @@ Reading the table: Settle It wins on reach, build speed, legal safety and founde
 
 **Alternatives.** OATH and PROMISE JARS stake value on outcomes, which conflicts with the no-wagering rule (ADR-004) and scored low on Legal (4 and 6). VERIFIED READ scored 1 on non-crypto pull. SAVINGS CIRCLES pools user money and scored 2 on Legal.
 
-**Consequences.** Consumer revenue is small; B2B (sponsors, API) carries year one (`business/monetization.md` §3). Everything personal becomes public on-chain, so consent, moderation and takedown are first-class (ADR-012).
+**Consequences.** Consumer revenue is small; B2B (sponsors, API) carries year one (the private business model). Everything personal becomes public on-chain, so consent, moderation and takedown are first-class (ADR-012).
 
 **Requirements.** V-FUN-01, V-LEGAL-01.
 
@@ -83,7 +86,7 @@ Reading the table: Settle It wins on reach, build speed, legal safety and founde
 
 **Consequences.** The honesty claim moves from "many models" to "independently re-checked, public record", which is stronger and true. Glossary in SPEC §3; limits in SPEC §8.
 
-> *Note (2026-10-31, ADR-019 item 8).* ADR-019 adds a second approved card line, **"Checked by GenLayer · Finalized"**, allowed only on a published Settle It card whose standing verdict is FINALIZED_SUCCESS. The line above is unchanged and stays scoped to on-chain verdicts.
+> *Note (2026-10-31, ADR-019 item 8).* ADR-019 adds a second approved card line, **"Checked by GenLayer · Finalized"**, allowed only on a published Settle It card whose standing verdict is FINALIZED_SUCCESS. The line above is unchanged and stays scoped to on-chain verdicts. *[v1.7: ADR-021 item 1 widened the finalized line to every on-chain card that reached FINALIZED_SUCCESS; ADR-023 keeps it off visitor cases.]*
 
 **Requirements.** V-FUN-05, V-FUN-07, V-LEGAL-09, V-SEC-04.
 
@@ -166,7 +169,7 @@ Reading the table: Settle It wins on reach, build speed, legal safety and founde
 
 **Decision.** Studionet, then Bradbury testnet. Mainnet only after G-MAINNET (fee profile in the model, independent contract review, separate owner key, alerts, pause drill).
 
-**Consequences.** Months 1–3 gas is $0 in the Base and Viral scenarios (`model.xlsx` Assumptions `mainnet`). Testnet resets or changes can strand old receipts; keep old addresses readable (V-OPS-09).
+**Consequences.** Gas is $0 while VERDICT runs on testnet (the private underwriting model holds the scenarios). Testnet resets or changes can strand old receipts; keep old addresses readable (V-OPS-09).
 
 **Requirements.** V-OPS-01, V-OPS-02, V-OPS-08.
 
@@ -232,7 +235,7 @@ Reading the table: Settle It wins on reach, build speed, legal safety and founde
 
 ## ADR-013 Quick Verdict (off-chain judging)
 
-**Context.** The free on-chain case loses money at the assumed fee (`business/underwriting/underwriting-memo.md` R1; `ENRICHMENT-BACKLOG.md` U1), and `business/monetization.md` already plans to serve free Tier 1 off-chain as "Quick Verdict", with on-chain kept for appeals, Live Court and the Verified API. V-OPS-04 names Quick Verdict as the gas-budget overflow. The security games cannot use the public chain for daily play: a working jailbreak would be published permanently (soak VERIFY P0-1), and Red Flag Court would publish a stranger's words (P0-2). VERIFY P0-3 found "shadow mode" used to mean "private". It does not mean that: under ADR-006, SHADOW still writes to the target network. VERIFY P0-4 found game cards claiming a network check and a receipt that would not exist.
+**Context.** The free on-chain case loses money at the assumed fee (the private underwriting model), and the business plan already serves free Tier 1 off-chain as "Quick Verdict", with on-chain kept for appeals, Live Court and the Verified API. V-OPS-04 names Quick Verdict as the gas-budget overflow. The security games cannot use the public chain for daily play: a working jailbreak would be published permanently (soak VERIFY P0-1), and Red Flag Court would publish a stranger's words (P0-2). VERIFY P0-3 found "shadow mode" used to mean "private". It does not mean that: under ADR-006, SHADOW still writes to the target network. VERIFY P0-4 found game cards claiming a network check and a receipt that would not exist.
 
 **Decision.**
 1. **What it is.** A Quick Verdict is the same juror personas, sanitiser, UNTRUSTED-fenced fixed-rules prompt and strict-JSON output rules as the contract. The relayer runs the panel once against an LLM processor, off-chain. There are no validators, no consensus and no chain write.
@@ -241,7 +244,7 @@ Reading the table: Settle It wins on reach, build speed, legal safety and founde
    - Red Flag Court, always (ADR-014).
    - The Jailbreak practice court follows the same claim rules (items 3 and 4). It executes on a private localnet (ADR-015), not the Quick Verdict engine, and its label is "Practice court".
    - Live Court, the API and every paid appeal stay on-chain. V-OPS-04 overflow still applies.
-3. **Claims.** A Quick Verdict never shows a receipt number (`VR-…`), a record-view link or an explorer link. It never says "network-checked", "checked by a network", "Finalized" or ADR-002's approved line ("Checked by a network nobody controls"). That line describes on-chain verdicts only. Quick Verdict surfaces carry the label **Quick Verdict** and the words "Not network-checked".
+3. **Claims.** A Quick Verdict never shows a receipt number (`VR-…`), a record-view link or an explorer link. *[Clarified in v1.7: the receipt number is the packageDigest (ADR-010, SPEC §7.2). The code produces no `VR-` form and `assertQuickHonest` rejects any `VR-` string. Read `VR-…` in this log as "receipt number (packageDigest)" unless engineering confirms a `VR-` short form.]* It never says "network-checked", "checked by a network", "Finalized" or ADR-002's approved line ("Checked by a network nobody controls"). That line describes on-chain verdicts only. Quick Verdict surfaces carry the label **Quick Verdict** and the words "Not network-checked".
 4. **Status rail:** **Submitted → Jury scoring → Done.** No "Network checking" or "Finalized" step. Votes reveal only after Done (V-SAFE-08).
 5. ~~**Appeal onto the chain: Settle It only.**~~ **[Superseded by ADR-019, 2026-10-31.]** A Quick Verdict is no longer appealed onto the chain. Either side taps **Publish**, both sides consent, and the case is re-heard as a fresh on-chain Tier 1 case that is not an appeal. The Red Flag and Jailbreak sentences in the third bullet below still stand. Original text, kept for the record:
    - A losing side of a Settle It Quick Verdict may appeal it onto the chain. The appeal builds a normal case package and enters SPEC §6.1 at T4. From then on, every on-chain rule applies (ADR-009, ADR-010, ADR-012).
@@ -258,7 +261,7 @@ Reading the table: Settle It wins on reach, build speed, legal safety and founde
 
 **Alternatives.**
 - Everything on-chain: rejected for cost, and because strangers' text and live exploits would be published.
-- A Quick Verdict with a hash "receipt": rejected, because it implies SPEC §8 properties it does not have (monetization.md §2.2).
+- A Quick Verdict with a hash "receipt": rejected, because it implies SPEC §8 properties it does not have.
 - Calling it shadow mode: rejected (VERIFY P0-3).
 
 **Consequences.**
@@ -267,7 +270,7 @@ Reading the table: Settle It wins on reach, build speed, legal safety and founde
 - The consent notice (SPEC §11) and the trust page §6 ("Once both sides submit, the text is permanent") are wrong for free Quick Verdict cases and must be rewritten before Quick Verdict ships.
 - The WTV north-star metric must count Quick Verdict Tier 1 verdicts (`ANALYTICS_EVENTS.md` v1.1).
 - G-LIVE's "≥ 200 SHADOW cases on the target network" must come from appeals and test traffic.
-- monetization.md calls the API product "Quick judgment". That is the same engine, but it is sold separately and stays roadmap.
+- The business plan calls the API product "Quick judgment". That is the same engine, but it is sold separately and stays roadmap.
 
 **Requirements.** V-QV-01 to V-QV-08, V-OPS-04, V-PRIV-02, SPEC §11.
 
@@ -345,7 +348,7 @@ Reading the table: Settle It wins on reach, build speed, legal safety and founde
    - (b) It was replayed in the practice court against the testnet config with no get-through. Anything that gets through goes to the patch queue, not the chain.
    - (c) The player gave a separate, unticked opt-in that says the text becomes public and permanent.
 
-   Only those cards may say "Re-checked on GenLayer testnet" and show a `VR-` receipt.
+   Only those cards may say "Re-checked on GenLayer testnet" and show a `VR-` receipt. *[v1.7: "a receipt number (packageDigest)"; see the ADR-013 item 3 note.]*
 7. **Rhythm and caps.**
    - The case is weekly and opens Monday 00:00 PT. The Hall drops on Fridays.
    - Each player gets 10 attempts per UTC day, or 3 for accounts under 7 days old. The counter is separate from case caps and keyed on HMAC(IP) until accounts exist.
@@ -403,7 +406,7 @@ Reading the table: Settle It wins on reach, build speed, legal safety and founde
 3. Network, receipt and finality claims are scoped to on-chain Settle It verdicts. The page has a section saying the games are different (ADR-013 to ADR-015).
 4. The claim map is re-checked at every release that touches the page and at every gate.
 
-**Wording check (`docs/`, 2026-10-31).** No "can't be rigged" wording appears in the five docs files; the only "rig" strings are the bans in ADR-002 and V-LEGAL-09. Backlog row S4 (`ENRICHMENT-BACKLOG.md`) still says "Can't be rigged" and needs renaming outside the docs lane.
+**Wording check (`docs/`, 2026-10-31).** No "can't be rigged" wording appears in the five docs files; the only "rig" strings are the bans in ADR-002 and V-LEGAL-09. Backlog row S4 in the internal backlog still says "Can't be rigged" and needs renaming outside the docs lane.
 
 **Requirements.** V-LEGAL-09 (amended), V-LEGAL-12.
 
@@ -417,7 +420,7 @@ Reading the table: Settle It wins on reach, build speed, legal safety and founde
 1. ~~**Open question 4: appeal onto the chain.**~~ **[Superseded by ADR-019, 2026-10-31.]** Publish is free and is not an appeal. A published case can reach the 9-seat Supreme Court. Kept for the record, do not implement:
    - Appealing a Settle It Quick Verdict onto the chain opens a fresh on-chain **Tier 1** case with 5 jurors.
    - It counts as that side's **first appeal**. It uses the daily free appeal if one is left; otherwise it costs $1.99 (Appeals Court price).
-   - The two-appeal cap counts this as appeal 1, so the losing side gets one more on-chain appeal, to Tier 2 (7 jurors, $4.99 per `business/monetization.md`).
+   - The two-appeal cap counts this as appeal 1, so the losing side gets one more on-chain appeal, to Tier 2 (7 jurors, $4.99).
    - A case that starts as a Quick Verdict never reaches the 9-seat Supreme Court. Reaching it would need the contract to open at Tier 2, which is a backlog item, not part of v1.
    - (Corrected 2026-10-31. An earlier wording here said "Tier 2, then Tier 3", which broke the cap.)
    - Before submit, both sides see a new consent notice that their takes become public and permanent. This applies to the side appealing and, when the other side is a participant, to them as well.
@@ -426,7 +429,7 @@ Reading the table: Settle It wins on reach, build speed, legal safety and founde
 3. **Open question 6: clocks.** All game clocks use **00:00 America/Los_Angeles**: daily allowances, the daily secret rule, and the weekly case. Appeal allowances for Settle It stay on UTC as built until a later change.
 4. **Open question 7: PATCHED.** PATCHED is an approved stamp, for sealed Jailbreak cards after a fix ships, and is added to the V-SAFE-02 list. It is never green.
 5. **Trust page claims with no test.** Cut "VERDICT doesn't pick or run those checkers." Mark "Steering the jury is meant to cost points" as "In progress" until its test exists.
-6. **Naming.** "Quick Verdict" is the free off-chain product. The paid developer product keeps its own name, "Quick judgment API," and must not be called Quick Verdict. The underwriting memo's "no appeal is possible" line is replaced by item 1.
+6. **Naming.** "Quick Verdict" is the free off-chain product. The paid developer product keeps its own name, "Quick judgment API," and must not be called Quick Verdict. The private underwriting model's "no appeal is possible" line is replaced by item 1.
 7. **SPEC version.** v1.2 with the §2a scoping note is enough; no v2.0.
 
 **Requirements.** V-QV-05, V-JB-06, V-SAFE-02, V-LEGAL-12.
@@ -449,7 +452,7 @@ Reading the table: Settle It wins on reach, build speed, legal safety and founde
    - The package carries `noticeVersion = publish-onchain-v1`. Each consent needs that side's own side token or account (V-SEC-02). A side can never consent for the other.
 4. **Free, capped.** VERDICT pays the network fee. Publishing costs the user nothing and never touches the credit ledger. Each user may publish at most **3 times per Los Angeles day** (00:00 America/Los_Angeles, ADR-018 item 3). The count is charged to the side that tapped Publish, at T4. If the Tier 1 transaction ends FINALIZED_ERROR or STALE, the count is restored (a technical refund). A case can be published once. The V-OPS-04 gas budget still applies: when it runs out, Publish queues and never falls back to the preview.
 5. **Publishing is not an appeal.** After Publish, the appeals-used count is 0.
-6. **The network's ruling replaces the preview.** Once the Tier 1 transaction is FINALIZED_SUCCESS (ADR-009), the published card shows the network's ruling, its receipt number (`VR-…`) and "Checked by GenLayer · Finalized". From then on the preview result is not shown as the result anywhere. Before finality the card shows "Provisional, being checked", as for any on-chain case.
+6. **The network's ruling replaces the preview.** Once the Tier 1 transaction is FINALIZED_SUCCESS (ADR-009), the published card shows the network's ruling, its receipt number (`VR-…`) and "Checked by GenLayer · Finalized". *[v1.7: the receipt number is the packageDigest; see the ADR-013 item 3 note. ADR-021 item 1 widened the finalized line to every on-chain card.]* From then on the preview result is not shown as the result anywhere. Before finality the card shows "Provisional, being checked", as for any on-chain case.
 7. **"The network overruled the preview."** If the network's Tier 1 `winner_index` differs from the preview's, the published card shows that line. It shows no preview votes, scores or reasons. The line is about Tier 1 only. Later tiers use UPHELD / OVERTURNED against the previous tier (V-FUN-16). We treat the mismatch as an honest and dramatic moment, not an error to hide.
 8. **Approved line, scoped.** ADR-002's approved line is unchanged. This ADR adds a second approved card line, **"Checked by GenLayer · Finalized"**, allowed **only** on a published Settle It card whose standing verdict is FINALIZED_SUCCESS, including the results of its appeals. It is never allowed on a preview, an ACCEPTED result, a Red Flag or Jailbreak daily card, or a SHADOW card. It never implies affiliation with GenLayer (design brief §3).
 9. **Appeals only after Publish.** The normal ladder is restored on a published case:
@@ -486,7 +489,7 @@ Reading the table: Settle It wins on reach, build speed, legal safety and founde
 **Decision.**
 1. **Opt-in only.** After a Red Flag Court **SCAM** or **SUS** ruling on a real paste, the user may tap **"Help warn others"**. The default is off. The control never appears for LOOKS LEGIT, for staff samples, for the Daily Red Flag round or on the help-line path. The opt-in is an unticked box on its own notice (`pattern-optin-v1`, SPEC §11), and its consent record is kept.
 2. **The pattern record.** The relayer submits only:
-   - `flag_codes`: a subset of the fixed 16-code list, taken from the server-side ruling record, never from the client;
+   - `flag_codes`: a subset of the fixed 16-code list, taken from the server-side ruling record, never from the client; *[v1.7 note: as built, `/redflag/warn` takes the ruling and flags from the request body, so this item is not yet true (AUDIT-2 P1-4). The fix in progress is a short-lived, server-signed ruling ticket from `/redflag` (SPEC V-PL-17). The decision stands; the code is being brought to it.]*
    - `category`: one value of the fixed enum delivery, account-lock, romance, job, prize, investment, impersonation, other;
    - `summary`: 200 characters or fewer, an abstract paraphrase written by the relayer's LLM from the relayer-redacted (second-pass) text, with instructions to remove every name, number, link, brand and amount.
 
@@ -497,12 +500,12 @@ Reading the table: Settle It wins on reach, build speed, legal safety and founde
 6. **Deduplication.** The leader proposes either "new" or "same as id N", choosing from stored patterns in the same category. Validators check that proposal. "Same" adds 1 to the existing record's `sightings` and creates nothing new. A stored summary is never rewritten.
 7. **Views.** `get_pattern(id)`, `list_recent(n)` and `top_patterns_since(timestamp, n)`.
 8. **Weekly digest.** "Scams going around" is built from `top_patterns_since` and gives a receipt for each pattern. Staff review each issue before it is published. The digest shows codes, category, summary and sightings, never any paste.
-9. **Proof layer only.** The digest and the Proof tab may say "Recorded on GenLayer · N sightings", and only once the record's transaction is FINALIZED_SUCCESS. The Red Flag card and the ruling stay plain: a Quick Verdict, "Not network-checked" (ADR-013 item 3, ADR-014 item 10).
+9. **Proof layer only.** The digest and the Proof tab may say "Recorded on GenLayer · N sightings", and only once the record's transaction is FINALIZED_SUCCESS. *[v1.7: and only in LIVE mode, after G-PL. In SHADOW and private runs the digest carries no GenLayer line (item 13, SPEC V-PL-11). As built, `/redflag/digest` returns the line unconditionally (AUDIT-2 P2-2); that is a code bug against this item.]* The Red Flag card and the ruling stay plain: a Quick Verdict, "Not network-checked" (ADR-013 item 3, ADR-014 item 10).
 10. **The ledger never decides anything.** Ledger data is never an input to a Red Flag ruling, a juror prompt, the money rule or the LOOKS LEGIT check. Copy never says that a "known" pattern is harmless, or that a message missing from the ledger is safe.
 11. **Rate limit.** 5 submissions per user per LA day (per account, or per HMAC(IP) until accounts exist). This counter is separate from the 10/day Red Flag cap. A validator-agreed `[REJECTED]` counts against it. A no-consensus result does not count, and it is retried at most once with a fresh summary and then dropped.
 12. **Only the relayer writes.** `submit_pattern` accepts only the relayer address or the owner.
 13. **Gate: SHADOW until counsel signs off** (ADR-014 stance).
-    - Until written counsel sign-off, no pattern record is written to any public network, testnet included. ADR-014 item 8 and V-RF-09 still bind until then. Pre-sign-off runs use the private localnet (C10) only. We call this a "private run", never "shadow mode" (ADR-013 item 7). Engineering tests on Studionet or testnet may submit **staff-written synthetic** records that derive from no user paste. The Studionet deployment in `docs/live/pattern-ledger-run.json` (no submissions) is allowed on that basis.
+    - Until written counsel sign-off, no pattern record is written to any public network, testnet included. ADR-014 item 8 and V-RF-09 still bind until then. Pre-sign-off runs use the private localnet (C10) only. We call this a "private run", never "shadow mode" (ADR-013 item 7). Engineering tests on Studionet or testnet may submit **staff-written synthetic** records that derive from no user paste. The Studionet deployment in `docs/live/pattern-ledger-run.json` (no submissions) is allowed on that basis. *[v1.7 correction: the run file records three staff-written synthetic submissions, and the chain reports `sightings` 2 (AUDIT-2 P2-2). They are synthetic, so they remain allowed.]*
     - After sign-off the ledger runs in SHADOW on the target network (ADR-006): records are written, the digest and the "Recorded on GenLayer" line are not shown publicly, and no user is told their pattern is public.
     - LIVE only after gate G-PL.
 
@@ -559,10 +562,12 @@ Reading the table: Settle It wins on reach, build speed, legal safety and founde
 
 ## ADR-022 Global publish budget and queue
 
-**Context.** Underwriting v1.3.1 tested the free publish plan against GenLayer's own published fee examples.
-- At $0.90 per decision with no cap, the $45K plan fails.
-- With a global monthly publish budget, it holds.
-- The 3-per-user daily cap never binds: base demand is about 0.007 publishes per user per day. So it cannot control spend.
+**Context.** *(Revised in v1.7: underwriting figures removed from this public log.)* The private underwriting model tested the free publish plan against the fee examples GenLayer has published. Those examples are unverified as a fee schedule.
+- Without a limit on total spend, the plan does not hold at those example fees.
+- With a global monthly publish budget, it does.
+- The 3-per-user daily cap almost never binds at modelled demand, so it cannot control spend.
+
+The figures, scenarios and funding conditions behind these points are in the private underwriting model, not in this repository.
 
 **Decision.**
 1. **Monthly budget.** Free publishes draw from one global monthly fee budget.
@@ -574,12 +579,66 @@ Reading the table: Settle It wins on reach, build speed, legal safety and founde
    - A queued publish never shows "Checked by GenLayer" until its on-chain verdict is FINALIZED_SUCCESS.
    - Either side can cancel a queued publish. The 72-hour consent expiry from ADR-021 applies before a publish enters the queue, not while it waits.
 3. **What the budget doesn't cover.** Paid appeals and API calls are funded by their own revenue, so they never wait in the publish queue.
-4. **Fee measurement.** The relayer records the measured fee for every on-chain transaction. A weekly report compares it with the model's fee bands (G1).
-5. **Gates.**
-   - Underwriting condition 7: the budget must be live before G-PUB.
-   - Underwriting condition 8: the creator fee share must be confirmed in writing before the T2 tranche.
+4. **Fee measurement.** The relayer records the measured fee for every on-chain transaction. A weekly report compares it with the fee bands in the private underwriting model. *(v1.7: per-transaction fees are recorded; the weekly report is not built. SPEC V-PUB-17 is P.)*
+5. **Gates.** *(Revised in v1.7.)*
+   - The budget must be live before G-PUB (SPEC V-PUB-15, and V-PUB-19 so that the ceiling is really hard).
+   - **Creator fee share:** per GenLayer's portal; UNVERIFIED as to form and timing. No plan, gate, README line or user-facing copy may state it as fact or count it as income until it is confirmed in writing. The private underwriting model holds the condition that depends on it.
 
-**Requirements.** V-PUB (amended); new V-PUB-15 budget, V-PUB-16 queue UX, V-PUB-17 fee measurement.
+**Requirements.** V-PUB (amended); new V-PUB-15 budget, V-PUB-16 queue UX, V-PUB-17 fee measurement (SPEC v1.3.1). V-PUB-19 (idempotent reserve and refund) is added by SPEC v1.3.1 after AUDIT-2 P1-5.
+
+---
+
+## ADR-023 Web app trust model
+
+**Context.** The public web app (`web/`, SPEC C12) is deployed to GitHub Pages on every push to `main`. It reads every case on `JudgeRouter` live, and its "Try it on testnet" path lets any visitor open a case with a per-browser burner key. `open_case_package` is open to any sender by design (ADR-010), so a visitor's case never passes the relayer: consent, `adultConfirmed`, `moderation.result` and provenance are whatever the opener wrote, and the contract checks only their form. The opener can then judge, appeal and call `confirm_verdict` on its own case. Studionet cases 4 and 5 were opened this way. AUDIT-2 P1-7 found that the page:
+- printed "checked by the VERDICT relayer" for any case asserting `verified_participant`;
+- showed "Tier N finalized" from a `confirmed_tier` the creator set itself;
+- filtered only injection, threat and PII patterns, so other abusive text appears under the VERDICT brand until an operator rebuild;
+- reads `list_recent(50)`, and the deployed `daily_limit` is 0, so 50 spam cases push the relayer and evidence cases off the page.
+
+SPEC V-SEC-12 said the relayer creates every consumer case. With the web app that is no longer true (SPEC v1.3.1 amends it).
+
+**Decision.**
+1. **Visitor cases are self-asserted.** A case whose `creator` is not the relayer address in `get_config()` is a *visitor case*. The page labels it "Visitor case · not moderated by VERDICT" and describes its consent, 18+, moderation and provenance as the opener's own claims (V-WEB-01).
+2. **Relayer-verified labels only for relayer-created cases.** "Checked by the VERDICT relayer", "Each take sent from its own invite link" and any `verified_participant` label appear only when `creator` equals the configured relayer. A visitor case that asserts `verified_participant` is shown as "says verified (not checked)" (V-WEB-02).
+3. **Finality from the chain, not the creator.** A visitor's `confirmed_tier` is labelled "creator says final". "Checked by GenLayer · Finalized" and "Tier N finalized" appear only on a relayer-created case whose jury transaction the page has read as FINALIZED with SUCCESS (V-WEB-03, ADR-009, ADR-021 item 1).
+4. **Display filter and operator hide list.** Every case's text passes the display filter (injection, threat and PII patterns) before it is shown, and is rendered as text nodes only. The operator can hide any case by id with a recorded reason in `hidden-cases.json`; a hidden case is not rendered. The default view shows relayer-created cases first, and visitor cases sit behind a separate "Visitor cases" control. The filter is not moderation; the visitor label says so (V-WEB-04).
+5. **Spam and pagination.** Spam must not be able to push relayer or evidence cases off the page. The page paginates past the 50-case `list_recent` window or fetches relayer and evidence cases by id, and the operator should set a non-zero on-chain `daily_limit` as a global breaker (V-WEB-05, V-SEC-06).
+6. **The relayer side is unchanged.** The relayer never shows a foreign case in its gallery or `GET /cases/:id` (already tested), and only the relayer turns a side token into an on-chain action on the cases it opened (V-SEC-12 as amended).
+
+**Alternatives.**
+- Close `open_case_package` to the relayer only: rejected for now. It removes the open, self-serve testnet path the web app demonstrates, needs a redeploy, and still would not make old visitor cases trustworthy.
+- Hide every visitor case: rejected as the only measure. The page exists to show that anyone can use the contract, and an honest label does that without lending VERDICT's name.
+- Rely on the display filter alone: rejected. A pattern filter is not moderation.
+
+**Consequences.**
+- Until V-WEB-01 to -03 ship (in progress), the live page overstates what VERDICT checked on visitor cases. This is the most visible open honesty gap.
+- "Every case on this page is read from the contract" stays true; "checked by VERDICT" becomes true only for relayer cases.
+- The web tests need an offline tier that runs from a clean clone (AUDIT-2 P1-2) before V-WEB rows can be Y.
+
+**Requirements.** V-WEB-01 to V-WEB-05, V-SEC-12 (amended), V-SEC-06, V-LEGAL-09 (v1.3.1 addition), THREAT_MODEL T69 and T70.
+
+---
+
+## ADR-024 Lead calls on the docs/code inconsistencies (AUDIT-2 follow-up)
+
+**Context.** The docs lane listed nine places where the docs and the code disagree. Each call below can be reversed.
+
+**Decision.**
+1. **When publish is charged.** The code's behaviour is adopted. The publish budget is reserved when the publish is requested, refunded on cancel or failure, and the refund is idempotent per publish id (V-PUB-19). ADR-019 item 4 and SPEC §5 are amended to match. Closes open question 15.
+2. **The overrule line.** "The network overruled the preview." renders only on the Tier 1 card. The `overruled_preview` flag may stay on the record, but Tier 2 and Tier 3 cards must not show the line. Engineering adds a render test (V-PUB-09).
+3. **Practice court venue.** For v1, the practice court runs on the Quick Verdict engine, labelled "Practice court · Not a public record" and never claiming a network check. A private localnet is deferred to a later version. This supersedes ADR-013 item 2 and ADR-015 item 1 for v1 only. V-JB-01 is amended to match.
+4. **Clocks.** Every allowance runs on the America/Los_Angeles clock. That covers the free appeal (per day) and the publish budget (per month). This supersedes the UTC wording in SPEC §2 item 5, §5 `FREE_APPEALS_PER_DAY`, V-FUN-21 and V-OPS-04.
+   - §2 says it changes only with a new major version. This ADR is the recorded exception. The intent of §2 item 5 is unchanged: one free appeal per payer per day.
+5. **Pattern Ledger gaps.** These are engineering work before G-PL:
+   - Make the digest's GenLayer line appear only in LIVE mode.
+   - Track each pattern submission to finality.
+   - Show the receipt as the transaction hash per pattern in the Proof tab.
+   - Build V-PL-14, the 30-day sighting window per user per pattern.
+6. **Weekly fee report** (ADR-022 item 4). Stays P until fees are measurable on a network that charges them.
+7. **Receipt display.** The receipt is shown as "Receipt" followed by the short packageDigest (first 4 and last 4 hex characters), with the full value one tap away. `VR-` is retired everywhere. Closes open question 14.
+
+**Requirements.** V-PUB-09, V-PUB-19, V-JB-01, V-FUN-21, V-OPS-04, V-PL-11, V-PL-14.
 
 ---
 
@@ -587,6 +646,8 @@ Reading the table: Settle It wins on reach, build speed, legal safety and founde
 
 | Version | Date | Change |
 |---|---|---|
+| v1.8 | 2026-10-31 | Added ADR-024 (lead calls on the docs/code inconsistencies listed after AUDIT-2). |
+| v1.7 | 2026-10-31 | AUDIT-2 follow-up (P2-2, P2-4). Added ADR-023 (web app trust model). Added ADR-021, -022 and -023 to the index and fixed the header version (it said v1.4 after v1.6 was logged). **Privacy:** removed underwriting figures and funding conditions from ADR-022's context and item 5, and replaced paths to private business, underwriting and backlog files in ADR-001, -008, -013, -017 and -018 with "the private underwriting model" or "the business plan". **Consistency notes:** receipt is "receipt number (packageDigest)", not `VR-` (ADR-013 item 3, ADR-015 item 6, ADR-019 item 6); ADR-020 item 2 flag source not yet true in code (fix in progress, V-PL-17); ADR-020 item 9 GenLayer line is LIVE mode only; ADR-020 item 13 "(no submissions)" corrected; ADR-022 creator fee share is per GenLayer's portal, UNVERIFIED as to form and timing; ADR-022 item 4 weekly report not built. |
 | v1.6 | 2026-10-31 | Added ADR-022 (global publish budget and queue). |
 | v1.5 | 2026-10-31 | Added ADR-021 (lead calls on the ten ADR-019/020 conflicts). |
 | v1.4 | 2026-10-31 | Added ADR-019 (Publish = network check; supersedes ADR-018 item 1 and ADR-013 items 5 and 8) and ADR-020 (Scam Pattern Ledger; amends ADR-014 items 8 and 15). Marked the superseded text inline, added a note to ADR-002 on the new approved line, added ADR-018 to the index, and fixed the header version (it said v1.2 after v1.3 was logged). |

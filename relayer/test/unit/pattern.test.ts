@@ -289,3 +289,17 @@ test("patternConfigFromEnv: SHADOW unless both gates say live", () => {
   assert.throws(() => patternConfigFromEnv({ PATTERN_LEDGER_ADDRESS: "0x12" }, "live"), /40 hex/);
   assert.throws(() => patternConfigFromEnv({ PATTERN_DAILY_CAP: "-1" }, "live"), /PATTERN_DAILY_CAP/);
 });
+
+test("SightingWindow (V-PL-14): HMAC-keyed, one per user per pattern, keys deleted after 30 days", async () => {
+  const { SightingWindow, patternKeyOf, PATTERN_SIGHTING_WINDOW_MS } = await import("../../src/lib/pattern.js");
+  assert.equal(PATTERN_SIGHTING_WINDOW_MS, 30 * 86400 * 1000);
+  assert.equal(patternKeyOf("job", ["urgency", "crypto_only"]), patternKeyOf("job", ["crypto_only", "urgency"]), "code order does not matter");
+  const w = new SightingWindow("s");
+  const t0 = new Date("2026-10-31T00:00:00Z");
+  w.record("user-a", "job|urgency", t0);
+  assert.equal(w.has("user-a", "job|urgency", new Date("2026-11-29T23:59:59Z")), true);
+  assert.equal(w.has("user-b", "job|urgency", t0), false);
+  assert.equal(w.has("user-a", "job|crypto_only", t0), false);
+  assert.equal(w.has("user-a", "job|urgency", new Date("2026-11-30T00:00:00Z")), false, "window over");
+  assert.equal(w.size(new Date("2026-11-30T00:00:00Z")), 0, "the key is deleted, not just ignored");
+});

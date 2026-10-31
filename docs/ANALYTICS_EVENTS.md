@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Document | `docs/ANALYTICS_EVENTS.md` |
-| Version | v1.2 |
+| Version | v1.2.1 |
 | Date | 2026-10-31 |
 | Owner | Specifications lead (events); Blair (experiments and decisions) |
 | Status | Approved baseline. New events need a new version and a change-log line. |
-| Implements | `docs/SPEC.md` V-PRIV-10, V-RF-13 (v1.1), V-PUB-14, V-PL-15 and §2b (v1.2); sources `marketing/security-games-playbook.md` §6 KPIs (v1.1), `marketing/viral-playbook.md` §1 and §7, `business/monetization.md` assumption register |
+| Implements | `docs/SPEC.md` V-PRIV-10, V-RF-13 (v1.1), V-PUB-14, V-PL-15 and §2b (v1.2); sources `marketing/security-games-playbook.md` §6 KPIs (v1.1), `marketing/viral-playbook.md` §1 and §7, the assumption register of the private underwriting model (not in this repository) |
 
 **Rules.** (1) Every event below and nothing else. (2) The pipeline validates each event against this schema and drops anything that fails. (3) PII class is never above **P1**. (4) Data class is CONFIDENTIAL (`docs/DATA_CLASSIFICATION.md` §4.7); retention 13 months, then aggregates only.
 
@@ -273,19 +273,19 @@ Rules: one primary metric per experiment; guardrails can stop an experiment earl
 | EXP-08 | Live Court pilot is worth continuing per streamer (scorecard, playbook §5). | Count of 6 scorecard targets met | ≥ 4 of 6 | per streamer, 4 events | Report rate on stream | Continue if ≥ 4 met; stop at ≤ 2; otherwise one more month. | V-FUN-17, V-FUN-20 | Planned |
 | EXP-09 | A 1-free-case-per-day cap for accounts < 7 days old cuts farming without hurting activation. | Week-2 retention | Not lower by > 2 pp | 1,248 cohort users | Gas per WTV | Keep the cap unless retention drops > 2 pp. | V-SEC-06 | Planned |
 
-### 6.2 Monetization validation (from `business/monetization.md` assumption register)
+### 6.2 Assumption validation (private underwriting model)
 
-These are measurements, not A/B tests. Each updates an assumption in `model.xlsx` when the sample is reached.
+These are measurements, not A/B tests. Each updates an assumption in the private underwriting model when the sample is reached. The assumed values themselves are kept in that model, not here.
 
 | ID | Assumption tested | Metric | Sample before updating | Decision rule |
 |---|---|---|---|---|
-| VAL-01 | `A-APL-01` appeal rate (model 2% Base) | Appeal rate (§4) | 1,000 Tier 1 verdicts with a losing side | Replace the Base input with the observed rate; if > 10%, re-check gas budget (`A-CST-09`). |
-| VAL-02 | `A-APL-02` Tier 2 → Tier 3 (25% Base) | Supreme Court rate | 200 Tier 2 appeals | Replace input. |
-| VAL-03 | `A-APL-08` / `A-APL-09` free coverage (70% / 30% Base) | 1 − paid appeal share, by tier | 300 appeals per tier, after G-PAY | Replace inputs. If paid share < 10%, revisit pack design (not prices). |
-| VAL-04 | `A-APL-07` average pack ($8 Base) | Mean `credit_purchased.pack_cents` | 100 purchases | Replace input. |
-| VAL-05 | `A-SUB-01` subscription conversion (2% Base) | Subscriber share of MAU | 2 months after plans launch | Replace input; below 1% → pause Group Court work. |
-| VAL-06 | `A-CST-02` on-chain cost per Tier 1 case ($0.10 Base) | `gltest --fee-profile` + 2 weeks of real gas per `case_dispatched` | Before G-MAINNET | Replace `cpc`, `m1`, `m2` (V-OPS-02). |
-| VAL-07 | `A-GRW-04` cases per MAU (4 Base) | `case_created` per monthly active user | 2 months | Replace input. |
+| VAL-01 | `A-APL-01` appeal rate | Appeal rate (§4) | 1,000 Tier 1 verdicts with a losing side | Replace the Base input with the observed rate; if > 10%, re-check gas budget (`A-CST-09`). |
+| VAL-02 | `A-APL-02` Tier 2 → Tier 3 | Supreme Court rate | 200 Tier 2 appeals | Replace input. |
+| VAL-03 | `A-APL-08` / `A-APL-09` free coverage | 1 − paid appeal share, by tier | 300 appeals per tier, after G-PAY | Replace inputs. If paid share < 10%, revisit pack design (not prices). |
+| VAL-04 | `A-APL-07` average pack | Mean `credit_purchased.pack_cents` | 100 purchases | Replace input. |
+| VAL-05 | `A-SUB-01` subscription conversion | Subscriber share of MAU | 2 months after plans launch | Replace input; below 1% → pause Group Court work. |
+| VAL-06 | `A-CST-02` on-chain cost per Tier 1 case | `gltest --fee-profile` + 2 weeks of real gas per `case_dispatched` | Before G-MAINNET | Replace `cpc`, `m1`, `m2` (V-OPS-02). |
+| VAL-07 | `A-GRW-04` cases per MAU | `case_created` per monthly active user | 2 months | Replace input. |
 
 ---
 
@@ -293,6 +293,7 @@ These are measurements, not A/B tests. Each updates an assumption in `model.xlsx
 
 | Version | Date | Change |
 |---|---|---|
+| v1.2.1 | 2026-10-31 | Privacy (AUDIT-2 P2-4): removed the private business-file path and the modelled assumption values from the header and §6.2; they now point to the private underwriting model. No event or metric changed. Note: the §3.11 publish events are specified but not yet emitted (SPEC V-PUB-14 is P). |
 | v1.2 | 2026-10-31 | ADR-019 and ADR-020. §3.11 Publish (6 events: `publish_requested`, `publish_consented`, `publish_consent_withdrawn`, `publish_cap_hit`, `publish_finalized`, `preview_overruled`) and §3.12 Pattern Ledger (5 events: `pattern_optin`, `pattern_recorded`, `pattern_sighting`, `pattern_rejected`, `pattern_cap_hit`); `schema_version` 1.2; P2 list extended; `qv_appeal_onchain_filed` and the QV → chain appeal rate retired; WTV note; 6 metric rows including **On-chain decisions per week**; acceptance criteria 6–7. |
 | v1.1 | 2026-10-31 | Envelope `game` and `venue`; §3.7 Quick Verdict (5 events), §3.8 Red Flag Court (11), §3.9 Jailbreak the Jury (12, counting the three opt-ins separately), §3.10 trust page (2); P2 list extended; WTV note for Quick Verdict; 8 new metric rows; acceptance criteria 4–5. |
 | v1.0 | 2026-10-31 | First baseline. Formalises the playbook's 8 events and K-factor into 40+ events, metric definitions, PII classes and an experiment and validation register. |

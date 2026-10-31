@@ -100,12 +100,18 @@ function baseQuick() {
 }
 
 // ---------------------------------------- Publish = network check (Design §1)
+/** Side A creates the case; side B (a different caller) claims the invite and gets its own token. */
 async function quickCase(h: Harness, headers: Record<string, string> = KEY) {
   const r = await h.post("/quick", quickBody(), headers);
   assert.equal(r.status, 201);
-  const [t0, t1] = r.json.side_tokens as string[];
+  assert.equal(r.json.side_tokens, undefined, "the creator never receives side B's token (AUDIT-2 P1-6)");
+  const t0 = r.json.side_token as string;
+  const otherCaller: Record<string, string> = "x-api-key" in headers ? {} : KEY; // a different identity
+  const j = await h.post(`/quick/${r.json.quick_id}/join`, { invite: r.json.invite.code, disclosure: CONSENT }, otherCaller);
+  assert.equal(j.status, 201, JSON.stringify(j.json));
+  const t1 = j.json.side_token as string;
   // contest([0,...]) previews side 0 as the winner
-  return { id: r.json.quick_id as string, winner: t0!, loser: t1!, body: r.json };
+  return { id: r.json.quick_id as string, winner: t0, loser: t1, body: r.json };
 }
 const side = (t: string, headers: Record<string, string> = KEY) => ({ ...headers, "x-side-token": t });
 async function bothConsent(h: Harness, q: { id: string; winner: string; loser: string }) {
@@ -356,9 +362,13 @@ test("publish: refused when a consent record is on a notice that did not disclos
     assert.equal(r.status, 409);
     assert.equal(r.json.code, "notice_not_disclosing");
     assert.equal((await h.post("/quick/expired/publish", {}, side(tok[1]!))).status, 410);
-    const legacy = await h.post("/quick/legacy/publish", { disclosure: PUBLISH_CONSENT }, side(tok[1]!));
+    const legacy = await h.post("/quick/legacy/publish", { disclosure: PUBLISH_CONSENT }, side(tok[0]!));
     assert.equal(legacy.status, 409);
     assert.equal(legacy.json.code, "waiting_for_other_side", "old appeal consent does not count as publish consent");
+    // pre-P1-6 rows handed both tokens to one caller: their side B never joined, so it can't consent
+    const b = await h.post("/quick/legacy/consent", { disclosure: PUBLISH_CONSENT }, side(tok[1]!));
+    assert.equal(b.status, 409);
+    assert.equal(b.json.code, "side_b_not_joined");
     assert.equal(h.chain.broadcasts.length, 0);
   });
 });
@@ -632,6 +642,86 @@ test("quick: revoke after Done -> 409; takedown never blocks publishing (V-QV-07
     await bothConsent(h, q);
     assert.equal((await h.post(`/quick/${q.id}/publish`, {}, side(q.loser))).status, 202);
     await h.app.idle();
+  });
+});
+
+test("quick (AUDIT-2 P1-6): one caller can never consent for both sides; side B joins once, with its own token", async () => {
+  await withH({}, { judgeProvider: contest([0, 0, 0, 0, 0]) }, async (h) => {
+    const r = await h.post("/quick", quickBody(), KEY);
+    assert.equal(r.status, 201);
+    assert.equal(r.json.side_tokens, undefined, "only side A's token");
+    assert.equal(r.json.side, 0);
+    assert.equal(typeof r.json.side_token, "string");
+    assert.equal(r.json.invite.single_use, true);
+    assert.equal(r.json.invite.join_path, `/quick/${r.json.quick_id}/join`);
+    const id = r.json.quick_id as string;
+    const a = side(r.json.side_token);
+    // the creator alone: consent as A, then try to reach "ready"
+    assert.equal((await h.post(`/quick/${id}/consent`, { disclosure: PUBLISH_CONSENT }, a)).json.status, "waiting");
+    const pub = await h.post(`/quick/${id}/publish`, {}, a);
+    assert.equal(pub.status, 409);
+    assert.equal(pub.json.code, "waiting_for_other_side");
+    assert.equal(pub.json.side_b_joined, false);
+    // the creator can't claim side B's invite (same identity)
+    const self = await h.post(`/quick/${id}/join`, { invite: r.json.invite.code, disclosure: CONSENT }, KEY);
+    assert.equal(self.status, 409);
+    assert.equal(self.json.code, "same_person");
+    // wrong code, and consent must be exactly true
+    assert.equal((await h.post(`/quick/${id}/join`, { invite: "nope", disclosure: CONSENT }, {})).status, 403);
+    assert.equal((await h.post(`/quick/${id}/join`, { invite: r.json.invite.code, disclosure: { consent: "true", adult_confirmed: true } }, {})).status, 422);
+    // side B (another caller) claims it, sees both takes, gets its own token
+    const j = await h.post(`/quick/${id}/join`, { invite: r.json.invite.code, disclosure: CONSENT }, {});
+    assert.equal(j.status, 201, JSON.stringify(j.json));
+    assert.equal(j.json.side, 1);
+    assert.deepEqual(j.json.takes, ["Tabs are better.", "Spaces are better."]);
+    assert.notEqual(j.json.side_token, r.json.side_token);
+    honest({ ...j.json, takes: undefined });
+    // the invite is spent: nobody else can claim side B
+    const again = await h.post(`/quick/${id}/join`, { invite: r.json.invite.code, disclosure: CONSENT }, { "x-forwarded-for": "10.9.9.9" });
+    assert.equal(again.status, 409);
+    assert.equal(again.json.code, "invite_used");
+    // A's token is never B's
+    assert.equal((await h.get(`/quick/${id}`, a)).json.side, 0);
+    assert.equal((await h.get(`/quick/${id}`, side(j.json.side_token, {}))).json.side, 1);
+    assert.equal(h.chain.broadcasts.length, 0);
+    // only once B consents with B's own token is it ready
+    const b = await h.post(`/quick/${id}/consent`, { disclosure: PUBLISH_CONSENT }, side(j.json.side_token, {}));
+    assert.equal(b.json.status, "ready");
+    assert.equal((await h.post(`/quick/${id}/publish`, {}, a)).status, 202);
+    await h.app.idle();
+  });
+});
+
+test("quick (AUDIT-2 P1-3): an unvalidated x-api-key never buys quota on /quick, /redflag, /redflag/warn or /practice/attempts", async () => {
+  const p = new StubProvider((prompt, j) =>
+    prompt.includes("Red Flag Court")
+      ? JSON.stringify({ label: "scam", flags: ["urgency"], reason: `line ${j + 1}` })
+      : prompt.includes("public list of scam techniques")
+        ? JSON.stringify({ category: "delivery", summary: "A text claims a parcel is held and asks for a fee before it is returned." })
+        : JSON.stringify({ winner_index: 1, scores: [3, 8], reason: "r" }),
+  );
+  await withH({}, { judgeProvider: p, practice: PRACTICE }, async (h) => {
+    const rand = (i: number) => ({ "x-api-key": `rand-${i}-${Math.random()}` });
+    // random keys share the caller's IP bucket: 10, then 429 (was 15/15 accepted)
+    for (let i = 0; i < 10; i++) assert.equal((await h.post("/quick", quickBody(), rand(i))).status, 201, `quick ${i}`);
+    assert.equal((await h.post("/quick", quickBody(), rand(99))).status, 429);
+    assert.equal((await h.post("/quick", quickBody(), {})).status, 429, "and the keyless caller is the same bucket");
+    assert.equal((await h.post("/quick", quickBody(), KEY)).status, 201, "a validated key is its own identity");
+    for (let i = 0; i < 10; i++) assert.equal((await h.post("/redflag", rf("Act now, pay the fee"), rand(i))).status, 200, `redflag ${i}`);
+    assert.equal((await h.post("/redflag", rf("Act now, pay the fee"), rand(99))).status, 429);
+    const take = { take: "Pineapple belongs on pizza because sweet and salty work.", disclosure: CONSENT };
+    for (let i = 0; i < 10; i++) assert.equal((await h.post("/practice/attempts", take, rand(i))).status, 200, `practice ${i}`);
+    assert.equal((await h.post("/practice/attempts", take, rand(99))).status, 429);
+    // warnings: 5 per day; each needs a fresh ruling ticket (from a validated key, so the
+    // /redflag cap above does not get in the way), then random keys still hit the IP bucket
+    let ok = 0;
+    for (let i = 0; i < 6; i++) {
+      const rr = await h.post("/redflag", rf(`Act now, pay the fee ${"!".repeat(i)}`), KEY);
+      const w = await h.post("/redflag/warn", { optIn: true, ticket: rr.json.warn_ticket, text: rr.json.redacted_text }, rand(i));
+      if (w.status === 202) ok++;
+      else assert.equal(w.status, i >= 5 ? 429 : 422, JSON.stringify(w.json));
+    }
+    assert.ok(ok <= 5, `at most 5 warnings for one IP (got ${ok})`);
   });
 });
 
