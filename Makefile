@@ -35,7 +35,7 @@ relayer-test: relayer/node_modules
 test: contract-test relayer-test
 
 lint: setup
-	cd contracts && ../$(VBIN)/genvm-lint check judge_router.py && ../$(VBIN)/genvm-lint typecheck judge_router.py
+	cd contracts && PATH="$(CURDIR)/$(VBIN):$$PATH" ../$(VBIN)/genvm-lint check judge_router.py && PATH="$(CURDIR)/$(VBIN):$$PATH" ../$(VBIN)/genvm-lint typecheck judge_router.py
 	cd relayer && npm run typecheck
 
 demo: relayer/node_modules

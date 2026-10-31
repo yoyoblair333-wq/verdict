@@ -63,7 +63,7 @@ step "setup: python venv + pinned requirements" bash -c "$PY -m venv contracts/.
 step "setup: relayer npm ci (package-lock.json)" bash -c "cd relayer && npm ci --no-audit --no-fund --loglevel=error"
 step "contract tests (pytest)" bash -c "cd contracts && ../contracts/.venv/bin/python -m pytest -q"
 step "genvm-lint check" bash -c "cd contracts && .venv/bin/genvm-lint check judge_router.py"
-step "genvm-lint typecheck" bash -c "cd contracts && .venv/bin/genvm-lint typecheck judge_router.py"
+step "genvm-lint typecheck" bash -c "cd contracts && PATH=\"$PWD/contracts/.venv/bin:\$PATH\" .venv/bin/genvm-lint typecheck judge_router.py"
 step "relayer typecheck (tsc --noEmit)" bash -c "cd relayer && npm run --silent typecheck"
 step "relayer tests (node --test)" bash -c "cd relayer && npm test > \"$LOGDIR/relayer-tests.raw\" 2>&1; s=\$?; grep -E '^# (tests|pass|fail|skipped)|^not ok' \"$LOGDIR/relayer-tests.raw\"; [ \$s -eq 0 ] || tail -n 80 \"$LOGDIR/relayer-tests.raw\"; exit \$s"
 step "offline demo (make demo)" bash -c "cd relayer && npm run --silent demo"
