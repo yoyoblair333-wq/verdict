@@ -1,7 +1,8 @@
 # Guard mutation sweep: deletes each safety guard in turn and checks that the
 # test suite then FAILS ("KILLED"). Restores every file afterwards.
 #   python3 scripts/mutation_check.py [name ...]
-# Needs `make setup` first; relayer mutants run `npm test`, contract mutants pytest.
+# Needs `make setup` first; relayer mutants run `npm test`, web mutants `npm run build && npm test`
+# in web/, contract mutants pytest.
 import subprocess, sys, pathlib
 R=pathlib.Path(__file__).resolve().parents[1]
 muts=[
@@ -78,10 +79,10 @@ muts=[
  # --- ADR-022 publish budget, queue and fee measurement ---
  ("relayer","relayer/src/config.ts",'  if (cents > PUBLISH_BUDGET_CEILING_CENTS) {','  if (false) {',"budget-ceiling"),
  ("relayer","relayer/src/config.ts",'publishBudgetCentsMonth: publishBudget(int("PUBLISH_BUDGET_CENTS_MONTH", PUBLISH_BUDGET_DEFAULT_CENTS)),','publishBudgetCentsMonth: int("PUBLISH_BUDGET_CENTS_MONTH", PUBLISH_BUDGET_DEFAULT_CENTS),',"budget-ceiling-at-boot"),
- ("relayer","relayer/src/quick.ts",'      if (cfg.mode === "live" && !budget.tryReserve()) {','      if (false) {',"budget-reserve"),
+ ("relayer","relayer/src/quick.ts",'      if (cfg.mode === "live" && !budget.tryReserve(q.id)) {','      if (false) {',"budget-reserve"),
  ("relayer","relayer/src/lib/publishBudget.ts",'    if (this.s.queue.length > 0 || !this.fits()) return false;','    if (!this.fits()) return false;',"budget-no-queue-jump"),
  ("relayer","relayer/src/lib/publishBudget.ts",'    const e = this.s.queue.shift()!;','    const e = this.s.queue.pop()!;',"budget-fifo"),
- ("relayer","relayer/src/lib/publishBudget.ts",'      this.s.spentCents = 0;\n      this.persist();','      this.persist();',"budget-monthly-reset"),
+ ("relayer","relayer/src/lib/publishBudget.ts",'      this.s.spentCents = 0;\n      this.s.reserved = [];\n      this.persist();','      this.s.reserved = [];\n      this.persist();',"budget-monthly-reset"),
  ("relayer","relayer/src/app.ts",'    save: (s) => store.saveMeta("publish_budget", s),','    save: () => {},',"budget-durable"),
  ("relayer","relayer/src/quick.ts",'      const e = budget.cancel(q.id);\n      if (!e)','      const e = undefined as ReturnType<typeof budget.cancel>;\n      if (!e)',"queue-cancel"),
  ("relayer","relayer/src/quick.ts",'      const queued = budget.cancel(q.id); // both consents','      const queued = undefined as ReturnType<typeof budget.cancel>; // both consents',"queue-withdraw-leaves"),
@@ -119,6 +120,34 @@ muts=[
  ("relayer","relayer/src/app.ts",'app.use(express.json({ limit: "16kb" }));','app.use(express.json({ limit: "10mb" }));',"body-limit"),
  ("relayer","relayer/src/lib/webhook.ts",'createHmac("sha256", secret).update(`${ts}.${body}`).digest("hex");','"00";',"webhook-hmac"),
  ("relayer","relayer/src/lib/genlayer.ts",'      value: 0n, // never','      value: 1n, // never',"value-zero"),
+ # --- AUDIT-2 fixes (2026-10-31): caps, ruling tickets, sighting window, budget, two-person consent, web trust model ---
+ ("relayer","relayer/src/quick.ts",'return key !== undefined && cfg.apiKeys.has(key) ? `key:${key}`','return key !== undefined ? `key:${key}`',"a2-p1-3-validated-key-only"),
+ ("relayer","relayer/src/quick.ts",'      const t = redeemTicket(body.ticket, body.text.trim());','      const t = { ruling: body.ruling as Ruling, flags: (body.flags as string[]) ?? [], nonce: "x" };',"a2-p1-4-ticket-required"),
+ ("relayer","relayer/src/quick.ts",'if (!timingSafeEqual(want, Buffer.from(m[2]!, "hex"))) throw','if (false) throw',"a2-p1-4-ticket-signature"),
+ ("relayer","relayer/src/quick.ts",'if (usedTickets.has(p.n)) throw','if (false) throw',"a2-p1-4-ticket-single-use"),
+ ("relayer","relayer/src/quick.ts",'if (now > p.exp) throw','if (false) throw',"a2-p1-4-ticket-expiry"),
+ ("relayer","relayer/src/quick.ts",'if (p.h !== sha256(text)) throw','if (false) throw',"a2-p1-4-ticket-text-bound"),
+ ("relayer","relayer/src/quick.ts",'{ ruling: t.ruling, flags: t.flags, text: body.text }','{ ruling: t.ruling, flags: (body.flags as string[] | undefined) ?? t.flags, text: body.text }',"a2-p1-4-flags-from-ticket"),
+ ("relayer","relayer/src/quick.ts",'if (body.ruling !== undefined && body.ruling !== t.ruling) {','if (false) {',"a2-p1-4-ruling-mismatch"),
+ ("relayer","relayer/src/lib/pattern.ts",'if (window && window.w.has(window.user, pkey, now)) return','if (false) return',"a2-v-pl-14-window"),
+ ("relayer","relayer/src/lib/pattern.ts",'    this.file?.append({ k, until });','    void until;',"a2-v-pl-14-durable"),
+ ("relayer","relayer/src/lib/publishBudget.ts",'if (i < 0) return false;\n    this.held.splice(i, 1);','if (i >= 0) this.held.splice(i, 1);',"a2-p1-5-release-once"),
+ ("relayer","relayer/src/quick.ts",'if (q.creatorKey !== undefined && stableKey(req) === q.creatorKey) throw','if (false) throw',"a2-p1-6-not-the-creator"),
+ ("relayer","relayer/src/quick.ts",'      q.inviteHash = null; // single use','      // single use',"a2-p1-6-invite-once"),
+ ("relayer","relayer/src/quick.ts",'if (side === 1 && !q.sideBJoinedAt) throw','if (false) throw',"a2-p1-6-side-b-must-join"),
+ ("relayer","relayer/src/quick.ts",'          side_token: tokenA,','          side_token: tokenA, side_tokens: [tokenA],',"a2-p1-6-one-token-only"),
+ ("relayer","relayer/src/quick.ts",'proof_line: live ? "Recorded on GenLayer" : null,','proof_line: "Recorded on GenLayer",',"a2-digest-live-only"),
+ ("relayer","relayer/src/quick.ts",'    if (noVerdict) undo();','    void noVerdict;',"a2-ledger-no-verdict-refund"),
+ ("relayer","relayer/src/quick.ts",'.filter((r) => r.pattern_id === id && r.finality === "FINALIZED_SUCCESS")','.filter((r) => r.pattern_id === id || r.finality === "PENDING")',"a2-ledger-proof-final-only"),
+ ("relayer","relayer/src/lib/canonical.ts",'const short = hex.length > 8 ? `${hex.slice(0, 4)}…${hex.slice(-4)}` : hex;','const short = `VR-${hex.slice(0, 4).toUpperCase()}`;',"a2-receipt-display"),
+ ("relayer","relayer/src/app.ts",'...(overruled && r.tier === 1 ? { overruled_line','...(overruled ? { overruled_line',"a2-v-pub-09-tier1-only"),
+ ("web","web/src/lib/gallery.js",'return /^0x[0-9a-f]{40}$/.test(lc(relayerAddress)) && lc(c?.creator) === lc(relayerAddress);','return true;',"a2-web-relayer-labels-only"),
+ ("web","web/src/lib/gallery.js",'  if (!relayerCase) {\n    const says','  if (false) {\n    const says',"a2-web-visitor-line"),
+ ("web","web/src/lib/gallery.js",': { text: `On-chain status: creator says Tier ${t} final`',': { text: `Tier ${t} finalized`',"a2-web-tier-attributed"),
+ ("web","web/src/lib/gallery.js",'  return { pinned, page, nextBefore: id + 1 };','  return { pinned: [], page, nextBefore: id + 1 };',"a2-web-pinned-evidence"),
+ ("web","web/scripts/build.mjs",'cases[demo.case_id] = (demo.transactions','void (demo.transactions',"a2-web-demo-indexed"),
+ ("web","web/src/lib/gallery.js",'const short = hex.length > 8 ? `${hex.slice(0, 4)}…${hex.slice(-4)}` : hex;','const short = hex;',"a2-web-receipt-short"),
+ ("web","web/src/lib/gallery.js",'    if (pinned.has(Number(c.id))) out.evidence.push(c);','    if (false) out.evidence.push(c);',"a2-web-evidence-first"),
 ]
 only=sys.argv[1:]
 for kind,f,old,new,name in muts:
@@ -129,6 +158,8 @@ for kind,f,old,new,name in muts:
     try:
         if kind=="relayer":
             r=subprocess.run("npm test",shell=True,cwd=R/"relayer",capture_output=True,text=True)
+        elif kind=="web":
+            r=subprocess.run("npm run --silent build && npm test",shell=True,cwd=R/"web",capture_output=True,text=True)
         else:
             r=subprocess.run(f"{sys.executable} -m pytest -q -x",shell=True,cwd=R/"contracts",capture_output=True,text=True)
         print(f"{name}: {'KILLED (tests fail)' if r.returncode!=0 else 'SURVIVED'}")

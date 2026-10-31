@@ -103,6 +103,38 @@ JUDGE_ROUTER_ADDRESS=0x... EXPECTED_CONTRACT_CODE_DIGEST=... GENLAYER_NETWORK=st
 python3 ../scripts/live_evidence.py ../docs/live/run.json --deploy-tx 0x... --deploy-votes "agree 5"
 ```
 
+
+## The live web app and visitor cases (same deployment)
+
+*Hand-maintained section (not rendered by `scripts/live_evidence.py`): keep it when re-rendering this page.*
+
+**URL:** <https://yoyoblair333-wq.github.io/verdict/>. GitHub Pages, built from `web/` by `.github/workflows/pages.yml` on every push to `main` (`npm ci`, `npm run build`, then `npm run snapshot` for the labelled fallback).
+
+| | What the page does |
+|---|---|
+| **Reads** | From the visitor's browser over `https://studio.genlayer.com/api`: `get_config`; `get_case` **by id**, first the pinned evidence cases (1, 2, 3 and 5, from the build's `evidence.json`), then the newest cases in pages of 20; `gen_getContractCode` for the code pin (sha256 must equal `7c18143c…ca1b`); `eth_getTransactionByHash` to check indexed transactions live. If the RPC is unreachable it shows the build-time `snapshot.json`, labelled "Snapshot · taken …", and write mode is off. |
+| **Writes** | Only from "Try it on testnet": a burner key generated in the visitor's browser (localStorage, "testnet only, no value") signs `open_case_package`, `judge`, `confirm_verdict` and, if chosen, `appeal`, with `value: 0`. No VERDICT server is involved; the relayer never sees or lists these cases. |
+| **Labels** (ADR-023) | A case whose `creator` is the relayer address `0x34653Fb290480a8C99B4D92D4857123B5624c37d` (`web/src/config.js` `RELAYER_ADDRESS`) is "Opened by the VERDICT relayer". Every other case is "Visitor case · not moderated by VERDICT" with "Opened by a visitor's testnet account. Self-reported labels not verified."; a visitor package claiming `verified_participant` reads "says verified (not checked)". `confirmed_tier` is shown as "On-chain status: Tier N confirmed by the relayer" or "On-chain status: creator says Tier N final"; the network's own answer is the jury transaction's status, checked live. Visitor cases sit behind a separate "Visitor cases" control. Chain text is rendered as text only, passes a display filter (injection, threat, PII), and can be hidden by id in `web/src/hidden-cases.json`. The receipt is "Receipt" plus the first 4 and last 4 hex of the packageDigest; the full value is one tap away. |
+| **Tests** | Offline tier `web/test/offline.test.mjs` (in `scripts/verify.sh` and CI; no network). Live tier `web/test/live.test.cjs` (`npm run test:live`, optional). |
+
+### Case 5: browser-signed demo case
+
+Recorded for the demo video: `web/dist` served locally and driven by Playwright; every transaction signed in the browser by its own burner via genlayer-js; no relayer involved. Full record: [`docs/live/demo-case.json`](live/demo-case.json). The build indexes these three transaction hashes (`web/scripts/build.mjs`), so every visitor sees them, not only the signing browser. Case 5 is a **visitor case** and the page labels it as one.
+
+| | |
+|---|---|
+| Creator (burner) | `0xB1a9D090c0aEC5560ad25646c38a4Db0254F844c` |
+| Receipt number (packageDigest) | `01f51eb7f80de32f59fb4dbe1ce047855e088ac9dbf98e05995c835627939267` (shown as Receipt `01f5…9267`) |
+| `open_case_package` | `0xe5f89db1258a952b5e724e5d76c15b3382d47a1a85c850983156cd3e82fa9ea1`: FINALIZED / SUCCESS, agree 3, idle 2 |
+| `judge` | `0xa2701c2f0276cb84a2d529d5f6aa145dd7fba880c0e3d5535f25f5cb26b3e1ef`: FINALIZED / SUCCESS, agree 3, idle 1, disagree 1 |
+| `confirm_verdict` | `0x11df92e968557e43a2347c7701e9640653aa895ece5280e336c2439a5285132c`: FINALIZED / SUCCESS, agree 3, idle 2 |
+| Verdict | Tier 1, 5 jurors, 5-0 for take B, `confirmed_tier` 1 (set by the creator) |
+| Wall clock | send click → Tier 1 FINALIZED 155.7 s; → `confirm_verdict` FINALIZED 198.0 s |
+
+### Case 4: unexplained stranded attempt
+
+Read from the contract on 2026-10-31: creator `0x47209B8E68AA03514F2b017067D73d972E08A714` (a burner), `created_at` 2026-10-31T20:27:32Z, `updated_at` 20:27:41Z, `status` judged, tier 1, `confirmed_tier` 0 (no `confirm_verdict`). Its takes are the web app's second built-in sample ("You're always late." / "And yet you keep saving me a seat.", `web/src/app.js` `SAMPLES`). It was opened 72 seconds before case 5 by a different burner, which fits an earlier attempt during the demo recording (each Playwright browser context generates a new burner), but there is no record of who ran it or why it stopped before `confirm_verdict`, and the engineering lane did not create it in this round. **It is unexplained.** Its text is the app's own sample, so it is not hidden; the page shows it as a visitor case with "On-chain status" and no relayer wording. No transaction hashes are indexed for it.
+
 ## Earlier deployment (2026-10-31, `0x7DBc10d8922A5Ba498007D212F2088872F2aCe06`)
 
 Superseded by the current deployment above: `contracts/judge_router.py` has changed since (owner/relayer split: constructor `relayer`, owner-only `set_relayer`, lifecycle calls open to the current relayer), so this address no longer matches the source or the pinned digest. Its run data is kept in [`docs/live/studionet-run-0x7DBc10d8.json`](live/studionet-run-0x7DBc10d8.json).

@@ -42,7 +42,7 @@ with sync_playwright() as p:
       const v = window.__verdict;
       // find a rubric where the Appeals Court overturns the case of the day (the simulator is deterministic)
       let c, t1, t2;
-      outer: for(const nb of ['Marcus', 'Marc', 'Marco', 'Mark', 'Max', 'Mo', 'Miles', 'Malik']){
+      outer: for(const nb of ['@labels', '@fridge_fan', '@leftovers', '@shelf_space', '@snack_law', '@tupperware', '@crisper', '@door_shelf']){
         for(const r of ['right', 'petty', 'roast', 'comeback']){
           c = {rubric:r, a:v.CASE_OF_DAY.a, b:{name:nb, take:v.CASE_OF_DAY.b.take}};
           t1 = v.deliberate(c, 1, null); t2 = v.deliberate(c, 2, t1);

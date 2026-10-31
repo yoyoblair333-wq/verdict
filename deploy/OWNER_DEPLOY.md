@@ -1,6 +1,6 @@
 # Deploy both contracts from your own wallet (owner deploy)
 
-**Why.** GenLayer pays a contract's *creator* (the address that deploys it) a share of the transaction fees the contract generates. So the final `JudgeRouter` and `PatternLedger` must be deployed from **your own wallet**. The relayer's throwaway key only signs day-to-day transactions, as the **relayer** role. It is never the creator.
+**Why.** A contract's *creator* (the address that deploys it) may receive a share of the transaction fees the contract generates: per GenLayer's portal; UNVERIFIED as to form and timing. Either way the creator is the owner, so the final `JudgeRouter` and `PatternLedger` must be deployed from **your own wallet**. The relayer's throwaway key only signs day-to-day transactions, as the **relayer** role. It is never the creator.
 
 **The two roles in both contracts**
 
@@ -98,4 +98,4 @@ If you left `relayer` empty at deploy time:
 2. Call `set_relayer` on PatternLedger with the same new address.
 3. Put the new key in `relayer/.env.local`.
 
-The new key keeps running cases the old key opened. Ownership, and the creator's fee share, never move unless you call `transfer_ownership` yourself.
+The new key keeps running cases the old key opened. Ownership never moves unless you call `transfer_ownership` yourself, and neither does any creator fee share (per GenLayer's portal; UNVERIFIED as to form and timing).

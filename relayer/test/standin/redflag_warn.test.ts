@@ -300,9 +300,14 @@ test("ledger (ADR-024 item 5): each submission is tracked to finality; the Proof
     await h.app.idle();
     assert.equal((await h.get(nc.json.receipt_path)).json.finality, "FINALIZED_ERROR");
     assert.equal((await h.get(nc.json.receipt_path)).json.recorded, false);
+    // a submission still pending is never shown as proof (only FINALIZED_SUCCESS counts)
+    ledger.scripts.push({ statusName: "PENDING" });
     const again = await h.post("/redflag/warn", await warnBody(h), KEY);
     assert.equal(again.status, 202, `cap of 2 and the same pattern: both were given back (${JSON.stringify(again.json)})`);
+    assert.deepEqual((await h.get("/redflag/proof/7")).json.txs, [w.json.tx], "a pending tx is not proof");
+    assert.equal((await h.get(again.json.receipt_path)).json.recorded, false);
     await h.app.idle();
+    assert.deepEqual((await h.get("/redflag/proof/7")).json.txs, [w.json.tx], "nor once it went STALE");
   });
 });
 
