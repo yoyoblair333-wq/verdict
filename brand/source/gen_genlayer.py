@@ -151,7 +151,7 @@ def published(fname, case_no, rubric, a, b, preview, votes, ruling, by, head, ct
     FL_TOP = 1812 - 38
     cy = FL_TOP - 40 - 86
     y = centre(c, m, y, cy)
-    footer_network(c, 'Published after both invite links accepted · Submitted by participants',
+    footer_network(c, 'Published by both sides · Submitted by participants',
                    sample_receipt(case_no, rubric, a[0], a[1], b[0], b[1]))
     check_fit(fname, y, cy)
     cta(c, cy, cta_txt)

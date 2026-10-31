@@ -558,6 +558,45 @@ test("publish budget: when the month's budget is spent, publishes queue FIFO (pr
   });
 });
 
+test("publish budget (AUDIT-2 P1-5): a queued dispatch that fails releases its reservation exactly once; real spend is kept", async () => {
+  const quick = { ...baseQuick(), publishBudgetCentsMonth: 180, publishFeeEstimateCents: 90, publishDailyCap: 10 };
+  await withH({ quick }, { judgeProvider: contest([0, 0, 0, 0, 0]) }, async (h) => {
+    const qs = [] as Array<{ id: string; winner: string; loser: string }>;
+    for (let i = 0; i < 4; i++) {
+      const q = await quickCase(h);
+      await bothConsent(h, q);
+      qs.push(q);
+    }
+    const [p1, p2, p3, p4] = qs as [typeof qs[0], typeof qs[0], typeof qs[0], typeof qs[0]];
+    assert.equal((await h.post(`/quick/${p1.id}/publish`, {}, side(p1.loser))).status, 202);
+    assert.equal((await h.post(`/quick/${p2.id}/publish`, {}, side(p2.loser))).status, 202);
+    await h.app.idle();
+    assert.equal((await h.post(`/quick/${p3.id}/publish`, {}, side(p3.loser))).json.position, 1);
+    assert.equal((await h.post(`/quick/${p4.id}/publish`, {}, side(p4.loser))).json.position, 2);
+    const fees = async () => (await h.get("/ops/fees", { authorization: `Bearer ${SECRETS.adminToken}` })).json.publish_budget;
+    assert.equal((await fees()).spent_cents, 180);
+    // next LA month: p3 dispatches for real; p4's open fails for a technical reason
+    h.clock.now = new Date("2026-11-01T07:00:00Z");
+    h.chain.now = "2026-11-01T07:00:00Z";
+    const orig = h.chain.broadcast.bind(h.chain);
+    let opens = 0;
+    h.chain.broadcast = async (fn, args) => {
+      if (fn === "open_case_package" && ++opens === 2) throw new Error("ECONNRESET");
+      return orig(fn, args);
+    };
+    assert.equal((await h.get(`/quick/${p3.id}/publish`, side(p3.loser))).json.status, "published");
+    await h.app.idle();
+    const st4 = await h.get(`/quick/${p4.id}`, side(p4.loser)); // GET /quick/:id does not drain
+    assert.equal(st4.json.publish?.position, 1, `p4 is back at the head of the line: ${JSON.stringify(st4.json)}`);
+    assert.equal((await fees()).spent_cents, 90, "p3 is really spent; p4's failed dispatch released once (the double release left 0)");
+    // the line recovers once the RPC is back
+    h.chain.broadcast = orig;
+    assert.equal((await h.get(`/quick/${p4.id}/publish`, side(p4.loser))).json.status, "published");
+    await h.app.idle();
+    assert.equal((await fees()).spent_cents, 180);
+  });
+});
+
 test("ops/fees: admin only; one row per finalized on-chain tx with the measured fee (or 'unavailable')", async () => {
   await withH({}, { judgeProvider: contest([0, 0, 0, 0, 0]) }, async (h) => {
     assert.equal((await h.get("/ops/fees")).status, 401);

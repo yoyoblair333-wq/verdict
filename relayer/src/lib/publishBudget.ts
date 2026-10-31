@@ -27,6 +27,9 @@ export interface BudgetSnapshot {
   month: string;
   spentCents: number;
   queue: QueueEntry[];
+  /** Publish ids (quick ids) whose fee is currently reserved this month. Reserve and
+   * release are idempotent per id: a second release of the same id is a no-op (AUDIT-2 P1-5). */
+  reserved?: string[];
 }
 
 export const laMonth = (now: Date): string => laDay(now).slice(0, 7);
@@ -43,12 +46,31 @@ export class PublishBudget {
     },
   ) {
     const loaded = o.load?.();
-    this.s = loaded && Array.isArray(loaded.queue) ? { month: loaded.month, spentCents: loaded.spentCents, queue: [...loaded.queue] } : { month: laMonth(o.clock()), spentCents: 0, queue: [] };
+    this.s =
+      loaded && Array.isArray(loaded.queue)
+        ? { month: loaded.month, spentCents: loaded.spentCents, queue: [...loaded.queue], reserved: Array.isArray(loaded.reserved) ? [...loaded.reserved] : [] }
+        : { month: laMonth(o.clock()), spentCents: 0, queue: [], reserved: [] };
     this.roll();
   }
 
   private persist(): void {
-    this.o.save?.({ month: this.s.month, spentCents: this.s.spentCents, queue: [...this.s.queue] });
+    this.o.save?.({ month: this.s.month, spentCents: this.s.spentCents, queue: [...this.s.queue], reserved: [...(this.s.reserved ?? [])] });
+  }
+
+  private get held(): string[] {
+    if (!this.s.reserved) this.s.reserved = [];
+    return this.s.reserved;
+  }
+
+  /** True while this publish id holds a reservation this month. */
+  isReserved(id: string): boolean {
+    return this.held.includes(id);
+  }
+
+  private charge(id: string): void {
+    if (this.isReserved(id)) return; // idempotent: one reservation per publish id
+    this.held.push(id);
+    this.s.spentCents += this.o.estimateCents;
   }
 
   /** New LA month: the budget resets; the queue carries over. */
@@ -57,6 +79,7 @@ export class PublishBudget {
     if (m !== this.s.month) {
       this.s.month = m;
       this.s.spentCents = 0;
+      this.s.reserved = [];
       this.persist();
     }
   }
@@ -74,20 +97,27 @@ export class PublishBudget {
     return this.s.spentCents + this.o.estimateCents <= this.o.capCents;
   }
 
-  /** Reserve one publish's estimated fee. False when the month's budget can't cover it.
-   * Never jumps the queue: while anyone is waiting, new publishes queue behind them. */
-  tryReserve(): boolean {
+  /** Reserve one publish's estimated fee for publish `id`. False when the month's budget
+   * can't cover it. Never jumps the queue: while anyone is waiting, new publishes queue
+   * behind them. Idempotent: an id that already holds a reservation is not charged again. */
+  tryReserve(id: string): boolean {
     this.roll();
+    if (this.isReserved(id)) return true;
     if (this.s.queue.length > 0 || !this.fits()) return false;
-    this.s.spentCents += this.o.estimateCents;
+    this.charge(id);
     this.persist();
     return true;
   }
 
-  /** Technical refund: the publish never reached the network. */
-  release(): void {
+  /** Technical refund for publish `id`: it never reached the network. Releases at most
+   * once per reservation; releasing an id that holds none changes nothing (AUDIT-2 P1-5). */
+  release(id: string): boolean {
+    const i = this.held.indexOf(id);
+    if (i < 0) return false;
+    this.held.splice(i, 1);
     this.s.spentCents = Math.max(0, this.s.spentCents - this.o.estimateCents);
     this.persist();
+    return true;
   }
 
   /** Join the queue (idempotent per preview). Returns the 1-based position. */
@@ -118,14 +148,16 @@ export class PublishBudget {
     this.roll();
     if (this.s.queue.length === 0 || !this.fits()) return undefined;
     const e = this.s.queue.shift()!;
-    this.s.spentCents += this.o.estimateCents;
+    this.charge(e.quickId);
     this.persist();
     return e;
   }
 
-  /** Put an entry back at the head (its dispatch failed for a technical reason). */
+  /** Put an entry back at the head (its dispatch failed for a technical reason) and drop its
+   * reservation. Safe when the dispatch already released it: release is idempotent per id. */
   requeueFront(e: QueueEntry): void {
-    this.s.queue.unshift(e);
-    this.release();
+    if (this.position(e.quickId) === 0) this.s.queue.unshift(e);
+    this.release(e.quickId);
+    this.persist();
   }
 }

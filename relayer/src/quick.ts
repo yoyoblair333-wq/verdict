@@ -1,6 +1,8 @@
 // Quick Verdict routes: the off-chain jury (ADR-013, ADR-014, ADR-015, ADR-018).
 //
-//   POST /quick                    Settle It, judged off-chain (5 personas)
+//   POST /quick                    Settle It, judged off-chain (5 personas). Returns side A's
+//                                  token ONLY, plus a one-time invite for side B (AUDIT-2 P1-6)
+//   POST /quick/:id/join           side B claims the invite (once) and gets its own token
 //   POST /quick/:id/consent        a side accepts publish-onchain-v1 ("your takes become public and permanent")
 //   POST /quick/:id/consent/withdraw  a side withdraws its own consent (any time before submission)
 //   POST /quick/:id/publish        Publish = network check (Design §1): either side, once BOTH
@@ -11,7 +13,9 @@
 //                                  ("Publish first"); a published one appeals at /cases/:id/appeal
 //   POST /quick/:id/revoke         refused after Done (409, ADR-012 / V-QV-07)
 //   POST /quick/:id/takedown       hides the card; never blocks publishing
-//   POST /redflag                  Red Flag Court (redacted, no appeals)
+//   POST /redflag                  Red Flag Court (redacted, no appeals); a SCAM/SUS ruling
+//                                  carries a signed, single-use, 15-minute warn_ticket
+//   POST /redflag/warn             opt-in pattern record; ruling + flags come from the ticket
 //   GET  /practice/today           practice-court case (topic only)
 //   POST /practice/attempts        Jailbreak the Jury attempt
 //
@@ -23,7 +27,7 @@
 // Tier 1 ruling then replaces the preview (overruled_preview when the winner
 // changed), and the normal appeal ladder applies on /cases/:id/appeal.
 
-import { createHash, createHmac, randomBytes } from "node:crypto";
+import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import type { Express, Request, Response } from "express";
 import type { Config } from "./config.js";
 import { HttpError, wrap } from "./lib/http.js";
@@ -35,7 +39,7 @@ import { DailyCounter, laDay, nextLaMidnight, utcDay } from "./lib/rateLimit.js"
 import { measure, redact, summary } from "./lib/redact.js";
 import { decideRuling, FLAG_CODES, isMoneyOffer, LEGIT_STANDING, RULING_COPY, runRedFlagPanel, STILL_TO_CHECK } from "./lib/redflag.js";
 import { validateVerdictPayload } from "./lib/verdict.js";
-import { patternLlmFrom, submitPattern, type PatternChainPort, type PatternConfig, type PatternOutcome } from "./lib/pattern.js";
+import { patternLlmFrom, SightingWindow, submitPattern, type PatternChainPort, type PatternConfig, type PatternOutcome } from "./lib/pattern.js";
 import type { Ruling } from "./lib/redflag.js";
 import { QUEUED_MESSAGE, type PublishBudget } from "./lib/publishBudget.js";
 
@@ -93,6 +97,11 @@ export const PUBLISH_REQUEST_TTL_MS = 72 * 3600 * 1000;
 export const PUBLISH_REQUEST_EXPIRED = "The other side didn't agree to go public.";
 /** A preview's share control: previews are shared only privately, with the two sides (ADR-021 item 7). */
 export const PREVIEW_SHARE = "Publish to share";
+/** Side B's invite: claimable once, by a caller other than side A (AUDIT-2 P1-6). */
+export const INVITE_NOTICE = "Side B: open this invite on your own device. You'll see both takes and the private Quick Verdict. Nothing is published unless you both agree.";
+export const SAME_PERSON = "This invite is for the other side. Open it on their device or account, not the one that created the case.";
+/** Red Flag ruling tickets (AUDIT-2 P1-4): /redflag/warn takes its ruling and flags only from one. */
+export const RULING_TICKET_TTL_MS = 15 * 60 * 1000;
 export const PUBLISH_FIRST = "Publish first: a Quick Verdict is a private preview and can't be appealed until the network has ruled on it.";
 
 export const QUICK_FOOTER = "Five AI juror personas · Quick Verdict · Not network-checked";
@@ -104,7 +113,8 @@ export const HELP_LINE =
 const EXTORTION_RE = /\b(?:(?:i|we)\s+have\s+(?:your|ur)\s+(?:photos?|pics?|pictures?|videos?)|send\s+(?:them|it|these)\s+to\s+(?:your|ur)\s+(?:contacts|family|friends|boss)|sextortion)\b/i;
 
 const FORBIDDEN_KEYS = /^(receipt|receipt_number|receiptNumber|package_digest|packageDigest|tx|txHash|inbox_record|finality|explorer|record_url)$/;
-const FALSE_CLAIM = /(?<![Nn]ot )(network[- ]checked|checked by (?:the|a) network|finalized|\bVR-[0-9A-F]{4}|nobody controls)/i;
+// "to be checked by the network" (the queue message) is a future, not a claim: allowed.
+const FALSE_CLAIM = /(?<![Nn]ot |\bbe )(network[- ]checked|checked by (?:the|a) network|finalized|\bVR-[0-9A-F]{4}|nobody controls)/i;
 
 /** Throws if a Quick Verdict / practice body would claim a network check or carry a receipt (V-QV-02). */
 export function assertQuickHonest(body: unknown, path = "body"): void {
@@ -153,6 +163,12 @@ interface QuickCase {
   caseId: number | null;
   /** Set while waiting in the publish queue (ADR-022); null otherwise. */
   queuedAt?: string | null;
+  /** sha256 of side B's one-time invite code; null once claimed (or for legacy rows). */
+  inviteHash?: string | null;
+  /** When side B claimed the invite; null until then. Side B can't consent before it. */
+  sideBJoinedAt?: string | null;
+  /** HMAC(identity) of the caller that created the case (never the raw IP or key). */
+  creatorKey?: string;
 }
 
 /** Older store rows (pre-publish) used `appealConsent`; consents given under the
@@ -160,6 +176,10 @@ interface QuickCase {
 function upgrade(r: QuickCase & { appealConsent?: boolean[] }): QuickCase {
   if (!Array.isArray(r.publishConsent)) r.publishConsent = [false, false];
   if (!Array.isArray(r.publishConsentRecords)) r.publishConsentRecords = [null, null];
+  // Rows from before AUDIT-2 P1-6 handed BOTH tokens to one caller: side B never joined,
+  // so side B's consent is refused for them (requireJoined) and they can't be published.
+  if (r.sideBJoinedAt === undefined) r.sideBJoinedAt = null;
+  if (r.inviteHash === undefined) r.inviteHash = null;
   delete r.appealConsent;
   return r;
 }
@@ -210,11 +230,24 @@ export function registerQuickRoutes(app: Express, ctx: QuickCtx): void {
   // Publishing is free but capped per user per LA day (Design §1).
   const publishCap = new DailyCounter(cfg.quick.publishDailyCap, laDay);
 
-  /** HMAC(identity): counters never hold a raw IP or API key (V-PRIV-09). */
-  function accountKey(req: Request): string {
+  /** Who is calling, for the per-user caps. An x-api-key counts as an identity ONLY when
+   * the server has validated it (cfg.apiKeys). Any other key, valid-looking or random, is
+   * ignored and the caller is keyed on IP, so inventing keys never buys more quota
+   * (AUDIT-2 P1-3). */
+  function identity(req: Request): string {
     const key = req.header("x-api-key");
-    const id = key ? `key:${key}` : `ip:${req.ip ?? "unknown"}`;
-    return createHmac("sha256", cfg.quick.accountKeySecret).update(`${laDay(clock())}|${id}`).digest("hex");
+    return key !== undefined && cfg.apiKeys.has(key) ? `key:${key}` : `ip:${req.ip ?? "unknown"}`;
+  }
+
+  /** HMAC(identity, LA day): counters never hold a raw IP or API key (V-PRIV-09). */
+  function accountKey(req: Request): string {
+    return createHmac("sha256", cfg.quick.accountKeySecret).update(`${laDay(clock())}|${identity(req)}`).digest("hex");
+  }
+
+  /** HMAC(identity) without the day: for windows longer than a day (V-PL-14) and for
+   * telling the two sides of a Quick Verdict apart (P1-6). Never stored raw. */
+  function stableKey(req: Request): string {
+    return createHmac("sha256", cfg.quick.accountKeySecret).update(`stable|${identity(req)}`).digest("hex");
   }
 
   function needProvider(): JudgeProvider {
@@ -256,6 +289,55 @@ export function registerQuickRoutes(app: Express, ctx: QuickCtx): void {
 
   const awaiting = (q: QuickCase) => q.publishConsent.flatMap((c, i) => (c ? [] : [i]));
 
+  /** Side B can do nothing that counts as consent until it has claimed its invite. */
+  function requireJoined(q: QuickCase, side: number): void {
+    if (side === 1 && !q.sideBJoinedAt) throw new HttpError(409, "side B has not joined through its invite yet", { code: "side_b_not_joined" });
+  }
+
+  /** The preview's two takes, for the sides only. Sent outside assertQuickHonest: it is the
+   * users' own text, shown back so side B consents to exactly what would be published. */
+  const sendWithTakes = (res: Response, status: number, body: Record<string, unknown>, q: QuickCase) => {
+    assertQuickHonest(body);
+    res.status(status).json({ ...body, takes: [...q.entries] });
+  };
+
+  // ---------------------------------------------- Red Flag ruling tickets (P1-4)
+  // hex(JSON payload) "." hex(HMAC). Payload: version, random nonce, ruling, flags,
+  // sha256 of the redacted text the jury ruled on, expiry. Stateless to issue; the nonce
+  // is remembered until expiry so a ticket can be used once.
+  const ticketKey = createHmac("sha256", cfg.quick.accountKeySecret).update("verdict-ruling-ticket-v1").digest();
+  const usedTickets = new Map<string, number>();
+  const sightings = new SightingWindow(createHmac("sha256", cfg.quick.accountKeySecret).update("verdict-sighting-v1").digest("hex"));
+
+  function issueTicket(ruling: Ruling, flags: string[], text: string): string {
+    const payload = Buffer.from(JSON.stringify({ v: 1, n: randomBytes(12).toString("hex"), r: ruling, f: [...flags], h: sha256(text), exp: clock().getTime() + RULING_TICKET_TTL_MS })).toString("hex");
+    return `${payload}.${createHmac("sha256", ticketKey).update(payload).digest("hex")}`;
+  }
+
+  /** Verifies signature, expiry, text binding and single use. Consumes the nonce. */
+  function redeemTicket(ticket: unknown, text: string): { ruling: Ruling; flags: string[]; nonce: string } {
+    const bad = (msg: string, code = "ruling_ticket_invalid") => new HttpError(422, msg, { code });
+    if (typeof ticket !== "string" || ticket === "") throw bad("a warn_ticket from POST /redflag is required", "ruling_ticket_required");
+    const m = /^([0-9a-f]{2,4096})\.([0-9a-f]{64})$/.exec(ticket);
+    if (!m) throw bad("malformed warn_ticket");
+    const want = createHmac("sha256", ticketKey).update(m[1]!).digest();
+    if (!timingSafeEqual(want, Buffer.from(m[2]!, "hex"))) throw bad("warn_ticket signature does not verify");
+    let p: { v?: unknown; n?: unknown; r?: unknown; f?: unknown; h?: unknown; exp?: unknown };
+    try {
+      p = JSON.parse(Buffer.from(m[1]!, "hex").toString("utf8"));
+    } catch {
+      throw bad("malformed warn_ticket");
+    }
+    if (p.v !== 1 || typeof p.n !== "string" || typeof p.r !== "string" || !PATTERN_RULINGS.includes(p.r as Ruling) || !Array.isArray(p.f) || typeof p.h !== "string" || typeof p.exp !== "number") throw bad("malformed warn_ticket");
+    const now = clock().getTime();
+    for (const [n, exp] of usedTickets) if (exp <= now) usedTickets.delete(n);
+    if (now > p.exp) throw bad("this warn_ticket has expired; run the check again", "ruling_ticket_expired");
+    if (p.h !== sha256(text)) throw bad("text is not the text this ruling was made on", "ruling_ticket_text_mismatch");
+    if (usedTickets.has(p.n)) throw bad("this warn_ticket was already used", "ruling_ticket_used");
+    usedTickets.set(p.n, p.exp);
+    return { ruling: p.r as Ruling, flags: (p.f as unknown[]).filter((x): x is string => typeof x === "string"), nonce: p.n };
+  }
+
   const budget = ctx.publishBudget;
   const queuedBody = (q: QuickCase, position: number): Record<string, unknown> => ({
     status: "queued", position, message: QUEUED_MESSAGE, published: false, cancel_path: `/quick/${q.id}/publish/cancel`,
@@ -276,12 +358,12 @@ export function registerQuickRoutes(app: Express, ctx: QuickCtx): void {
       });
     } catch (e) {
       publishCap.refund(acct); // nothing was opened
-      budget.release(); // and no fee was spent
+      budget.release(q.id); // and no fee was spent (idempotent per publish id: AUDIT-2 P1-5)
       throw e;
     }
     if (opened.status !== 201) {
       publishCap.refund(acct); // nothing was published (refused, or a SHADOW test run)
-      budget.release();
+      budget.release(q.id);
       return { status: opened.status, body: { ...opened.body, from_quick_verdict: q.id, published: false, price_cents: 0 } };
     }
     const id = opened.body.id as number;
@@ -315,7 +397,7 @@ export function registerQuickRoutes(app: Express, ctx: QuickCtx): void {
         for (let e = budget.takeNext(); e; e = budget.takeNext()) {
           const q = cases.get(e.quickId);
           if (!q || q.caseId !== null || !q.publishConsent.every(Boolean) || clock().getTime() > Date.parse(q.expiresAt)) {
-            budget.release(); // stale entry: nothing to send
+            budget.release(e.quickId); // stale entry: nothing to send
             if (q) {
               q.queuedAt = null;
               save(q);
@@ -326,7 +408,7 @@ export function registerQuickRoutes(app: Express, ctx: QuickCtx): void {
             await dispatch(q, e.account);
           } catch (err) {
             // Technical failure: back to the head of the line, try again later.
-            budget.requeueFront(e);
+            budget.requeueFront(e); // dispatch already released q.id; this is a no-op for the spend
             publishCap.take(e.account, clock()); // dispatch refunded it; it is still in line
             console.error(`[publish] queued dispatch for ${q.id} failed:`, (err as Error).message);
             break;
@@ -363,7 +445,7 @@ export function registerQuickRoutes(app: Express, ctx: QuickCtx): void {
     if (q.publishRequestedBy !== null && q.publishRequestedBy !== undefined) {
       return { status: left.length ? "waiting" : "ready", requested_by: q.publishRequestedBy, awaiting_sides: left, request_expires_at: new Date(Date.parse(q.publishRequestedAt!) + PUBLISH_REQUEST_TTL_MS).toISOString() };
     }
-    return { status: left.length ? "private" : "ready", awaiting_sides: left };
+    return { status: left.length ? "private" : "ready", awaiting_sides: left, ...(q.sideBJoinedAt ? {} : { side_b_joined: false }) };
   }
 
   // ------------------------------------------------ Settle It Quick Verdict
@@ -401,13 +483,16 @@ export function registerQuickRoutes(app: Express, ctx: QuickCtx): void {
         settleCap.refund(acct);
         throw new HttpError(502, `invalid quick verdict: ${chk.reason}`, { outcome: "no_ruling" });
       }
-      const sideTokens = [randomBytes(24).toString("base64url"), randomBytes(24).toString("base64url")];
+      // Side A's token goes to the caller. Side B's slot holds the hash of a random value that
+      // is never sent anywhere; side B gets a real token only by claiming the invite (P1-6).
+      const tokenA = randomBytes(24).toString("base64url");
+      const invite = randomBytes(18).toString("base64url");
       const now = clock();
       const q: QuickCase = {
         id: randomBytes(12).toString("base64url"),
         rubric: rubric.trim().toLowerCase(),
         entries: texts,
-        sideTokenHashes: sideTokens.map(sha256),
+        sideTokenHashes: [sha256(tokenA), sha256(randomBytes(32).toString("hex"))],
         verdict: { winnerIndex: v.winner_index, scores: v.scores, jurorVotes: v.votes, split: v.split, reason: v.reason, jurors: 5 },
         createdAt: now.toISOString(),
         expiresAt: new Date(now.getTime() + cfg.quick.ttlSec * 1000).toISOString(),
@@ -418,6 +503,9 @@ export function registerQuickRoutes(app: Express, ctx: QuickCtx): void {
         publishRequestedAt: null,
         hidden: false,
         caseId: null,
+        inviteHash: sha256(invite),
+        sideBJoinedAt: null,
+        creatorKey: stableKey(req),
       };
       cases.set(q.id, q);
       save(q);
@@ -426,7 +514,16 @@ export function registerQuickRoutes(app: Express, ctx: QuickCtx): void {
         201,
         quickFrame({
           quick_id: q.id,
-          side_tokens: sideTokens,
+          side: 0,
+          side_token: tokenA,
+          invite: {
+            code: invite,
+            join_path: `/quick/${q.id}/join`,
+            single_use: true,
+            for_side: 1,
+            notice: INVITE_NOTICE,
+            expires_at: q.expiresAt,
+          },
           expires_at: q.expiresAt,
           verdict: q.verdict,
           bench: panel.results.map((r, j) => ({ juror: JUROR_PERSONAS[j]![0], title: JUROR_PERSONAS[j]![1], vote: r.winner_index, reason: r.reason })),
@@ -435,7 +532,7 @@ export function registerQuickRoutes(app: Express, ctx: QuickCtx): void {
           appeal: PUBLISH_FIRST,
           share: PREVIEW_SHARE,
           publish: {
-            who: "Either side. Both sides must first accept the publish notice; until then Publish waits.",
+            who: "Either side. Side B must first join through its invite, then both sides accept the publish notice; until then Publish waits.",
             consent_path: `/quick/${q.id}/consent`,
             withdraw_path: `/quick/${q.id}/consent/withdraw`,
             publish_path: `/quick/${q.id}/publish`,
@@ -446,6 +543,38 @@ export function registerQuickRoutes(app: Express, ctx: QuickCtx): void {
           },
         }),
       );
+    }),
+  );
+
+  // Side B claims its one-time invite (AUDIT-2 P1-6). It accepts the same submit-time
+  // notice side A did and gets its OWN side token; the invite is then spent. The caller
+  // that created the case can't claim it, so consent to publish takes two people.
+  app.post(
+    "/quick/:id/join",
+    wrap(async (req, res) => {
+      const q = typeof req.params.id === "string" ? cases.get(req.params.id) : undefined;
+      if (!q) throw new HttpError(404, "quick verdict not found");
+      const body = (req.body ?? {}) as Record<string, unknown>;
+      if (typeof body.invite !== "string" || body.invite === "") throw new HttpError(400, "invite must be the invite code");
+      if (!q.inviteHash) throw new HttpError(409, "this invite was already used", { code: "invite_used" });
+      if (!timingSafeEqual(Buffer.from(sha256(body.invite), "hex"), Buffer.from(q.inviteHash, "hex"))) throw new HttpError(403, "invalid invite", { code: "invite_invalid" });
+      if (clock().getTime() > Date.parse(q.expiresAt)) throw new HttpError(410, "this Quick Verdict has expired");
+      const d = body.disclosure;
+      if (!exactTrue(d, "consent")) throw new HttpError(422, "disclosure.consent must be true", { code: "consent_required", notice: QUICK_NOTICE, notice_version: QUICK_NOTICE_VERSION });
+      if (!exactTrue(d, "adult_confirmed")) throw new HttpError(422, "disclosure.adult_confirmed must be true (18+ only)", { code: "adult_confirmation_required" });
+      if (q.creatorKey !== undefined && stableKey(req) === q.creatorKey) throw new HttpError(409, SAME_PERSON, { code: "same_person" });
+      const tokenB = randomBytes(24).toString("base64url");
+      q.sideTokenHashes = [q.sideTokenHashes[0]!, sha256(tokenB)];
+      q.inviteHash = null; // single use
+      q.sideBJoinedAt = clock().toISOString();
+      q.consentNotice = [q.consentNotice[0]!, QUICK_NOTICE_VERSION];
+      save(q);
+      res.setHeader("cache-control", "private, no-store");
+      sendWithTakes(res, 201, quickFrame({
+        quick_id: q.id, side: 1, side_token: tokenB, joined: true, visibility: "private to the two sides", expires_at: q.expiresAt,
+        verdict: q.verdict, footer: QUICK_FOOTER, share: PREVIEW_SHARE, appealable: false, appeal: PUBLISH_FIRST,
+        publish: { ...publishStatus(q, 1), consent_path: `/quick/${q.id}/consent`, notice: PUBLISH_NOTICE, notice_version: PUBLISH_NOTICE_VERSION },
+      }), q);
     }),
   );
 
@@ -463,11 +592,12 @@ export function registerQuickRoutes(app: Express, ctx: QuickCtx): void {
         send(res, 200, quickFrame({ quick_id: q.id, side, published: true, case_id: q.caseId, verdict: null, note: "This case was published. The network's ruling is the result: see the on-chain case." }));
         return;
       }
-      send(res, 200, quickFrame({
+      sendWithTakes(res, 200, quickFrame({
         quick_id: q.id, side, published: false, visibility: "private to the two sides", hidden: q.hidden, expires_at: q.expiresAt,
+        side_b_joined: Boolean(q.sideBJoinedAt),
         verdict: q.verdict, footer: QUICK_FOOTER, share: PREVIEW_SHARE, appealable: false, appeal: PUBLISH_FIRST,
         publish: publishStatus(q, side),
-      }));
+      }), q);
     }),
   );
 
@@ -487,6 +617,7 @@ export function registerQuickRoutes(app: Express, ctx: QuickCtx): void {
     wrap(async (req, res) => {
       const { q, side } = quickSide(req);
       notPublished(q);
+      requireJoined(q, side);
       lapse(q);
       requirePublishConsent((req.body ?? {}) as Record<string, unknown>);
       consent(q, side);
@@ -546,6 +677,7 @@ export function registerQuickRoutes(app: Express, ctx: QuickCtx): void {
         save(q);
         throw new HttpError(409, PUBLISH_REQUEST_EXPIRED, { code: "publish_request_expired", status: "expired" });
       }
+      requireJoined(q, side);
       if (body.disclosure !== undefined || !q.publishConsent[side]) {
         requirePublishConsent(body); // the publishing side accepts the publish notice now
         consent(q, side);
@@ -558,8 +690,8 @@ export function registerQuickRoutes(app: Express, ctx: QuickCtx): void {
         }
         save(q);
         // Publish waits: it does not go ahead without the other side.
-        throw new HttpError(409, "waiting for the other side to accept the publish notice; nothing was published", {
-          code: "waiting_for_other_side", status: "waiting", awaiting_sides: [other], consent_path: `/quick/${q.id}/consent`,
+        throw new HttpError(409, q.sideBJoinedAt ? "waiting for the other side to accept the publish notice; nothing was published" : "waiting for side B to join through its invite and accept; nothing was published", {
+          code: "waiting_for_other_side", status: "waiting", awaiting_sides: [other], consent_path: `/quick/${q.id}/consent`, side_b_joined: Boolean(q.sideBJoinedAt),
         });
       }
       save(q);
@@ -571,7 +703,7 @@ export function registerQuickRoutes(app: Express, ctx: QuickCtx): void {
       if (left < 0) throw new HttpError(429, `that's ${cfg.quick.publishDailyCap} free publishes today; publishing reopens at midnight Pacific`, { code: "publish_cap", resets_at: nextLaMidnight(clock()).toISOString() });
       // ADR-022: free publishes draw on one global monthly budget. When it is spent,
       // the publish waits in a FIFO queue (never in SHADOW: a test run spends nothing).
-      if (cfg.mode === "live" && !budget.tryReserve()) {
+      if (cfg.mode === "live" && !budget.tryReserve(q.id)) {
         q.queuedAt = clock().toISOString();
         q.publishRequestedBy = null; // the 72 h consent expiry applies before the queue, not in it
         q.publishRequestedAt = null;

@@ -24,14 +24,14 @@ test("budget: reserves per publish, FIFO queue, no queue-jumping, rolls over eac
   let saved: BudgetSnapshot | undefined;
   const mk = () => new PublishBudget({ capCents: 200, estimateCents: 90, clock: () => clock.now, load: () => saved, save: (s) => (saved = s) });
   const b = mk();
-  assert.equal(b.tryReserve(), true);
-  assert.equal(b.tryReserve(), true);
-  assert.equal(b.tryReserve(), false, "180 spent: a third 90 would pass 200");
+  assert.equal(b.tryReserve("p1"), true);
+  assert.equal(b.tryReserve("p2"), true);
+  assert.equal(b.tryReserve("p3"), false, "180 spent: a third 90 would pass 200");
   assert.equal(b.enqueue(entry("a")), 1);
   assert.equal(b.enqueue(entry("b")), 2);
   assert.equal(b.enqueue(entry("a")), 1, "idempotent");
-  b.release(); // a technical refund frees 90...
-  assert.equal(b.tryReserve(), false, "...but a newcomer never jumps the queue");
+  b.release("p1"); // a technical refund frees 90...
+  assert.equal(b.tryReserve("p4"), false, "...but a newcomer never jumps the queue");
   const head = b.takeNext();
   assert.equal(head?.quickId, "a", "first in, first out");
   assert.equal(b.takeNext(), undefined, "budget spent again");
@@ -56,7 +56,48 @@ test("budget: reserves per publish, FIFO queue, no queue-jumping, rolls over eac
 
 test("budget: a cap of 0 means every free publish waits (nothing is spent)", () => {
   const b = new PublishBudget({ capCents: 0, estimateCents: 90, clock: () => new Date() });
-  assert.equal(b.tryReserve(), false);
+  assert.equal(b.tryReserve("p1"), false);
+});
+
+test("budget (AUDIT-2 P1-5): reserve and release are idempotent per publish id; a failed queued dispatch releases exactly once", () => {
+  const clock = { now: new Date("2026-10-31T12:00:00Z") };
+  let saved: BudgetSnapshot | undefined;
+  const mk = () => new PublishBudget({ capCents: 180, estimateCents: 90, clock: () => clock.now, load: () => saved, save: (s) => (saved = s) });
+  const b = mk();
+  assert.equal(b.tryReserve("a"), true);
+  assert.equal(b.tryReserve("a"), true, "same id: no second charge");
+  assert.equal(b.status().spent_cents, 90);
+  assert.equal(b.tryReserve("b"), true);
+  assert.equal(b.status().spent_cents, 180, "two real publishes spent");
+  assert.equal(b.tryReserve("c"), false);
+  b.enqueue(entry("c"));
+  // an earlier, unrelated technical refund
+  assert.equal(b.release("b"), true);
+  assert.equal(b.release("b"), false, "a second release of the same id is a no-op");
+  assert.equal(b.release("never-reserved"), false);
+  assert.equal(b.status().spent_cents, 90);
+  // the queued publish is taken (charged once), its dispatch throws: the route's dispatch
+  // releases it, then drain requeues it. Spend must return to exactly the pre-takeNext value.
+  const before = b.status().spent_cents;
+  const head = b.takeNext()!;
+  assert.equal(head.quickId, "c");
+  assert.equal(b.status().spent_cents, before + 90);
+  b.release(head.quickId); // dispatch's catch
+  b.requeueFront(head); // drain's catch
+  assert.equal(b.status().spent_cents, before, "spent unchanged from before takeNext (was 0 before the fix)");
+  assert.equal(b.position("c"), 1, "back at the head of the line");
+  b.requeueFront(head);
+  assert.equal(b.status().queued, 1, "requeue never duplicates an entry");
+  assert.equal(b.status().spent_cents, 90, "publish 'a' is still really spent");
+  // survives a restart: reservations are durable with the spend
+  const b2 = mk();
+  assert.equal(b2.isReserved("a"), true);
+  assert.equal(b2.release("c"), false);
+  assert.equal(b2.status().spent_cents, 90);
+  // a new LA month drops the reservations with the spend
+  clock.now = new Date("2026-11-01T07:00:00Z");
+  assert.equal(b2.status().spent_cents, 0);
+  assert.equal(b2.isReserved("a"), false);
 });
 
 test("fees: measured from an explicit fee field or gasUsed x gasPrice, else 'unavailable'; op from the op key", () => {

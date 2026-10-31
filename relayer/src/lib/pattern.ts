@@ -18,7 +18,7 @@
 // request key is random (never derived from the user or the text), and the
 // user key is only used for the in-memory daily counter.
 
-import { randomBytes } from "node:crypto";
+import { createHmac, randomBytes } from "node:crypto";
 import { createAccount, createClient } from "genlayer-js";
 import { localnet, studionet, testnetAsimov, testnetBradbury } from "genlayer-js/chains";
 import type { NetworkName, VerdictMode } from "../config.js";
@@ -45,6 +45,8 @@ export type PatternCategory = (typeof PATTERN_CATEGORIES)[number];
 export const PATTERN_MAX_SUMMARY_CHARS = 200;
 /** Design brief §2: 5 submissions per user per day. */
 export const PATTERN_DAILY_CAP = 5;
+/** SPEC PL_SIGHTING_WINDOW (V-PL-14): one sighting per user per pattern in 30 days. */
+export const PATTERN_SIGHTING_WINDOW_MS = 30 * 86400 * 1000;
 /** Rulings that can be offered "Help warn others". */
 export const PATTERN_ELIGIBLE_RULINGS: readonly Ruling[] = ["SCAM", "SUS"];
 
@@ -228,6 +230,49 @@ export function patternConfigFromEnv(env: NodeJS.ProcessEnv, verdictMode: Verdic
   return { mode, address, dailyCap };
 }
 
+// ------------------------------------------------------- sighting window
+
+/** Off-chain identity of a pattern before the contract assigns an id: its category plus
+ * its sorted flag codes. Two submissions with the same category and codes are the same
+ * pattern for the per-user window. */
+export const patternKeyOf = (category: string, codes: readonly string[]): string => `${category}|${[...codes].sort().join(",")}`;
+
+/** V-PL-14: at most one sighting per user per pattern per 30 days. Keyed on
+ * HMAC(secret, user | pattern): neither the user nor the pattern is held raw, and each
+ * key is deleted when its window ends. In memory, like the daily counters: one relayer
+ * instance; a restart forgets the window (a SHOULD in SPEC, documented in README). */
+export class SightingWindow {
+  private readonly seen = new Map<string, number>();
+  constructor(
+    private readonly secret: string,
+    private readonly windowMs: number = PATTERN_SIGHTING_WINDOW_MS,
+  ) {}
+
+  private key(user: string, pattern: string): string {
+    return createHmac("sha256", this.secret).update(`sighting|${user}|${pattern}`).digest("hex");
+  }
+
+  private prune(nowMs: number): void {
+    for (const [k, until] of this.seen) if (until <= nowMs) this.seen.delete(k);
+  }
+
+  /** True if this user already counted a sighting of this pattern inside the window. */
+  has(user: string, pattern: string, now: Date): boolean {
+    this.prune(now.getTime());
+    return this.seen.has(this.key(user, pattern));
+  }
+
+  record(user: string, pattern: string, now: Date): void {
+    this.seen.set(this.key(user, pattern), now.getTime() + this.windowMs);
+  }
+
+  /** Number of live keys (tests: keys are deleted after the window). */
+  size(now: Date): number {
+    this.prune(now.getTime());
+    return this.seen.size;
+  }
+}
+
 // ------------------------------------------------------------- submitPattern
 
 export interface PatternEvent {
@@ -247,6 +292,10 @@ export interface PatternCtx {
   limiter: DailyCounter;
   /** The account key the relayer already uses for caps (HMAC). Never sent on-chain. */
   userKey: string;
+  /** V-PL-14 window and the user's day-independent HMAC key for it. Optional for unit
+   * callers; the relayer route always passes both. */
+  sightings?: SightingWindow;
+  sightingUser?: string;
   clock?: () => Date;
   /** Random by default; injectable for tests. Never derive it from the user or text. */
   newRequestKey?: () => string;
@@ -265,7 +314,7 @@ export type PatternOutcome =
   | { status: "skipped"; reason: "not_opted_in" | "not_eligible" | "no_flags" }
   | { status: "rate_limited" }
   | { status: "summary_failed"; reason: string }
-  | { status: "rejected_locally"; reason: Exclude<ScreenReason, ""> | "too_long" | "empty" | "injection" }
+  | { status: "rejected_locally"; reason: Exclude<ScreenReason, ""> | "too_long" | "empty" | "injection" | "duplicate_user" }
   | { status: "shadow"; request: PatternSubmitArgs }
   | { status: "submitted"; request: PatternSubmitArgs; tx: string }
   | { status: "submit_failed"; request: PatternSubmitArgs; error: string };
@@ -312,16 +361,25 @@ export async function submitPattern(ctx: PatternCtx, rulingResult: PatternRuling
   const pii = screenSummary(summary);
   if (pii !== "") return done({ status: "rejected_locally", reason: pii });
 
+  // V-PL-14: one sighting per user per pattern per 30 days (pattern_rejected{reason = duplicate_user}).
+  const pkey = patternKeyOf(parsed.category, codes);
+  const window = ctx.sightings && ctx.sightingUser !== undefined ? { w: ctx.sightings, user: ctx.sightingUser } : null;
+  if (window && window.w.has(window.user, pkey, now)) return done({ status: "rejected_locally", reason: "duplicate_user" });
+
   const request: PatternSubmitArgs = {
     flagCodes: codes,
     category: parsed.category,
     summary,
     requestKey: (ctx.newRequestKey ?? newPatternRequestKey)(),
   };
-  if (ctx.mode !== "live") return done({ status: "shadow", request }, { category: request.category, codes: codes.length });
+  if (ctx.mode !== "live") {
+    window?.w.record(window.user, pkey, now); // a SHADOW run counts the same way, so behaviour matches live
+    return done({ status: "shadow", request }, { category: request.category, codes: codes.length });
+  }
   if (!ctx.chain) return done({ status: "submit_failed", request, error: "no chain configured" });
   try {
     const tx = await ctx.chain.submitPattern(request);
+    window?.w.record(window.user, pkey, now);
     return done({ status: "submitted", request, tx }, { category: request.category, tx });
   } catch (e) {
     return done({ status: "submit_failed", request, error: (e as Error).message });
