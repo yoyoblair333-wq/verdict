@@ -90,7 +90,7 @@ def f2(v): return f'{v:.1f}'.rstrip('0').rstrip('.')
 
 
 class Sheet:
-    def __init__(self, sheet_no, title, subtitle, H, W=1600, total=7):
+    def __init__(self, sheet_no, title, subtitle, H, W=1600, total=8):
         self.W, self.H, self.total = W, H, total
         self.no, self.title, self.subtitle = sheet_no, title, subtitle
         self.el, self.top = [], []      # top = drawn after everything (labels over lines)

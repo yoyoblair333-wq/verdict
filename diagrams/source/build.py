@@ -1,4 +1,4 @@
-"""Builds the six VERDICT architecture sheets in diagrams/.
+"""Builds the eight VERDICT architecture sheets in diagrams/.
 
 python3 diagrams/source/build.py && python3 diagrams/source/render.py
 """
@@ -647,7 +647,7 @@ def d7():
         s.arrow([(xx, a['b']), (xx, b['y'])], **k)
 
     # ================= A. Red Flag Court =================
-    lane_title(168, 'A. Red Flag Court', 'Quick Verdict only. Off-chain, no receipt, no appeals, nothing on-chain (ADR-013, ADR-014).')
+    lane_title(168, 'A. Red Flag Court', 'Quick Verdict, off-chain, no receipt, no appeals. The message never goes on-chain; an opt-in pattern record can (Sheet 8).')
     ZA = 222
     m = s.mark()
     a1 = s.node(64, ZA + 46, 252, 'Paste the message', 'Up to 1,000 characters. Court is 18+. 10 checks a day.')
@@ -763,7 +763,99 @@ def d7():
     s.save('game-flows.svg')
 
 
+# =====================================================================================
+def d8():
+    """Every point where VERDICT creates an on-chain GenLayer decision. Source: docs/DESIGN-genlayer-fit.md v1
+    (sections 1, 2 and 4), marketing/security-games-playbook.md (Hall re-run, weekly testnet re-check)."""
+    s = Sheet(8, 'GenLayer decisions', 'Every point where VERDICT asks the network for a decision, what triggers it, and what never does.', 1600)
+    ZT = 176
+    rows = [
+        # group, trigger (device), gate (relayer), decision (network), network tag
+        ('Settle It', ('Tap Publish', 'Either side, on a finished Quick Verdict (the private preview).'),
+         ('Both sides consent', 'Notice publish-onchain-v1. Waits for the other side. Free: VERDICT pays, 3 a day per user.'),
+         ('Publish: Tier 1 re-hearing', '5 jurors plus validator agreement, via open_case_package. Its ruling replaces the preview.'), 'Target network'),
+        (None, ('Appeal 1', 'Losing side only, after publishing. Unpublished cases cannot appeal.'),
+         ('Daily free appeal or $1.99', 'Checked by the payment provider before the call. Max 2 appeals.'),
+         ('Tier 2: Appeals Court', '7 jurors plus validator agreement. Card: UPHELD or OVERTURNED.'), 'Target network'),
+        (None, ('Appeal 2', 'Losing side again, after Tier 2.'),
+         ('$4.99', 'Same payment check. This is the last appeal.'),
+         ('Tier 3: Supreme Court', '9 seats plus validator agreement. Final. Case closed.'), 'Target network'),
+        ('Jailbreak the Jury', ('Hall finalist opts in', 'Separate unticked consent: the text becomes public and permanent.'),
+         ('Clean replay first', 'Replayed in the practice court. Anything that gets through goes to the patch queue instead.'),
+         ('Hall of Contempt re-run', 'The whole jury re-runs on the test network. Card gets a VR- receipt.'), 'Testnet'),
+        (None, ('Self-chosen re-check', 'A player picks one caught attempt. 1 a week, resets Monday.'),
+         ('Re-check opt-in', 'Unticked: “I understand. Make it public.” Same clean-replay rule.'),
+         ('Jailbreak re-check', 'Re-run on the test network. A trick has to work every time.'), 'Testnet'),
+        ('Red Flag Court', ('Tap “Help warn others”', 'After a SCAM or SUS ruling only. Off by default. 5 a day per user.'),
+         ('Pattern record', 'Redacted twice, then an abstract summary of 200 characters or fewer. No message, sender, user id or hash.'),
+         ('pattern_ledger: new record', 'Validators agree: no personal data, brand, link, number or amount, AND a coherent scam pattern. Else [REJECTED].'), 'Shadow until counsel'),
+        (None, ('Same pattern again', 'A later opt-in whose codes and category match a stored pattern.'),
+         ('Dedup proposal', 'The leader proposes “same as id N”; validators check the proposal.'),
+         ('pattern_ledger: sighting', 'The existing record’s sightings count goes up by 1. No new record.'), 'Shadow until counsel'),
+    ]
+    X1, W1, X2, W2, X3, W3 = 64, 300, 432, 380, 900, 456
+    NH, PITCH, GAP_G = 112, 140, 40
+    y = ZT + 70
+    placed = []
+    for g, a, b, c, net in rows:
+        if g:
+            if placed: y += GAP_G
+            placed.append(('group', g, y))
+            y += 30
+        placed.append(('row', (a, b, c, net), y))
+        y += PITCH
+    ZB = y - PITCH + NH + 30
+    s.zone(40, ZT, 348, ZB - ZT, 'Player’s device', 'the player')
+    s.zone(408, ZT, 428, ZB - ZT, 'VERDICT relayer', 'VERDICT operator')
+    s.zone(876, ZT, 684, ZB - ZT, 'GenLayer', 'no single party', tone='chain')
+    n = 0
+    for kind, v, yy in placed:
+        if kind == 'group':
+            s.text(X1, yy + 4, v, 22, 'bs900')
+            continue
+        (a, b, c, net) = v
+        n += 1
+        na = s.node(X1, yy, W1, a[0], a[1], h=NH)
+        nb = s.node(X2, yy, W2, b[0], b[1], h=NH)
+        nc = s.node(X3, yy, W3, c[0], c[1], kind='contract', h=NH)
+        s.tag(1544, yy + 10, net, 'pub', 12, anchor='end')
+        s.arrow([(na['r'], na['cy']), (nb['x'], nb['cy'])], 'cmd')
+        s.arrow([(nb['r'], nb['cy']), (nc['x'], nc['cy'])], 'cmd')
+        s.step((nb['r'] + nc['x']) / 2, nb['cy'] - 22, n)
+    # what comes back out, and what never becomes a decision
+    OY = ZB + 56
+    s.text(40, OY, 'What the decisions feed', 16, 'sg800')
+    outs = [('Published card', '“Checked by GenLayer · Finalized”, receipt VR-. “The network overruled the preview” when the winner changes.'),
+            ('Appeal cards', 'UPHELD or OVERTURNED, same footer and a new receipt.'),
+            ('Hall and re-check cards', '“Re-checked on GenLayer testnet” with a VR- receipt, marked Proof.'),
+            ('Scams going around digest', 'top_patterns_since feeds the weekly digest. Footer: Recorded on GenLayer · Proof tab.')]
+    ow = (1520 - 3 * 20) / 4
+    ob = 0
+    for i, (t, b) in enumerate(outs):
+        nn = s.node(40 + i * (ow + 20), OY + 18, ow, t, b, kind='pub', h=110)
+        ob = nn['b']
+    NY = ob + 40
+    nl = wrap('Quick Verdict previews · Red Flag rulings and message text · daily Jailbreak play, door checks and practice court '
+              '· SEALED attempts · unpublished cases (they cannot be appealed: “Appeal” means “Publish first”).', 'sg500', 14, 1000 - 46)
+    nh = max(44 + len(nl) * 19, 120)
+    s.raw(f'<rect x="40" y="{NY}" width="1000" height="{nh}" rx="6" fill="#fff" stroke="{INK}" stroke-width="1.5"/>')
+    s.raw(f'<circle cx="60" cy="{NY+21}" r="9" fill="none" stroke="{INK}" stroke-width="2.2"/><line x1="53.7" y1="{NY+27.3}" x2="66.3" y2="{NY+14.7}" stroke="{INK}" stroke-width="2.2"/>')
+    s.text(78, NY + 26, 'Never a GenLayer decision', 14, 'sg800')
+    s.lines(78, NY + 48, nl, 14, 19)
+    mw = 1520 - 1000 - 20
+    s.raw(f'<rect x="1060" y="{NY}" width="{mw}" height="{nh}" rx="6" fill="{ROBE}"/>')
+    s.text(1080, NY + 34, 'Key metric', 15, 'sg800', PAD)
+    s.text(1080, NY + 70, 'On-chain decisions per week', 24, 'bs900', DOCKET)
+    s.text(1080, NY + 96, f'= the sum of steps 1 to {n}, counted every time.', 14, 'sg500', DOCKET)
+    LY = NY + nh + 36
+    s.H = LY + 180
+    s.legend(40, LY, 900, extra=[('contract', 'A GenLayer decision (validators must agree)'), ('tag:pub', 'Where it runs (public, permanent)')], cols=3, base=('zone', 'cmd', 'step'))
+    s.title_block(970, LY, 590, [('Sheet', 'D8 GenLayer decisions'), ('Product', 'Settle It, Jailbreak the Jury, Red Flag Court'),
+                                 ('Revision', f'r1, {TB_DATE}'), ('Source', 'diagrams/source/build.py')])
+    s.save('genlayer-decisions.svg')
+
+
 if __name__ == '__main__':
-    which = sys.argv[1:] or ['d1', 'd2', 'd3', 'd4', 'd5', 'd6', 'd7']
+    which = sys.argv[1:] or ['d1', 'd2', 'd3', 'd4', 'd5', 'd6', 'd7', 'd8']
     for w in which:
         globals()[w]()

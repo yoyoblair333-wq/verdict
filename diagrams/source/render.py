@@ -7,7 +7,7 @@ import os, sys, re
 from playwright.sync_api import sync_playwright
 
 D = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-ORDER = ['system-topology', 'case-lifecycle', 'appeal-ladder', 'data-boundary', 'viral-loop', 'revenue-flow', 'game-flows']
+ORDER = ['system-topology', 'case-lifecycle', 'appeal-ladder', 'data-boundary', 'viral-loop', 'revenue-flow', 'game-flows', 'genlayer-decisions']
 
 
 def size(svg):
