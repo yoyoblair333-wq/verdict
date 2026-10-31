@@ -204,7 +204,7 @@ export function buildApp(deps: Deps): VerdictApp {
   // The daily free appeal covers Tier 2 OR Tier 3 and resets at 00:00 Los Angeles,
   // like every consumer allowance (ADR-021 items 3 and 4).
   const freeAppeals = new DailyCounter(cfg.freeAppealsPerDay === 0 ? -1 : cfg.freeAppealsPerDay, laDay);
-  const credits = deps.credits ?? new (class { b=0; balance(){return 0} spend(){return false} grant(){} })();
+  const credits = deps.credits ?? new FileCredits(cfg.creditsPath);
 
   const tasks = new Set<Promise<unknown>>();
   function bg(p: Promise<unknown>): void {
