@@ -1,6 +1,7 @@
 """Shared helpers for the direct-mode tier (real GenVM SDK, LLM mocked)."""
 
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -30,6 +31,23 @@ def pin_contract_address(hex_addr: str) -> None:
     gl = sys.modules["genlayer.gl"]
     from genlayer.py.types import Address
     gl.message = gl.message._replace(contract_address=Address(hex_addr))
+
+
+# GenVM release whose SDK direct mode loads. Without a pin, gltest asks GitHub
+# for the *latest* release whenever ~/.cache/gltest-direct is empty (every
+# fresh CI runner), so the suite silently ran against whatever GenVM shipped
+# last, not the v0.2 SDK this contract targets. Same pin as genvm-lint.
+GENVM_VERSION = os.environ.get("GENVM_VERSION") or "v0.2.16"
+
+
+@pytest.fixture
+def direct_deploy(direct_deploy):
+    """The plugin's deploy factory with the GenVM SDK version pinned."""
+
+    def _deploy(contract_path, *args, sdk_version=None, **kwargs):
+        return direct_deploy(contract_path, *args, sdk_version=sdk_version or GENVM_VERSION, **kwargs)
+
+    return _deploy
 
 
 def verdict_json(winner, scores, reason="Sharper and more specific."):

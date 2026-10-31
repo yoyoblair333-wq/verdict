@@ -4,12 +4,23 @@ on:
   push:
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   verify:
-    runs-on: ubuntu-latest
+    # Pinned image: ubuntu-latest moves to Ubuntu 26 from 2026-10-19.
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     env:
-      GENVM_VERSION: v0.2.16   # genvm-lint pin (audit P2-4)
+      # One GenVM pin for both genvm-lint and the direct-mode test SDK
+      # (contracts/tests/direct/conftest.py). Unpinned, direct mode loads
+      # whatever GenVM release GitHub calls "latest" (the 2026-10-31 CI failure).
+      GENVM_VERSION: v0.2.16
+      # Authenticated GitHub release downloads (avoids the shared-runner
+      # anonymous rate limit). Read-only token for this repository.
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -17,18 +28,20 @@ jobs:
           python-version: "3.12"
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          # The version verify.sh is proven on. The test runner
+          # (relayer/scripts/run-tests.mjs) also works on Node 20.
+          node-version: "22"
           cache: npm
           cache-dependency-path: relayer/package-lock.json
       - name: Cache GenVM SDK release (downloaded by genlayer-test direct mode)
         uses: actions/cache@v4
         with:
           path: ~/.cache/gltest-direct
-          key: gltest-direct-${{ hashFiles('contracts/judge_router.py', 'contracts/requirements.txt') }}
+          key: gltest-direct-${{ env.GENVM_VERSION }}
       - name: Cache GenVM release used by genvm-lint
         uses: actions/cache@v4
         with:
           path: ~/.cache/genvm-linter
-          key: genvm-linter-v0.2.16
+          key: genvm-linter-${{ env.GENVM_VERSION }}
       - name: Verify (same script as a fresh clone)
         run: bash scripts/verify.sh

@@ -54,9 +54,10 @@ interface CaseMeta {
   twitch?: TwitchPrediction;
   twitchTimer?: ReturnType<typeof setTimeout>;
   appeals: number;
-  /** Opened by appealing a Quick Verdict onto the chain (ADR-018 item 1, corrected):
-   * that counted as appeal 1, so only Tier 2 is left and it costs the $4.99 price. */
-  fromQuick?: boolean;
+  /** Opened by publishing a Quick Verdict (Design §1, Publish = network check).
+   * Publishing is not an appeal: the case starts with 0 appeals used, and its
+   * Tier 1 ruling replaces the preview. winnerIndex is the preview's winner. */
+  preview?: { quickId: string; winnerIndex: number };
   /** sha256(hex) of each side's token, index = entry index. Plaintext is returned once. */
   sideTokenHashes: string[];
   /** Tier of the last verdict seen FINALIZED_SUCCESS; 0 = none yet. */
@@ -330,8 +331,25 @@ export function buildApp(deps: Deps): VerdictApp {
     };
   }
 
+  /** Published Quick Verdicts: the network's Tier 1 ruling replaces the preview.
+   * overruled_preview is true when the network's Tier 1 winner differs from the
+   * preview's; later tiers keep that flag (it describes the publish moment). */
+  function publishedFields(r: Receipt, m: CaseMeta | undefined): Record<string, unknown> {
+    if (!m?.preview || !r.verdict) return {};
+    const tier1 = m.receipts.find((x) => x.tier === 1 && x.verdict !== null)?.verdict ?? (r.tier === 1 ? r.verdict : null);
+    const overruled = tier1 !== null && tier1.winnerIndex !== m.preview.winnerIndex;
+    return {
+      published_from_quick: m.preview.quickId,
+      preview_winner_index: m.preview.winnerIndex,
+      overruled_preview: overruled,
+      ...(overruled ? { overruled_line: "The network overruled the preview." } : {}),
+      footer: "Checked by GenLayer · Finalized",
+    };
+  }
+
   function card(r: Receipt) {
     return {
+      ...publishedFields(r, meta.get(r.caseId)),
       receipt_number: r.packageDigest,
       case_id: r.caseId,
       tier: r.tier,
@@ -422,7 +440,7 @@ export function buildApp(deps: Deps): VerdictApp {
     sideTokenHashes: string[];
     callbackUrl?: string;
     twitchReq?: { title?: string; labels?: string[] };
-    fromQuick?: boolean;
+    preview?: { quickId: string; winnerIndex: number };
   }
 
   async function openCase(o: OpenInput): Promise<{ status: number; body: Record<string, unknown> }> {
@@ -492,8 +510,8 @@ export function buildApp(deps: Deps): VerdictApp {
       nEntries: o.entries.length,
       appealWindowExpiry: v.pkg.lifetime.appealWindowExpiry,
       provenance,
-      appeals: o.fromQuick ? 1 : 0,
-      ...(o.fromQuick ? { fromQuick: true } : {}),
+      appeals: 0, // publishing a Quick Verdict is not an appeal
+      ...(o.preview ? { preview: { quickId: o.preview.quickId, winnerIndex: o.preview.winnerIndex } } : {}),
       sideTokenHashes: o.sideTokenHashes,
       finalizedTier: 0,
       confirmedTier: 0,
@@ -729,9 +747,9 @@ export function buildApp(deps: Deps): VerdictApp {
 
       const payer = payerId(req);
       const nextTier = current.tier + 1;
-      // A case that began as a Quick Verdict already used appeal 1 ($1.99 or free):
-      // its one remaining appeal (to Tier 2) is the $4.99 appeal.
-      const price = nextTier >= 3 || m.fromQuick ? cfg.appealPriceCents.tier3 : cfg.appealPriceCents.tier2;
+      // Tier 2: daily free appeal or $1.99; Tier 3 (Supreme Court): $4.99. A
+      // published Quick Verdict follows the same ladder (publishing is not an appeal).
+      const price = nextTier >= 3 ? cfg.appealPriceCents.tier3 : cfg.appealPriceCents.tier2;
       const intent: OpIntent = {
         opKey: `${m.requestKey}:appeal:${nextTier}`,
         kind: "appeal",
@@ -972,16 +990,7 @@ export function buildApp(deps: Deps): VerdictApp {
     quota,
     requireDisclosure,
     sideForToken,
-    chargeFirstAppeal: (req) => {
-      // ADR-018 item 1: the appeal onto the chain is that side's FIRST appeal.
-      const payer = payerId(req);
-      const price = cfg.appealPriceCents.tier2;
-      if (!live) return { paidWith: "none (shadow)", priceCents: price, refund: () => {} };
-      if (freeAppeals.take(payer) >= 0) return { paidWith: "free", priceCents: 0, refund: () => freeAppeals.refund(payer) };
-      if (credits.spend(payer, price)) return { paidWith: "credit", priceCents: price, refund: () => credits.grant(payer, price) };
-      throw new HttpError(402, `today's free appeal is used; this appeal needs ${price} cents of prepaid credit`);
-    },
-    openCase: (o) => openCase({ ...o, fromQuick: true }),
+    openCase: (o) => openCase(o),
     judgeOpened: async (id) => {
       const r = await startJudge(id, meta.get(id)!);
       if ("shadow" in r) return r.shadow;

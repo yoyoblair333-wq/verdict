@@ -62,6 +62,8 @@ export interface Config {
     dailyCap: number;
     /** Practice-court attempts per account key per UTC day (VERIFY P2-3: 10). */
     practiceDailyCap: number;
+    /** Free publishes (Quick Verdict -> on-chain) per user per Los Angeles day (Design §1). */
+    publishDailyCap: number;
     /** Seconds a Settle It Quick Verdict can still be taken on-chain. */
     ttlSec: number;
     /** Reviewed secret-rule list for the practice court. */
@@ -187,6 +189,7 @@ export function loadConfig(): Config {
     quick: {
       dailyCap: int("QUICK_DAILY_CAP", 10),
       practiceDailyCap: int("PRACTICE_DAILY_CAP", 10),
+      publishDailyCap: int("PUBLISH_DAILY_CAP", 3),
       ttlSec: Math.min(Math.max(300, int("QUICK_TTL_SEC", 86400)), 7 * 86400),
       practiceRulesPath: path.resolve(opt("PRACTICE_RULES_PATH", path.resolve(process.cwd(), "config", "practice-rules.v1.json"))),
       storePath: path.resolve(opt("QUICK_STORE_PATH", path.join(dataDir, "quick.jsonl"))),

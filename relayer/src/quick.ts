@@ -1,12 +1,16 @@
 // Quick Verdict routes: the off-chain jury (ADR-013, ADR-014, ADR-015, ADR-018).
 //
 //   POST /quick                    Settle It, judged off-chain (5 personas)
-//   POST /quick/:id/consent        a side consents to publication on appeal (notice appeal-onchain-v1)
-//   POST /quick/:id/appeal         losing side appeals onto the chain: fresh on-chain Tier 1
-//                                  case through the existing package + judge path; counts as
-//                                  that side's first appeal (daily free appeal or $1.99)
+//   POST /quick/:id/consent        a side accepts publish-onchain-v1 ("your takes become public and permanent")
+//   POST /quick/:id/consent/withdraw  a side withdraws its own consent (any time before submission)
+//   POST /quick/:id/publish        Publish = network check (Design §1): either side, once BOTH
+//                                  have consented, re-hears the case on-chain as a fresh Tier 1
+//                                  case through the existing package + judge path. Free (VERDICT
+//                                  pays), max 3 per user per Los Angeles day, NOT an appeal.
+//   POST /quick/:id/appeal         always refused: an unpublished Quick Verdict can't be appealed
+//                                  ("Publish first"); a published one appeals at /cases/:id/appeal
 //   POST /quick/:id/revoke         refused after Done (409, ADR-012 / V-QV-07)
-//   POST /quick/:id/takedown       hides the card; never blocks the appeal
+//   POST /quick/:id/takedown       hides the card; never blocks publishing
 //   POST /redflag                  Red Flag Court (redacted, no appeals)
 //   GET  /practice/today           practice-court case (topic only)
 //   POST /practice/attempts        Jailbreak the Jury attempt
@@ -14,8 +18,10 @@
 // Every Quick Verdict body: mode "quick_verdict", label "Quick Verdict",
 // network_checked false, rail Submitted → Jury scoring → Done, and NO receipt
 // number, package digest or tx (assertQuickHonest refuses to send one).
-// No route here writes to a chain except /quick/:id/appeal, which hands off
-// to the normal on-chain path after both consents are recorded.
+// No route here writes to a chain except /quick/:id/publish, which hands off
+// to the normal on-chain path after both consents are recorded. The on-chain
+// Tier 1 ruling then replaces the preview (overruled_preview when the winner
+// changed), and the normal appeal ladder applies on /cases/:id/appeal.
 
 import { createHash, createHmac, randomBytes } from "node:crypto";
 import type { Express, Request, Response } from "express";
@@ -35,18 +41,23 @@ import { validateVerdictPayload } from "./lib/verdict.js";
  * redaction pill as one character. Every on-chain entry stays <= 280. */
 export const RED_FLAG_MAX_CHARS = 1000;
 
-/** Submit-time notice. It discloses publication on appeal, so these consent
- * records satisfy ADR-013 item 5 (notice-v1 / public-onchain-v1 do not). */
-export const QUICK_NOTICE_VERSION = "quick-v1";
+/** Submit-time notice. It discloses that publishing is possible, so these
+ * consent records satisfy ADR-013 item 5 (notice-v1 / public-onchain-v1 do not). */
+export const QUICK_NOTICE_VERSION = "quick-v2";
 export const QUICK_NOTICE =
   "Quick Verdict: the jury judges your takes privately. Nothing is published, and it is not checked by the network. " +
-  "If the losing side appeals it onto the chain, both takes become public and permanent, and each of you is asked again first. 18+ only.";
-/** Notice versions whose consent records disclosed publication on appeal. */
-export const APPEAL_DISCLOSING_NOTICES = new Set([QUICK_NOTICE_VERSION]);
-/** Appeal-time notice both sides must accept (ADR-018 item 1). */
-export const APPEAL_NOTICE_VERSION = "appeal-onchain-v1";
-export const APPEAL_NOTICE =
-  "Appealing onto the chain publishes both takes on a public blockchain. They can't be erased. A fresh 5-juror case is then judged on-chain. 18+ only.";
+  "If you both choose Publish, the case is re-heard on the network and both takes become public and permanent; each of you is asked first. 18+ only.";
+/** Submit-time notice versions whose consent records disclosed possible publication
+ * (quick-v1 disclosed "publication on appeal", which is still publication with both sides asked). */
+export const PUBLISH_DISCLOSING_NOTICES = new Set(["quick-v1", QUICK_NOTICE_VERSION]);
+/** Publish-time notice BOTH sides must accept (Design §1). */
+export const PUBLISH_NOTICE_VERSION = "publish-onchain-v1";
+export const PUBLISH_NOTICE =
+  "Your takes become public and permanent. Publishing re-hears this case on a public blockchain with a fresh 5-juror panel, " +
+  "and the network's ruling replaces this preview. It can't be erased. 18+ only.";
+/** Free publishes per user per Los Angeles day (VERDICT pays the fee). */
+export const PUBLISH_DAILY_CAP_DEFAULT = 3;
+export const PUBLISH_FIRST = "Publish first: a Quick Verdict is a private preview and can't be appealed until the network has ruled on it.";
 
 export const QUICK_FOOTER = "Five AI juror personas · Quick Verdict · Not network-checked";
 export const REDFLAG_FOOTER = "Five AI juror personas · Quick Verdict · Not network-checked · We never open links.";
@@ -91,16 +102,21 @@ interface QuickCase {
   expiresAt: string;
   /** Submit-time consent notice version, per side. */
   consentNotice: string[];
-  /** Appeal-time consent (APPEAL_NOTICE_VERSION), per side. */
-  appealConsent: boolean[];
+  /** Publish-time consent (PUBLISH_NOTICE_VERSION), per side. Withdrawable until submission. */
+  publishConsent: boolean[];
+  /** Side that last tapped Publish while waiting for the other side's consent; null if none. */
+  publishRequestedBy?: number | null;
   hidden: boolean;
+  /** On-chain case id once published; null while it is still a private preview. */
   caseId: number | null;
 }
 
-export interface Charge {
-  paidWith: string;
-  priceCents: number;
-  refund(): void;
+/** Older store rows (pre-publish) used `appealConsent`; consents given under the
+ * appeal-onchain-v1 notice are NOT carried over: publish asks both sides again. */
+function upgrade(r: QuickCase & { appealConsent?: boolean[] }): QuickCase {
+  if (!Array.isArray(r.publishConsent)) r.publishConsent = [false, false];
+  delete r.appealConsent;
+  return r;
 }
 
 export interface QuickCtx {
@@ -112,14 +128,14 @@ export interface QuickCtx {
   quota: (req: Request, bucket: "case" | "action") => void;
   requireDisclosure: (body: Record<string, unknown>) => void;
   sideForToken: (hashes: string[], token: string | undefined) => number;
-  /** First appeal: daily free appeal, else Appeals Court price from credit (402 if neither). */
-  chargeFirstAppeal: (req: Request) => Charge;
+  /** Opens the published case on-chain; `preview` lets the card flag an overruled preview. */
   openCase: (o: {
     requestKey: string;
     rubric: string;
     surface: "settle";
     entries: Array<{ text: string; assurance: "self_asserted" }>;
     sideTokenHashes: string[];
+    preview: { quickId: string; winnerIndex: number };
   }) => Promise<{ status: number; body: Record<string, unknown> }>;
   judgeOpened: (id: number) => Promise<Record<string, unknown>>;
 }
@@ -134,12 +150,14 @@ export function registerQuickRoutes(app: Express, ctx: QuickCtx): void {
   const redTeam = new JsonlFile(cfg.quick.redTeamPath);
   const sealed = new JsonlFile(cfg.quick.sealedPath);
   const cases = new Map<string, QuickCase>();
-  for (const r of store.readAll() as QuickCase[]) cases.set(r.id, r);
+  for (const r of store.readAll() as QuickCase[]) cases.set(r.id, upgrade(r));
   const save = (q: QuickCase) => store.append(q);
   // Settle It Quick Verdicts keep UTC like the rest of Settle It; the games reset at 00:00 LA (ADR-018 item 3).
   const settleCap = new DailyCounter(cfg.quick.dailyCap, utcDay);
   const redFlagCap = new DailyCounter(cfg.quick.dailyCap, laDay);
   const practiceCap = new DailyCounter(cfg.quick.practiceDailyCap, laDay);
+  // Publishing is free but capped per user per LA day (Design §1).
+  const publishCap = new DailyCounter(cfg.quick.publishDailyCap, laDay);
 
   /** HMAC(identity): counters never hold a raw IP or API key (V-PRIV-09). */
   function accountKey(req: Request): string {
@@ -166,14 +184,20 @@ export function registerQuickRoutes(app: Express, ctx: QuickCtx): void {
     return { q, side };
   }
 
-  /** Appeal-time consent: exact-true consent + 18+ and the appeal notice version. */
-  function requireAppealConsent(body: Record<string, unknown>): void {
+  /** Publish-time consent: exact-true consent + 18+ and the publish notice version. */
+  function requirePublishConsent(body: Record<string, unknown>): void {
     ctx.requireDisclosure(body);
     const nv = (body.disclosure as Record<string, unknown>).notice_version;
-    if (nv !== APPEAL_NOTICE_VERSION) {
-      throw new HttpError(422, `disclosure.notice_version must be ${APPEAL_NOTICE_VERSION}`, { code: "notice_version_required", notice: APPEAL_NOTICE, notice_version: APPEAL_NOTICE_VERSION });
+    if (nv !== PUBLISH_NOTICE_VERSION) {
+      throw new HttpError(422, `disclosure.notice_version must be ${PUBLISH_NOTICE_VERSION}`, { code: "notice_version_required", notice: PUBLISH_NOTICE, notice_version: PUBLISH_NOTICE_VERSION });
     }
   }
+
+  function notPublished(q: QuickCase): void {
+    if (q.caseId !== null) throw new HttpError(409, "already published; appeals go to the on-chain case", { code: "already_published", case_id: q.caseId, appeal_path: `/cases/${q.caseId}/appeal` });
+  }
+
+  const awaiting = (q: QuickCase) => q.publishConsent.flatMap((c, i) => (c ? [] : [i]));
 
   // ------------------------------------------------ Settle It Quick Verdict
   app.post(
@@ -221,7 +245,8 @@ export function registerQuickRoutes(app: Express, ctx: QuickCtx): void {
         createdAt: now.toISOString(),
         expiresAt: new Date(now.getTime() + cfg.quick.ttlSec * 1000).toISOString(),
         consentNotice: [QUICK_NOTICE_VERSION, QUICK_NOTICE_VERSION],
-        appealConsent: [false, false],
+        publishConsent: [false, false],
+        publishRequestedBy: null,
         hidden: false,
         caseId: null,
       };
@@ -237,53 +262,85 @@ export function registerQuickRoutes(app: Express, ctx: QuickCtx): void {
           verdict: q.verdict,
           bench: panel.results.map((r, j) => ({ juror: JUROR_PERSONAS[j]![0], title: JUROR_PERSONAS[j]![1], vote: r.winner_index, reason: r.reason })),
           footer: QUICK_FOOTER,
-          appeal_onto_chain: {
-            who: "The losing side. Both sides must first accept the appeal notice.",
+          appealable: false,
+          appeal: PUBLISH_FIRST,
+          publish: {
+            who: "Either side. Both sides must first accept the publish notice; until then Publish waits.",
             consent_path: `/quick/${q.id}/consent`,
-            appeal_path: `/quick/${q.id}/appeal`,
-            notice: APPEAL_NOTICE,
-            notice_version: APPEAL_NOTICE_VERSION,
-            counts_as: "appeal 1 of 2 (daily free appeal, else $1.99); one more appeal (Tier 2, $4.99) is left after it, so it never reaches the Supreme Court",
+            withdraw_path: `/quick/${q.id}/consent/withdraw`,
+            publish_path: `/quick/${q.id}/publish`,
+            notice: PUBLISH_NOTICE,
+            notice_version: PUBLISH_NOTICE_VERSION,
+            cost: `free (VERDICT pays the fee); ${cfg.quick.publishDailyCap} per user per Los Angeles day; not an appeal`,
+            then: "The network's Tier 1 ruling replaces this preview. After that the losing side may appeal: Tier 2 (daily free appeal or $1.99), then Tier 3 ($4.99). Max 2.",
           },
         }),
       );
     }),
   );
 
-  // Either side records its consent to publication on appeal.
+  // Either side accepts the publish notice (Design §1). Nothing is published yet.
   app.post(
     "/quick/:id/consent",
     wrap(async (req, res) => {
       const { q, side } = quickSide(req);
-      if (q.caseId !== null) throw new HttpError(409, "already appealed onto the chain", { case_id: q.caseId });
-      requireAppealConsent((req.body ?? {}) as Record<string, unknown>);
-      q.appealConsent[side] = true;
+      notPublished(q);
+      requirePublishConsent((req.body ?? {}) as Record<string, unknown>);
+      q.publishConsent[side] = true;
       save(q);
-      res.json({ consented: true, side, awaiting_sides: q.appealConsent.flatMap((c, i) => (c ? [] : [i])), note: "Nothing is published until the losing side appeals and both sides have consented." });
+      const left = awaiting(q);
+      res.json({
+        consented: true, side, awaiting_sides: left, publish_requested: q.publishRequestedBy !== null && q.publishRequestedBy !== undefined,
+        status: left.length === 0 ? "ready" : "waiting",
+        note: left.length === 0 ? "Both sides consented. Nothing is published until a side taps Publish." : "Waiting for the other side to accept. Nothing is published yet.",
+      });
     }),
   );
 
-  // The losing side appeals onto the chain (ADR-018 item 1, V-QV-05).
+  // A side withdraws its own consent, any time before submission.
   app.post(
-    "/quick/:id/appeal",
+    "/quick/:id/consent/withdraw",
     wrap(async (req, res) => {
       const { q, side } = quickSide(req);
-      if (side === q.verdict.winnerIndex) throw new HttpError(403, "the winning side cannot appeal");
-      if (q.caseId !== null) throw new HttpError(409, "already appealed onto the chain", { case_id: q.caseId });
-      if (clock().getTime() > Date.parse(q.expiresAt)) throw new HttpError(410, "the appeal window for this Quick Verdict has closed");
-      if (!q.consentNotice.every((n) => APPEAL_DISCLOSING_NOTICES.has(n))) {
-        throw new HttpError(409, "a side consented on a notice that did not disclose publication on appeal", { code: "notice_not_disclosing" });
+      if (q.caseId !== null) throw new HttpError(409, "already submitted to the network; consent can no longer be withdrawn", { code: "already_published", case_id: q.caseId });
+      q.publishConsent[side] = false;
+      if (q.publishRequestedBy === side) q.publishRequestedBy = null;
+      save(q);
+      res.json({ consented: false, side, awaiting_sides: awaiting(q), status: "private", note: "Your consent is withdrawn. Nothing was published." });
+    }),
+  );
+
+  // Publish = network check (Design §1, supersedes ADR-018 item 1).
+  app.post(
+    "/quick/:id/publish",
+    wrap(async (req, res) => {
+      const { q, side } = quickSide(req);
+      notPublished(q);
+      if (clock().getTime() > Date.parse(q.expiresAt)) throw new HttpError(410, "this Quick Verdict has expired and can no longer be published");
+      if (!q.consentNotice.every((n) => PUBLISH_DISCLOSING_NOTICES.has(n))) {
+        throw new HttpError(409, "a side consented on a notice that did not disclose publication", { code: "notice_not_disclosing" });
       }
       const body = (req.body ?? {}) as Record<string, unknown>;
-      requireAppealConsent(body); // the appealing side accepts the appeal notice now
-      q.appealConsent[side] = true;
-      save(q);
+      if (body.disclosure !== undefined || !q.publishConsent[side]) {
+        requirePublishConsent(body); // the publishing side accepts the publish notice now
+        q.publishConsent[side] = true;
+      }
       const other = 1 - side;
-      if (!q.appealConsent[other]) throw new HttpError(409, "the other side hasn't consented to publication; the appeal is refused", { code: "other_side_not_consented" });
+      if (!q.publishConsent[other]) {
+        q.publishRequestedBy = side;
+        save(q);
+        // Publish waits: it does not go ahead without the other side.
+        throw new HttpError(409, "waiting for the other side to accept the publish notice; nothing was published", {
+          code: "waiting_for_other_side", status: "waiting", awaiting_sides: [other], consent_path: `/quick/${q.id}/consent`,
+        });
+      }
+      save(q);
       const mod = await moderate([q.rubric, ...q.entries], ctx.modOpts);
       if (!mod.ok) throw new HttpError(mod.status ?? 422, mod.reason ?? "entry rejected by moderation");
       ctx.quota(req, "action");
-      const charge = ctx.chargeFirstAppeal(req);
+      const acct = accountKey(req);
+      const left = publishCap.take(acct, clock());
+      if (left < 0) throw new HttpError(429, `that's ${cfg.quick.publishDailyCap} free publishes today; publishing reopens at midnight Pacific`, { code: "publish_cap" });
       let opened;
       try {
         opened = await ctx.openCase({
@@ -292,21 +349,40 @@ export function registerQuickRoutes(app: Express, ctx: QuickCtx): void {
           surface: "settle",
           entries: q.entries.map((text) => ({ text, assurance: "self_asserted" as const })),
           sideTokenHashes: q.sideTokenHashes, // the same side tokens work on the on-chain case
+          preview: { quickId: q.id, winnerIndex: q.verdict.winnerIndex },
         });
       } catch (e) {
-        charge.refund(); // technical refund: nothing was opened
+        publishCap.refund(acct); // nothing was opened
         throw e;
       }
       if (opened.status !== 201) {
-        if (opened.status >= 400) charge.refund();
-        res.status(opened.status).json({ ...opened.body, from_quick_verdict: q.id, paid_with: charge.paidWith });
+        if (opened.status >= 400) publishCap.refund(acct);
+        res.status(opened.status).json({ ...opened.body, from_quick_verdict: q.id, published: false, price_cents: 0 });
         return;
       }
       const id = opened.body.id as number;
       q.caseId = id;
+      q.publishRequestedBy = null;
       save(q);
       const judged = await ctx.judgeOpened(id);
-      res.status(202).json({ ...opened.body, tier: 1, appeals_used: 1, appeals_left: 1, next_appeal_cents: cfg.appealPriceCents.tier3, judge: judged, paid_with: charge.paidWith, price_cents: charge.priceCents, from_quick_verdict: q.id, note: "This is now an on-chain case. Its card appears once the network finalizes it." });
+      res.status(202).json({
+        ...opened.body, published: true, tier: 1, appeals_used: 0, appeals_left: cfg.maxAppealsPerCase,
+        next_appeal: { tier: 2, jurors: 7, free_or_cents: cfg.appealPriceCents.tier2 }, judge: judged,
+        price_cents: 0, paid_with: "free publish (VERDICT pays)", publishes_left_today: left, from_quick_verdict: q.id,
+        preview_winner_index: q.verdict.winnerIndex,
+        note: "Published. The network re-hears the case; its ruling replaces the preview once finalized.",
+      });
+    }),
+  );
+
+  // An unpublished Quick Verdict can never be appealed ("Publish first").
+  app.post(
+    "/quick/:id/appeal",
+    wrap(async (req, res) => {
+      const { q } = quickSide(req);
+      void res;
+      notPublished(q);
+      throw new HttpError(409, PUBLISH_FIRST, { code: "publish_first", publish_path: `/quick/${q.id}/publish` });
     }),
   );
 
@@ -325,7 +401,7 @@ export function registerQuickRoutes(app: Express, ctx: QuickCtx): void {
       const { q } = quickSide(req);
       q.hidden = true;
       save(q);
-      res.json({ hidden: true, note: "Card hidden. The losing side can still appeal onto the chain." });
+      res.json({ hidden: true, note: "Card hidden. Both sides can still choose to publish." });
     }),
   );
 

@@ -1,0 +1,21 @@
+{
+ "_about": "Scam Pattern Ledger deterministic summary screen (design brief §2). Each case: raw summary -> expected sanitised text and the first failing check. reason \"\" = passes. Check order: digits, email_or_handle, amount, url. contracts/pattern_ledger.py (_sanitise_summary, _pii_reason) and relayer/src/lib/pattern.ts (sanitiseSummary, screenSummary) must both match every case. All texts are fictional.",
+ "cases": [
+  {"name": "plain abstract pattern passes", "input": "A text claims a parcel is held and asks for a small redelivery fee through a link before it is returned.", "clean": "A text claims a parcel is held and asks for a small redelivery fee through a link before it is returned.", "reason": ""},
+  {"name": "whitespace and invisibles are folded", "input": "  A stranger​ offers a\n\tremote job   that needs a starter kit.  ", "clean": "A stranger offers a remote job that needs a starter kit.", "reason": ""},
+  {"name": "ascii digit", "input": "Asks for a 6 digit code sent by text.", "clean": "Asks for a 6 digit code sent by text.", "reason": "digits"},
+  {"name": "fullwidth digit folds to ascii", "input": "Pay within １２ hours.", "clean": "Pay within 12 hours.", "reason": "digits"},
+  {"name": "circled digit", "input": "Step ① send a code.", "clean": "Step 1 send a code.", "reason": "digits"},
+  {"name": "roman numeral (Nl)", "input": "Chapter Ⅳ of the romance script.", "clean": "Chapter IV of the romance script.", "reason": ""},
+  {"name": "superscript digit", "input": "Returns of x² promised.", "clean": "Returns of x2 promised.", "reason": "digits"},
+  {"name": "email", "input": "Reply to claims at fake mailbox a@b to verify.", "clean": "Reply to claims at fake mailbox a@b to verify.", "reason": "email_or_handle"},
+  {"name": "fullwidth at sign", "input": "Message the ＠helper account.", "clean": "Message the @helper account.", "reason": "email_or_handle"},
+  {"name": "dollar sign", "input": "Asks for a $ deposit to unlock winnings.", "clean": "Asks for a $ deposit to unlock winnings.", "reason": "amount"},
+  {"name": "euro sign", "input": "A prize needs a € release fee.", "clean": "A prize needs a € release fee.", "reason": "amount"},
+  {"name": "scheme url", "input": "Sends a https://fake-parcel-portal link.", "clean": "Sends a https://fake-parcel-portal link.", "reason": "url"},
+  {"name": "www prefix", "input": "Points to www.fake-portal for payment.", "clean": "Points to www.fake-portal for payment.", "reason": "url"},
+  {"name": "bare domain", "input": "Says to log in at parcel-help.xyz now.", "clean": "Says to log in at parcel-help.xyz now.", "reason": "url"},
+  {"name": "spelled dot com", "input": "Visit parcelhelp dot com to pay.", "clean": "Visit parcelhelp dot com to pay.", "reason": "url"},
+  {"name": "abbreviation is not a domain", "input": "Claims to be support, e.g. a bank team, and asks for a code.", "clean": "Claims to be support, e.g. a bank team, and asks for a code.", "reason": ""}
+ ]
+}

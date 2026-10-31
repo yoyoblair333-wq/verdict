@@ -56,6 +56,7 @@ export function baseConfig(dir: string, over: Partial<Config> = {}): Config {
     quick: {
       dailyCap: 10,
       practiceDailyCap: 10,
+      publishDailyCap: 3,
       ttlSec: 86400,
       practiceRulesPath: path.join(dir, "practice-rules.json"),
       storePath: path.join(dir, "quick.jsonl"),

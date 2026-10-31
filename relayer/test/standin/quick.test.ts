@@ -96,7 +96,7 @@ test("quick: a broken juror answer fails the whole panel and refunds the cap", a
 
 function baseQuick() {
   const d = mkdtempSync(path.join(tmpdir(), "verdict-q-"));
-  return { dailyCap: 10, practiceDailyCap: 10, ttlSec: 86400, practiceRulesPath: "", storePath: path.join(d, "quick.jsonl"), redTeamPath: path.join(d, "redteam.jsonl"), sealedPath: path.join(d, "sealed.jsonl"), accountKeySecret: "s" };
+  return { dailyCap: 10, practiceDailyCap: 10, publishDailyCap: 3, ttlSec: 86400, practiceRulesPath: "", storePath: path.join(d, "quick.jsonl"), redTeamPath: path.join(d, "redteam.jsonl"), sealedPath: path.join(d, "sealed.jsonl"), accountKeySecret: "s" };
 }
 
 // ------------------------------------------------- appeal onto the chain

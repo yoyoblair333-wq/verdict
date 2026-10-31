@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Document | `docs/SPEC.md` |
-| Version | **v1.2** |
+| Version | **v1.3** |
 | Date | 2026-10-31 |
 | Owner | Specifications lead (for Blair White, founder) |
 | Status | **Approved baseline.** Changes need a new version and a line in §14. |
@@ -23,6 +23,8 @@
 In scope: the three product surfaces (Settle It, Live Court, Developer API), the `JudgeRouter` Intelligent Contract, the relayer, the credit ledger, the Twitch and payment integrations, and the copy rules that make product claims.
 
 Also in scope (v1.2): the off-chain **Quick Verdict** engine (ADR-013) and the two security games, **Red Flag Court** (ADR-014) and **Jailbreak the Jury** (ADR-015), including the private practice court. These are games, not new values of `surface` (§2a).
+
+Also in scope (v1.3): **Publish** (ADR-019), the step that re-hears a private Settle It preview on-chain, and the **Scam Pattern Ledger** (ADR-020), the `PatternLedger` Intelligent Contract (`contracts/pattern_ledger.py`) with its relayer path and weekly digest.
 
 Out of scope: TikTok content production (see the playbook), native mobile apps (roadmap), the paid off-chain "Quick judgment" API product (`business/monetization.md`; roadmap, not built, same engine as Quick Verdict), Kick (roadmap), any token, staking or on-chain payment.
 
@@ -48,11 +50,22 @@ Out of scope: TikTok content production (see the playbook), native mobile apps (
 This section scopes §2. It does not change any item of it.
 - Items 3 (the verdict comes from the contract), 10 (public record) and 12 (finality) describe **on-chain** verdicts.
 - A **Quick Verdict** (ADR-013) is judged off-chain. It proves none of §8 and is labelled as such.
-- Free Settle It Tier 1 cases default to Quick Verdict. A losing side may appeal one onto the chain, and from that point every §2 item applies.
+- Free Settle It Tier 1 cases default to Quick Verdict. ~~A losing side may appeal one onto the chain, and from that point every §2 item applies.~~ *(Superseded in v1.3 by ADR-019.)* The Quick Verdict is a private **preview**. When both sides consent, **Publish** re-hears the case as a fresh on-chain Tier 1. From that point every §2 item applies, including the full appeal ladder (item 4). Unpublished cases can't be appealed.
 - **Red Flag Court** and **Jailbreak the Jury** are games inside the web app, not surfaces. `surface` stays `settle | live | api` (V-FUN-01).
-- Neither game has appeals, prices, prizes at launch or public on-chain records. The single exception is the opt-in testnet re-run for Jailbreak finalists (V-JB-06).
+- Neither game has appeals, prices, prizes at launch or public on-chain records. The exceptions are the opt-in testnet re-run for Jailbreak finalists (V-JB-06) and, from v1.3, the opt-in Red Flag **pattern record** (ADR-020, V-PL). A pattern record holds no message text and needs counsel sign-off before any public-network write.
 - The 18+ rule (item 8), text only (item 7, with the Red Flag limit in §5) and handles only (item 9) apply to both games.
 - SHADOW (item 11, §6.6) remains an operating mode of on-chain surfaces. It never means "private" or "off-chain".
+
+### 2b. The on-chain north-star companion metric (v1.3)
+
+**On-chain decisions per week** sits next to WTV (the north star) as its companion metric. It is the count, per ISO week, of GenLayer transactions VERDICT caused that reached FINALIZED with SUCCESS. Sources:
+- published cases (Tier 1);
+- appeals (Tier 2 and 3);
+- Jailbreak testnet re-runs;
+- pattern records and dedup sightings;
+- Live Court and API verdicts.
+
+Agreed `[REJECTED]` pattern submissions are reported next to it, not inside it. It is reported by source and by `mode`. The definition lives in `docs/ANALYTICS_EVENTS.md` §4. The design brief (§4) names it as the key metric to report to GenLayer.
 
 ---
 
@@ -88,7 +101,7 @@ The four "jury words" are different things. Never swap them in copy or code.
 | **Takedown** | Hiding a case from VERDICT's public surfaces (cards, gallery, record-view text, public API listings). Available to either side at any time from PENDING on; the only option once the Tier 1 verdict is final. Off-chain only. Does not end the case or block an appeal; the sides keep a private view. | Erasure, revocation or closure. |
 | **Operating mode** | Per surface: SHADOW (default) or LIVE. §6.6. | — |
 | **Surface** | `settle`, `live` or `api`. Fixed per case. | — |
-| **UTC day** | 00:00:00–23:59:59 UTC. All daily caps and allowances roll over at 00:00 UTC. | Local midnight. |
+| **UTC day** | 00:00:00–23:59:59 UTC. Case caps and the free appeal roll over at 00:00 UTC. *(v1.3)* Game clocks, the publish cap and the pattern cap use the **LA day** instead (ADR-018 item 3). | Local midnight. |
 | **Quick Verdict** | Off-chain judging (ADR-013): the same personas, sanitiser, fenced prompt and strict JSON as the contract, run once by the relayer against an LLM processor (C9). Rail: Submitted → Jury scoring → Done. | Network-checked, final in the §6.2 sense, a receipt, or "shadow mode". |
 | **Practice court** | The private, multi-validator localnet VERDICT runs (C10), with the same contract and `contractCodeDigest`. It is where Jailbreak the Jury is played. It follows Quick Verdict claim rules. | A public network, a testnet, or "shadow mode". |
 | **Venue** | Where a result was computed: `chain` (target network), `quick_verdict` or `practice_court`. Recorded on every result and analytics event. | A surface or an operating mode. |
@@ -96,6 +109,14 @@ The four "jury words" are different things. Never swap them in copy or code.
 | **Door catch / bench catch** | Jailbreak results. A door catch is a relayer blocklist hit, and the jury never read it. A bench catch means the practice-court jury scored the attempt and caught it. | Interchangeable. Only a bench catch has a split. |
 | **Sealed attempt** | A Jailbreak attempt that got through or moved at least one juror. It is held in the private patch queue until the fix ships. | Hall content. |
 | **Testnet re-run** | A bench-caught, replayed, separately opted-in Jailbreak finalist judged on GenLayer testnet with a `VR-` receipt (V-JB-06). | An appeal. |
+| **Preview** *(v1.3)* | The private Quick Verdict of a Settle It case (ADR-019). Seen by the two sides only: no public URL, no gallery, no receipt, no network claim. | A SHADOW card, a published card, or anything to do with Live Court. |
+| **Publish** *(v1.3)* | The step that re-hears a preview on GenLayer as a fresh on-chain Tier 1 case (5 jurors, validator agreement), after both sides accept notice `publish-onchain-v1`. Free to the user, capped at 3 per user per LA day, once per case. Afterwards the network's ruling is the result. | An appeal, a share, or the LIVE operating mode. |
+| **Published case** *(v1.3)* | A Settle It case whose Tier 1 was dispatched through Publish. Only published cases can be appealed. | Public: in SHADOW its card is still private to the sides (§6.6). |
+| **Overruled preview** *(v1.3)* | A published case whose network Tier 1 `winner_index` differs from the preview's. The card says "The network overruled the preview." | An appeal outcome (OVERTURNED). |
+| **Pattern Ledger** *(v1.3)* | The `PatternLedger` Intelligent Contract (C11) that stores pattern records (ADR-020). | A FlagRouter, or a store of messages. |
+| **Pattern record** *(v1.3)* | An on-chain entry in the Pattern Ledger: `flag_codes` (subset of the 16 codes), `category` (fixed enum), `summary` (≤ 200 characters, VERDICT-written abstract paraphrase), `sightings`, first and last seen. It holds no message text, hash of the message, sender or user id. | A Red Flag ruling, a paste, or evidence about any person or company. |
+| **Sighting** *(v1.3)* | One opted-in submission that validators agree is the same pattern as an existing record. It adds 1 to `sightings`. | A new record, or a count of victims. |
+| **LA day** *(v1.3)* | 00:00:00–23:59:59 America/Los_Angeles. Game clocks (ADR-018 item 3), the publish cap and the pattern cap roll over at 00:00 LA. | A UTC day. |
 
 ---
 
@@ -115,6 +136,7 @@ The four "jury words" are different things. Never swap them in copy or code.
 | C8 | Developer systems (API clients, webhook receivers, MCP hosts, n8n) | external | Third party. **Untrusted.** |
 | C9 | LLM processor for Quick Verdict (v1.2) | external, not yet chosen | Third party under no-retention terms. Sees redacted Red Flag text and Quick Verdict takes. |
 | C10 | Practice court localnet (v1.2) | same `contracts/judge_router.py`, own validators | Operator infrastructure. Private; not reachable from the public internet. |
+| C11 | `PatternLedger` Intelligent Contract (v1.3) | `contracts/pattern_ledger.py` | GenLayer network, after counsel sign-off. Before that, C10 only (V-PL-13). |
 
 ### 4.2 Who is authoritative for what
 
@@ -127,10 +149,12 @@ The four "jury words" are different things. Never swap them in copy or code.
 | Product case state (§6.1), appeal state (§6.3), ledger (§6.4) | **Relayer** DB | Derived from chain + relayer events. |
 | Payment succeeded | **Payment provider** (signed webhook) | Relayer grants credit only on a verified, unseen event. |
 | Prediction state | **Twitch** | Relayer drives it in LIVE mode only. |
+| Pattern records and sightings (v1.3) | **Chain** (C11), only at FINALIZED + SUCCESS | Digest and Proof tab render from chain reads only. |
+| Publish consents, publish cap count, preview `winner_index` (v1.3) | **Relayer** DB | Chain sees only `noticeVersion = publish-onchain-v1`. |
 
 ### 4.3 Trust boundaries (detail in `docs/THREAT_MODEL.md`)
 
-TB1 Browser ↔ Relayer · TB2 Relayer ↔ GenLayer (RPC + consensus) · TB3 Relayer ↔ Twitch · TB4 Payment provider → Relayer · TB5 Relayer → developer webhook receivers · TB6 API/MCP/n8n clients → Relayer · TB7 Operator → contract owner functions and relayer config · TB8 Relayer ↔ moderation provider · TB9 Relayer ↔ LLM processor (Quick Verdict) · TB10 Relayer ↔ practice court localnet.
+TB1 Browser ↔ Relayer · TB2 Relayer ↔ GenLayer (RPC + consensus) · TB3 Relayer ↔ Twitch · TB4 Payment provider → Relayer · TB5 Relayer → developer webhook receivers · TB6 API/MCP/n8n clients → Relayer · TB7 Operator → contract owner functions and relayer config · TB8 Relayer ↔ moderation provider · TB9 Relayer ↔ LLM processor (Quick Verdict) · TB10 Relayer ↔ practice court localnet. *(v1.3)* Writes to the Pattern Ledger (C11) cross TB2. The pattern summary is written by the processor across TB9.
 
 ---
 
@@ -163,6 +187,13 @@ TB1 Browser ↔ Relayer · TB2 Relayer ↔ GenLayer (RPC + consensus) · TB3 Rel
 | `QV_JUROR_LINE_CHARS` | 110 | relayer | Red Flag juror lines; never quote the message. |
 | `JB_DAILY_ATTEMPTS` | 10 per UTC day; 3 for accounts < 7 days old | relayer | Separate from case caps; MISTRIAL refunds one (V-JB-08). |
 | `JB_CASE_OPENS` | Monday 00:00 America/Los_Angeles | relayer config | Weekly case. Attempt allowance still rolls over at 00:00 UTC (see §13 item 6). |
+| `PUBLISH_DAILY_CAP` (v1.3) | 3 per user per LA day | relayer | Charged to the side that tapped Publish, at T4; restored on FINALIZED_ERROR or STALE (V-PUB-06). |
+| `PUBLISH_NOTICE` (v1.3) | `publish-onchain-v1` | relayer + browser | §11. Both sides required. |
+| `PL_DAILY_CAP` (v1.3) | 5 submissions per user per LA day | relayer | Separate from `RF_DAILY_CAP` (V-PL-09). |
+| `PL_SUMMARY_CHARS` (v1.3) | 200 code points | relayer + contract (`MAX_SUMMARY_CHARS`) | V-PL-02. |
+| `PL_CATEGORIES` (v1.3) | delivery, account-lock, romance, job, prize, investment, impersonation, other | contract `CATEGORIES` + relayer | Closed enum. |
+| `PL_DEDUP_CANDIDATES` (v1.3) | default 10, max 20 | contract owner setting | Candidates offered to the leader for "same as id N". |
+| `PL_SIGHTING_WINDOW` (v1.3) | 30 days | relayer | One sighting per user per pattern in the window (V-PL-14). |
 
 ---
 
@@ -285,10 +316,46 @@ In SHADOW mode the relayer makes **no** Predictions calls at all (V-FUN-20).
 
 | Mode | What runs | What is suppressed |
 |---|---|---|
-| **SHADOW** (default) | Full pipeline: moderation, package, chain writes, verdicts, receipts, analytics. | Live Court: no Predictions calls; overlay labels the result "Jury's view (preview)"; the streamer decides any Prediction by hand. Settle It: cards are visible to the case's sides only, watermarked "Preview", not shareable to a public URL, not in the gallery. API: every response and webhook carries `"mode": "shadow"`. Paid credit purchases are disabled. |
+| **SHADOW** (default) | Full pipeline: moderation, package, chain writes, verdicts, receipts, analytics. | Live Court: no Predictions calls; overlay labels the result "Jury's view (test run)"; the streamer decides any Prediction by hand. Settle It: cards are visible to the case's sides only, watermarked "Test run · Not public yet", not shareable to a public URL, not in the gallery. *(v1.3: these labels used to say "preview". That word now means only the Settle It Quick Verdict, ADR-019 item 11.)* Pattern Ledger: records are written, but the digest and the "Recorded on GenLayer" line are not shown publicly (V-PL-13). API: every response and webhook carries `"mode": "shadow"`. Paid credit purchases are disabled. |
 | **LIVE** | All of the above, plus authoritative effects. | Nothing beyond the normal rules. |
 
 SHADOW → LIVE needs gate G-LIVE (§10) for that surface and a logged config change. LIVE → SHADOW is allowed at any time (it is the safe direction). Mode is recorded on every case at T4 and never changes for that case.
+
+### 6.7 Publish (v1.3, ADR-019; Settle It previews only)
+
+Each preview has one publish machine. The case has no on-chain record until P4.
+
+| State | Meaning |
+|---|---|
+| NOT_REQUESTED | The preview is Done. Nobody has tapped Publish. |
+| REQUESTED | One side tapped Publish and accepted `publish-onchain-v1`. Waiting for the other side. Nothing is sent. |
+| CONSENTED | Both sides hold a current `publish-onchain-v1` consent record. |
+| DISPATCHED | The case entered §6.1 at SUBMITTED (T3p) and then PENDING (T4). From here §6.1–§6.3 govern. |
+| WITHDRAWN | A side withdrew its consent, or the requester cancelled, before T4. It can return to NOT_REQUESTED. |
+
+| # | From → To | Guard / trigger |
+|---|---|---|
+| P1 | NOT_REQUESTED → REQUESTED | Either side's token or account; preview Done; case never published; that side ticks `publish-onchain-v1`. Event `publish_requested`, then `publish_consented`. |
+| P2 | REQUESTED → CONSENTED | The **other** side's own token or account ticks `publish-onchain-v1`. A consent presented with the requester's token for the other side → 403. Event `publish_consented`. |
+| P3 | REQUESTED / CONSENTED → WITHDRAWN | Either side withdraws its own consent, or the requester cancels, before T4. Event `publish_consent_withdrawn`. |
+| P4 | CONSENTED → DISPATCHED | Requester's publish count < `PUBLISH_DAILY_CAP` for the current LA day (else 429 with the reset time, event `publish_cap_hit`, stays CONSENTED); moderation and PII screen pass (V-PRIV-04); package built with `noticeVersion = publish-onchain-v1` → §6.1 **T3p** (∅ → SUBMITTED), then T4 under the normal guards. The publish count is charged at T4. |
+| P5 | DISPATCHED (Tier 1 → FINALIZED_ERROR or STALE) | Publish count restored (technical). The case cannot be re-published automatically; the sides may request again (back to NOT_REQUESTED). |
+
+§6.1 gains **T3p**: ∅ → SUBMITTED, trigger P4, guards as T3 except that both consent records are on `publish-onchain-v1` and the takes are the preview's stored takes, side effects as T3. A takedown of the preview (V-QV-07) does not withdraw publish consent that a side already gave. A side that never consents keeps the case unpublished. Then no appeal is possible (ADR-019 Consequences, THREAT_MODEL T61).
+
+### 6.8 Pattern submission (v1.3, ADR-020)
+
+| State | Meaning |
+|---|---|
+| OFFERED | A SCAM or SUS ruling on a real paste is shown; "Help warn others" is visible and off. |
+| OPTED_IN | The user ticked `pattern-optin-v1`; the browser re-sends its redacted text. |
+| SCREENED | The relayer redacted again, generated the summary, and the summary passed the deterministic screen. The text has been discarded. |
+| SUBMITTED | `submit_pattern` was sent (C11). |
+| RECORDED | FINALIZED + SUCCESS; `outcome = new`. Event `pattern_recorded`. |
+| SIGHTED | FINALIZED + SUCCESS; `outcome = sighting`. Event `pattern_sighting`. |
+| REJECTED | Deterministic screen failed (no chain write), or validators agreed on `[REJECTED]`, or no consensus after one retry. Event `pattern_rejected`. Terminal. |
+
+Guards: OPTED_IN needs `PL_DAILY_CAP` headroom; SUBMITTED needs the V-PL-13 stage to allow a write to that network. Before counsel sign-off the only destination is C10.
 
 ---
 
@@ -387,7 +454,7 @@ Owner surface codes: **CON** contract · **REL** relayer · **WEB** Settle It we
 | V-SEC-03 | Invite links MUST carry the side token in the URL fragment (`#t=`), never in the path or query, so servers and analytics do not log it. | Access-log and analytics capture contain no token after a full invite flow. | WEB | N |
 | V-SEC-04 | Prompt-injection hardening MUST include: NFKC; removal of zero-width, bidi and control characters; the control-phrase blocklist; delimited, UNTRUSTED-labelled entries after fixed rules; strict JSON output. Copy MUST NOT call it injection-proof. | Contract and relayer tests for each pattern and for the known false positives ("pick me up at 10"). | CON, REL, COPY | Y |
 | V-SEC-05 | The relayer's control patterns and sanitiser MUST match the contract's exactly, enforced by a cross-runtime test on shared fixtures. | CI test fails if any pattern or sanitiser output differs. | CON, REL | P (kept in sync by hand) |
-| V-SEC-06 | Rate limits MUST cover: anonymous cases per IP-key per UTC day; API keys on both case creation and judge/appeal actions; per account (3 free cases/day, 1/day for accounts < 7 days old) once accounts exist; on-chain `daily_limit` as a global breaker. *(v1.2)* The games use separate counters: Red Flag 10/day (V-RF-15) and Jailbreak 10/day, or 3 for accounts < 7 days old (V-JB-08). These never draw down case caps. | Cap tests at limit and limit+1 for each counter. | REL, CON | P (account caps pending; game counters N) |
+| V-SEC-06 | Rate limits MUST cover: anonymous cases per IP-key per UTC day; API keys on both case creation and judge/appeal actions; per account (3 free cases/day, 1/day for accounts < 7 days old) once accounts exist; on-chain `daily_limit` as a global breaker. *(v1.2)* The games use separate counters: Red Flag 10/day (V-RF-15) and Jailbreak 10/day, or 3 for accounts < 7 days old (V-JB-08). These never draw down case caps. *(v1.3)* Two more separate counters, both per LA day: publishes, 3 (V-PUB-06), and pattern submissions, 5 (V-PL-09). | Cap tests at limit and limit+1 for each counter. | REL, CON | P (account caps pending; game, publish and pattern counters N) |
 | V-SEC-07 | `POST /credits/grant` MUST require the admin bearer token (constant-time compare) and MUST be disabled when unset; credit grants MUST be idempotent on the provider event ID and only follow a provider-signature-verified event. | Replay of one event grants once; unsigned or bad-signature event → 400 and no grant. | REL, PAY | P (no idempotency key) |
 | V-SEC-08 | Webhooks MUST: be https only; refuse private, loopback, link-local, unspecified and IPv4-mapped addresses; resolve DNS and re-check the resolved address at send time; not follow redirects; sign `hex(HMAC_SHA256(secret, "${ts}.${rawBody}"))`. Receivers MUST reject timestamps older than 300 s. | SSRF test table incl. DNS rebinding fake; signature test vector. | REL, API | P (no DNS re-check) |
 | V-SEC-09 | Secrets (relayer key, owner key, admin token, webhook secret, Twitch tokens, provider keys) MUST live in a secret manager, never in the repo, logs, analytics or error bodies. | Secret scan in CI; log redaction test. | OPS, REL | P |
@@ -431,7 +498,7 @@ Owner surface codes: **CON** contract · **REL** relayer · **WEB** Settle It we
 | V-SAFE-06 | A report button and a human moderation queue MUST exist before G-PUBLIC, with first action in ≤ 24 h. | Report creates a queue item; SLA dashboard. | WEB, OPS | N |
 | V-SAFE-07 | An external moderation provider MUST be wired and fail closed before G-LIVE on any surface. | Provider outage → submission rejected with a retry message. | REL | N |
 | V-SAFE-08 | No dark patterns: votes are final before the reveal animation starts; no fake "typing"; any countdown shows the real deadline; no message is sent for a user without their tap; streak freezes stay free. | Review checklist per release. | WEB, COPY | — |
-| V-SAFE-09 | A case MUST NOT be about a non-participant; reports of such cases MUST lead to takedown. | Policy text + moderation runbook. | COPY, OPS | — |
+| V-SAFE-09 | A case MUST NOT be about a non-participant; reports of such cases MUST lead to takedown. *(v1.3, ADR-020)* A pattern record is not a case and publishes no third-party content: no message words, sender, hash or identifying data, checked deterministically and by validators. Any change that adds such a field reopens ADR-020. | Policy text + moderation runbook. | COPY, OPS | — |
 | V-SAFE-10 | Live Court contestants MUST be people present on the stream who agreed to be judged; the host MUST NOT enter chat messages or third parties as entries without consent. | Streamer terms; host attestation checkbox. | LIVE, LEGAL | N |
 
 ### 9.5 Legal and claims (V-LEGAL)
@@ -446,7 +513,7 @@ Owner surface codes: **CON** contract · **REL** relayer · **WEB** Settle It we
 | V-LEGAL-06 | Every surface MUST state that verdicts are AI opinions for entertainment, not legal, medical or financial advice, and that VERDICT is not arbitration. | Footer/legal copy present on web, overlay and API docs. | COPY, LEGAL | P |
 | V-LEGAL-07 | API terms MUST forbid consequential decisions (employment, credit, housing, legal) without human review, and require the client to attest consent and 18+ for entries it submits. | API terms published before keys are issued to third parties. | LEGAL, API | N |
 | V-LEGAL-08 | ToS and privacy policy MUST be reviewed by counsel before G-PAY. | Signed-off version on file. | LEGAL | N |
-| V-LEGAL-09 | Claims discipline: copy MUST NOT say "five different AI models vote", "nobody can rig it", "injection-proof", "no other app can", "the first", or name model vendors; claims MUST stay within §8. *(v1.2)* Also banned: "can't be rigged", "unhackable", "5 different AIs"; and in consumer copy, "shadow mode". Network, receipt and finality claims MUST NOT appear on Quick Verdict or practice-court results (V-QV-02). | Copy lint list; review on each launch asset. | COPY | Y (v1.1 list) / N (v1.2 additions not in lint yet) |
+| V-LEGAL-09 | Claims discipline: copy MUST NOT say "five different AI models vote", "nobody can rig it", "injection-proof", "no other app can", "the first", or name model vendors; claims MUST stay within §8. *(v1.2)* Also banned: "can't be rigged", "unhackable", "5 different AIs"; and in consumer copy, "shadow mode". Network, receipt and finality claims MUST NOT appear on Quick Verdict or practice-court results (V-QV-02). *(v1.3)* "Checked by GenLayer · Finalized" only on published FINALIZED_SUCCESS Settle It cards (V-PUB-10). "Recorded on GenLayer" only on the digest and Proof tab (V-PL-11). Banned: any claim of affiliation with or endorsement by GenLayer; "arbitration" outside the V-LEGAL-06 disclaimer; and, for the ledger, "known safe", "harmless", "not on our list" or any wording that a missing or known pattern means safe. | Copy lint list; review on each launch asset. | COPY | Y (v1.1 list) / N (v1.2 and v1.3 additions not in lint yet) |
 | V-LEGAL-10 | Live Court MUST comply with the Twitch Developer Agreement and run only on Affiliate or Partner channels. | Onboarding checks channel status. | LIVE, LEGAL | P |
 | V-LEGAL-11 | Before any prize contest, counsel MUST confirm the skill-versus-chance treatment of an AI-judged contest in the target states. | Written opinion on file. | LEGAL | N |
 | V-LEGAL-12 | The trust page MUST be titled "Try to rig it." Every property claim on it MUST map to a requirement in §9.10 whose acceptance test passes. Claims whose test does not yet pass MUST be marked "Coming soon" / "In progress" or removed, and claims with no possible test MUST be cut or reworded (ADR-017). | §9.10 map reviewed per release; page text diffed against it; no unmapped claim. | COPY, LEGAL | N |
@@ -475,10 +542,10 @@ Owner surface codes: **CON** contract · **REL** relayer · **WEB** Settle It we
 | V-QV-01 | Quick Verdict MUST run off-chain: the relayer runs the panel once against the LLM processor (C9). It MUST make no chain write, RPC write or testnet call. | Chain and RPC fakes record zero calls during a Quick Verdict; the processor call carries only redacted or sanitised text. | REL | N |
 | V-QV-02 | A Quick Verdict and a practice-court result MUST NOT show a receipt number, `VR-` string, record-view or explorer link, "network-checked", "checked by a network", "Finalized" or ADR-002's approved line. They MUST carry the label "Quick Verdict" (or "Practice court") and "Not network-checked" / "Not a public record". | Card and result snapshot tests; copy lint over the game and Quick Verdict templates. | WEB, COPY | N |
 | V-QV-03 | The status rail MUST be Submitted → Jury scoring → Done, with no network or finality step. Votes MUST be final before the reveal starts (V-SAFE-08). | UI test: no fourth step; reveal starts only after the result is stored. | WEB | N |
-| V-QV-04 | Quick Verdict MUST be the default venue for free Settle It Tier 1 cases and the only venue for Red Flag Court. Live Court, API and paid appeals MUST stay on-chain. | Config and routing test per entry point; `venue` recorded on every result. | REL | N |
-| V-QV-05 | A losing side of a Settle It Quick Verdict MAY appeal it onto the chain. The appeal MUST build a normal case package and enter §6.1 at T4. It MUST be refused unless every side's consent record is on a notice version that disclosed publication on appeal. Red Flag and Jailbreak results MUST NOT be appealable. Tier and price: ADR-013 item 8 (open). | Appeal route test: winner → 403; old-notice consent → 409; Red Flag / Jailbreak appeal route absent (404). | REL, WEB | N |
+| V-QV-04 | Quick Verdict MUST be the default venue for free Settle It Tier 1 cases and the only venue for Red Flag Court. Live Court, API and paid appeals MUST stay on-chain. *(v1.3)* Published cases MUST be on-chain from Tier 1 (V-PUB-05). | Config and routing test per entry point; `venue` recorded on every result. | REL | N |
+| V-QV-05 | **Superseded in v1.3 by V-PUB-01 to V-PUB-14 (ADR-019). Do not build.** Original: A losing side of a Settle It Quick Verdict MAY appeal it onto the chain. The appeal MUST build a normal case package and enter §6.1 at T4. It MUST be refused unless every side's consent record is on a notice version that disclosed publication on appeal. Red Flag and Jailbreak results MUST NOT be appealable. Tier and price: ADR-013 item 8 (open). | Appeal route test: winner → 403; old-notice consent → 409; Red Flag / Jailbreak appeal route absent (404). | REL, WEB | Superseded |
 | V-QV-06 | Quick Verdict MUST use the contract's sanitiser, delimiters, fixed rules and strict-JSON validation. Malformed or out-of-range juror output MUST fail that juror, never be clamped. | Shared fixtures (as V-SEC-05) produce identical sanitised text and identical rejections in the relayer and contract. | REL, CON | N |
-| V-QV-07 | Withdrawal MUST follow ADR-012. Before Done, either side may withdraw and held text is deleted ≤ 24 h. After Done, revocation is refused (409), takedown is available, and takedown MUST NOT block an appeal onto the chain. | State tests for withdraw-before-Done, revoke-after-Done (409), and takedown with the appeal still OPEN. | REL, WEB | N |
+| V-QV-07 | Withdrawal MUST follow ADR-012. Before Done, either side may withdraw and held text is deleted ≤ 24 h. After Done, revocation is refused (409), takedown is available, and takedown MUST NOT block an appeal onto the chain. *(v1.3)* Read "appeal onto the chain" as "Publish". A preview takedown MUST NOT withdraw publish consent already given. Withdrawing publish consent is a separate action (V-PUB-04). | State tests for withdraw-before-Done, revoke-after-Done (409), and takedown with the appeal still OPEN. | REL, WEB | N |
 | V-QV-08 | The words "shadow mode" MUST NOT describe Quick Verdict or the practice court in product, marketing or docs copy. | Copy lint over `app/`, `brand/`, `marketing/`, `docs/` (excluding ADR-006/§6.6 and prohibitions). | COPY | — |
 
 ### 9.8 Red Flag Court (V-RF), ADR-014
@@ -493,7 +560,7 @@ Owner surface codes: **CON** contract · **REL** relayer · **WEB** Settle It we
 | V-RF-06 | The relayer MUST redact again (`redact.ts`) before moderation and the LLM call: whole links → `[link hidden · not opened]`; phones, emails, handles, names, companies, numbers → tags. Card, SSN-shaped and password strings MUST be removed and the user warned. It MUST redact, not reject. | Fixture table of PII shapes in, tagged text out; browser-miss fixtures caught by the second pass. | REL | N |
 | V-RF-07 | No link in a paste MAY be opened, fetched, unfurled or previewed by the browser, relayer or LLM call. | Outbound-request capture during a paste with links shows zero requests to pasted hosts; no link-preview component. | WEB, REL | N |
 | V-RF-08 | Red Flag Court MUST have no appeal and no paid action on a ruling. | No appeal or checkout route exists for Red Flag results. | WEB, REL | N |
-| V-RF-09 | No Red Flag text, flag set or ruling MAY be written to any chain (testnet included), and no FlagRouter contract or flag-package schema MAY ship, until a further V-SAFE-09 ADR exists and counsel has signed off. | Chain fake records zero writes from Red Flag flows; review of `contracts/` and `schemas/`. | REL, CON, LEGAL | — |
+| V-RF-09 | No Red Flag text, flag set or ruling MAY be written to any chain (testnet included), and no FlagRouter contract or flag-package schema MAY ship, until a further V-SAFE-09 ADR exists and counsel has signed off. *(v1.3, ADR-020)* ADR-020 is that ADR. The only permitted write is an opt-in pattern record through C11 (V-PL-02), and only after written counsel sign-off (V-PL-13). Message text, rulings and the sender stay off every chain. | Chain fake records zero writes from Red Flag flows; review of `contracts/` and `schemas/`. | REL, CON, LEGAL | — |
 | V-RF-10 | Input MUST be 1–1,000 code points after sanitising (`RF_MAX_CHARS`). Images MUST be refused with the text-only message. | Boundary test at 1,000 and 1,001; image paste shows the text-only copy. | WEB, REL | N |
 | V-RF-11 | Flags MUST come only from the fixed 16-code list. Juror lines MUST be ≤ 110 characters and MUST NOT quote the message (no shared run of 5+ words). | Schema rejects unknown codes; quote-overlap test on juror lines. | REL | N |
 | V-RF-12 | The share card MUST NOT show the message, sender, any redacted item or a receipt. It MUST carry the Quick Verdict footer. Only staff-written samples MAY show text. | Card snapshot with a real paste shows no message text; sample card shows text. | WEB | N |
@@ -501,7 +568,7 @@ Owner surface codes: **CON** contract · **REL** relayer · **WEB** Settle It we
 | V-RF-14 | Threats, extortion, sextortion and self-harm content MUST get no ruling and no card, only the help copy with 988 (V-SAFE-04). | Test set returns the help copy and no ruling. | REL, WEB | N |
 | V-RF-15 | Checks MUST be capped at 10 per UTC day per account, or per HMAC(IP) until accounts exist (V-PRIV-09). | Cap test at 10 and 11. | REL | N |
 | V-RF-16 | Copy MUST NOT say "safe", "verified", "approved", "guaranteed" or "this person is a scammer", and MUST NOT name any real person, company, coin or project. | Copy lint over Red Flag templates and samples. | COPY | — |
-| V-RF-17 | Real pastes MUST NOT appear in the gallery, Sunday Docket or VERDICT's social posts. Only staff-written Daily Red Flag rounds and samples may. | Gallery and Docket queries have no Red Flag source; content checklist. | WEB, COPY | — |
+| V-RF-17 | Real pastes MUST NOT appear in the gallery, Sunday Docket or VERDICT's social posts. Only staff-written Daily Red Flag rounds and samples may. *(v1.3)* The weekly digest MAY show pattern records (V-PL-12), which hold no paste text. | Gallery and Docket queries have no Red Flag source; content checklist. | WEB, COPY | — |
 | V-RF-18 | Special juror reactions MUST be triggered by content only, never by a random roll. | Code review: no RNG in the reaction path. | REL, WEB | — |
 
 ### 9.9 Jailbreak the Jury (V-JB), ADR-015
@@ -541,13 +608,56 @@ The claims are taken from `marketing/security-games-playbook.md` §7. Status is 
 | Receipt is the fingerprint of the exact takes; change one character and it changes | V-FUN-14 shared fixtures | P | After V-FUN-14 is Y |
 | Proves: network accepted it and it can't change | V-FUN-13 | N | Only with "In progress" |
 | Proves: appeal history; consent was recorded | V-FUN-09 / V-PRIV-02, V-PRIV-03 | Y / N | Consent half waits for V-PRIV-02/03 |
-| Your take is public and permanent once both sides submit | V-PRIV-01 | Y | **Conflict:** false for free Quick Verdict cases (ADR-013). Rewrite before Quick Verdict ships |
+| Your take is public and permanent once both sides submit | V-PRIV-01 | Y | **Conflict:** false for free Quick Verdict cases (ADR-013). Rewrite before Quick Verdict ships. *(v1.3)* Proposed rewrite: "Your takes go public only when both of you tap Publish." |
+| (v1.3) Publishing re-hears the case on GenLayer; the network's ruling is the one that counts, even when it overrules the preview | V-PUB-05, V-PUB-08, V-PUB-09 | N | After they are Y |
+| (v1.3) Nobody publishes your take without your own tap | V-PUB-03 | N | After it is Y |
+| (v1.3) Pattern records never hold the message, the sender or any identifying detail, and validators check each one | V-PL-02, V-PL-04, V-PL-05 | N | After they are Y and G-PL passes |
 | You can cancel until the first verdict is final; after, we hide it | V-FUN-12, V-PRIV-07 | P / N | After both are Y |
 | No bets, no payouts, no refunds for winning | V-LEGAL-01, V-SEC-01 | Y | Yes |
 | Red Flag Court is private, off the network, no receipt | V-QV-01, V-QV-02, V-RF-09, V-RF-13 | N | After they are Y |
 | Jailbreak runs in a private practice court | V-JB-01 | N | After it is Y |
 | Only opted-in finalists are re-checked on testnet, and their cards say so | V-JB-06, V-JB-07 | N | After they are Y |
 | We show caught attempts, never working tricks | V-JB-04, V-JB-11 | N | After they are Y |
+
+### 9.11 Publish (V-PUB), ADR-019
+
+| ID | Requirement | Acceptance criterion | Owner | Status |
+|---|---|---|---|---|
+| V-PUB-01 | A Settle It Quick Verdict MUST be a private preview: visible to its two sides only, with no public URL, no gallery or Docket entry, no receipt and no network claim. Its share control MUST read "Publish to share" and MUST NOT create a public link. | Preview card has no public route (404 when signed out); share control opens the Publish flow; snapshot shows no `VR-`. | WEB, REL | N |
+| V-PUB-02 | Either side MAY tap Publish once the preview is Done. A case MUST be published at most once (except a re-request after P5). | Publish before Done → 409; second Publish on a dispatched case → 409. | WEB, REL | N |
+| V-PUB-03 | Publish MUST require both sides to tick the unticked `publish-onchain-v1` box, each with its own side token or account. The relayer MUST store a consent record per side (side, notice version, timestamp). It MUST NOT dispatch on one side's consent: it waits in REQUESTED. | Requester token presenting consent for the other side → 403; one consent only → no T3p, no chain write; consent rows exist for both sides of every published case. | WEB, REL | N |
+| V-PUB-04 | Either side MUST be able to withdraw its own publish consent, and the requester to cancel, at any time before T4. After T4, ADR-012 applies (T11 until Tier 1 FINALIZED_SUCCESS, then takedown only). | Withdraw in REQUESTED and CONSENTED → WITHDRAWN, no chain write; withdraw after T4 → routed to revoke or takedown per V-FUN-12. | WEB, REL | N |
+| V-PUB-05 | A publish MUST build a normal case package from the preview's stored takes with `noticeVersion = publish-onchain-v1`, enter §6.1 at T3p and dispatch a Tier 1 (5 jurors) through `open_case_package` and `judge`. No contract change. | Package fixture validates against `case-package.v1`; chain fake receives `open_case_package` then `judge` with tier 1; contract source digest unchanged. | REL | N |
+| V-PUB-06 | Publishing MUST be free to the user and MUST NOT create a ledger entry. It MUST be capped at 3 per user per LA day, charged to the requester at T4, and restored when the Tier 1 ends FINALIZED_ERROR or STALE. Over the cap → 429 with the next reset time. | Cap test at 3 and 4 across an LA midnight; restore test on a failed Tier 1; ledger has no row for a publish. | REL | N |
+| V-PUB-07 | When the V-OPS-04 gas budget is exhausted, a consented publish MUST queue. It MUST NOT fall back to the preview or show a network claim. | Budget-exhausted test: case stays SUBMITTED/queued; card unchanged. | REL | N |
+| V-PUB-08 | Once the Tier 1 is FINALIZED_SUCCESS (§6.2), the published card MUST show the network's ruling, its receipt number and "Checked by GenLayer · Finalized", rendered from inbox records (V-SEC-16). From then on the preview result MUST NOT be shown as the result. Before finality the card shows "Provisional, being checked". | Fake chain stopping at ACCEPTED: no line, no receipt; at FINALIZED_SUCCESS: line and receipt; preview votes absent from every published view. | WEB, REL | N |
+| V-PUB-09 | If the network's Tier 1 `winner_index` differs from the preview's, the published card MUST show "The network overruled the preview." and MUST NOT show preview votes, scores or reasons. The line MUST NOT appear on Tier 2 or 3 results. | Snapshot for agree and overrule cases; Tier 2 card shows UPHELD/OVERTURNED only. | WEB, REL | N |
+| V-PUB-10 | "Checked by GenLayer · Finalized" MUST appear only on published Settle It cards whose standing verdict is FINALIZED_SUCCESS. It MUST NOT appear on previews, ACCEPTED results, Red Flag or Jailbreak daily cards, or SHADOW cards. | Copy lint over templates; snapshot matrix of card types. | COPY, WEB | N |
+| V-PUB-11 | Publishing MUST NOT count as an appeal: after Publish the appeals-used count is 0. On a published case the ladder is §6.3: Tier 2 (daily free appeal or 199 ¢), then Tier 3 (499 ¢), losing side only, at most 2. | Published case → appeal 1 to Tier 2 allowed, appeal 2 to Tier 3 allowed, third → 409; winner → 403. | REL, CON | N |
+| V-PUB-12 | An unpublished case MUST NOT be appealable. The appeal route MUST return 409 `publish_first`, and the preview's Appeal control MUST lead to the Publish flow. | Appeal on a preview → 409 `publish_first`; UI test. | REL, WEB | N |
+| V-PUB-13 | In SHADOW (§6.6) a published card MUST stay private to the sides with the SHADOW watermark. The words "published" and "public" MUST NOT be shown to users in SHADOW. | SHADOW config: published card has no public URL; copy check. | WEB, REL | N |
+| V-PUB-14 | The relayer MUST keep the preview's `winner_index` (not its votes) for the overrule check, and emit `publish_requested`, `publish_consented`, `publish_consent_withdrawn`, `publish_cap_hit`, `publish_finalized` and `preview_overruled` per `ANALYTICS_EVENTS.md` §3.11. | Event sequence test for a full publish; DB holds no preview votes after publish beyond the retention in DATA_CLASSIFICATION §4.11. | REL | N |
+
+### 9.12 Scam Pattern Ledger (V-PL), ADR-020
+
+| ID | Requirement | Acceptance criterion | Owner | Status |
+|---|---|---|---|---|
+| V-PL-01 | "Help warn others" MUST appear only after a SCAM or SUS ruling on a real paste: never for LOOKS LEGIT, samples, Daily Red Flag or the help-line path. It MUST be off by default and need an unticked `pattern-optin-v1` box. The opt-in consent record MUST be stored without any pattern id. | UI matrix test; no submit without the tick; opt-in row has no pattern id column. | WEB, REL | N |
+| V-PL-02 | A pattern record MUST contain only `flag_codes` (subset of the 16, from the server-side ruling record), `category` (closed enum) and `summary` (≤ 200 code points), plus contract-made `id`, `sightings`, timestamps and history. It MUST NOT contain message text, any hash of the message, the sender, a user or account id, an IP or anything derived from them. `request_key` MUST be random per submission. | Contract rejects extra fields and unknown codes or categories; relayer test: client-supplied codes ignored; `request_key` not derivable from user or message (code review). | CON, REL | N |
+| V-PL-03 | The summary MUST be written by the relayer's LLM from the relayer-redacted (second-pass) text, with instructions to remove every name, number, link, brand and amount. The browser re-sends its redacted text at opt-in. The relayer MUST NOT store, log or send that text to analytics (V-RF-13). | Grep of DB, logs and analytics after a test run finds no test-paste string; prompt fixture contains the removal instructions. | REL | N |
+| V-PL-04 | A deterministic PII screen MUST run on the summary in the relayer before any chain write, and again in the contract, with identical results on `fixtures/pattern-screen.json`: no digit or numeric character, "@", currency symbol, URL or bare domain, email or phone shape, or injection phrase. Failure → no chain write, `pattern_rejected{reason = pii_screen}`. | Cross-runtime fixture test; chain fake receives zero writes for screen failures. | REL, CON | N |
+| V-PL-05 | Validators MUST each judge (a) any personal or identifying data, brand, link, number or amount, and (b) a coherent scam pattern. The record is stored only if they agree on (a) = false and (b) = true; otherwise `[REJECTED]`. Equivalence MUST use `run_nondet_unsafe` with a validator that recomputes both booleans and requires an exact match. | Contract tests: leader with a flipped boolean is rejected by the validator; (a) = true → `[REJECTED]`; (b) = false → `[REJECTED]`. | CON | N |
+| V-PL-06 | Dedup: the leader MUST propose "new" or "same as id N" from stored patterns in the same category; validators MUST check the proposal. "Same" MUST add 1 to `sightings` and create nothing. A stored summary MUST never be rewritten. | Contract tests for new, same, and a wrong "same" rejected; summary bytes unchanged after a sighting. | CON | N |
+| V-PL-07 | The contract MUST expose `get_pattern(id)`, `list_recent(n)` and `top_patterns_since(timestamp, n)`, with `n` capped. | View tests incl. cap. | CON | N |
+| V-PL-08 | Only the relayer address or the owner MAY call `submit_pattern`. | Call from another address → `[EXPECTED] only relayer or owner`. | CON | N |
+| V-PL-09 | Submissions MUST be capped at 5 per user per LA day (account, or HMAC(IP) until accounts exist), separate from `RF_DAILY_CAP`. A validator-agreed `[REJECTED]` counts. A no-consensus result does not count, and is retried at most once with a fresh summary, then dropped. | Cap tests at 5 and 6; retry-once test; agreed reject never resubmitted. | REL | N |
+| V-PL-10 | Ledger data MUST NOT be an input to any Red Flag ruling, juror prompt, money rule or LOOKS LEGIT check. Copy MUST NOT state or imply that a known pattern is harmless or that an unlisted message is safe (V-LEGAL-09). | Code review: Red Flag path has no C11 read; copy lint. | REL, COPY | N |
+| V-PL-11 | The Red Flag card and ruling MUST stay plain (Quick Verdict footer, V-RF-12). "Recorded on GenLayer · N sightings" MAY appear only on the digest and the Proof tab, and only for a record whose transaction is FINALIZED_SUCCESS. | Snapshot: Red Flag card unchanged after opt-in; Proof tab hides records not yet final. | WEB, COPY | N |
+| V-PL-12 | The weekly "Scams going around" digest MUST be built from `top_patterns_since`, show a receipt per pattern, show only codes, category, summary and sightings, and be reviewed by staff before publication. | Digest builder test from a chain fixture; review checklist entry per issue. | WEB, OPS | N |
+| V-PL-13 | Before written counsel sign-off, no pattern record MAY be written to any public network, testnet included. Pre-sign-off runs use C10 only and are called a "private run". After sign-off the ledger runs in SHADOW on the target network (no public digest, no "Recorded on GenLayer" line). LIVE only after G-PL. | Destination config test per stage; public-RPC fake records zero writes before the sign-off flag is set. | REL, OPS, LEGAL | N |
+| V-PL-14 | The relayer SHOULD count at most one sighting per user per pattern in `PL_SIGHTING_WINDOW`, keyed on HMAC(user, pattern id, rotating secret), deleted after the window. | Second same-pattern submission from one user in 30 days → not submitted, `pattern_rejected{reason = duplicate_user}`. | REL | N |
+| V-PL-15 | Analytics and logs MUST NOT carry the summary, the pattern id, the `request_key` or the record's transaction hash. Events carry `category`, `flag_codes` and outcome only. | Analytics grep after a test run; schema validator drops events with those fields. | REL | N |
+| V-PL-16 | Monitoring MUST alert on a week-over-week jump in the `pii_screen`, validator-reject or no-consensus rates, and on any single pattern gaining more than a set share of the week's sightings. | Alert rules in config; fire drill. | OPS | N |
 
 ---
 
@@ -559,7 +669,9 @@ The claims are taken from `marketing/security-games-playbook.md` §7. Status is 
 | **G-PAY** | Credit purchases, paid plans | G-LIVE on the surface · V-FUN-21 signed-in payer · V-FUN-22 ledger in durable store · V-SEC-07 idempotent signed grants · V-LEGAL-08 counsel-reviewed ToS and privacy policy. |
 | **G-PUBLIC** | Public launch marketing (playbook Day 1) | G-LIVE on Settle It · V-PRIV-02/03 consent flow · V-PRIV-07 takedown · V-PRIV-11 data requests · V-SAFE-01, -05, -06. |
 | **G-MAINNET** | Mainnet deployment | V-OPS-02 fee profile in the model · independent contract review · V-SEC-11 separate owner key · V-OPS-06 alerts · V-OPS-07 pause drill. |
-| **G-QV** | Quick Verdict as the default for free Settle It cases | V-QV-01 to -07 Y · a new consent notice version that discloses publication on appeal · ADR-013 item 8 decided · C9 processor under no-retention terms · trust page §6 and consent copy rewritten. |
+| **G-QV** | Quick Verdict as the default for free Settle It cases | V-QV-01 to -04, -06, -07 Y · *(v1.3)* G-PUB passed, or Publish hidden with the preview labelled as such (`publish-onchain-v1` replaces the "publication on appeal" notice; ADR-013 item 8 decided by ADR-019) · C9 processor under no-retention terms · trust page §6 and consent copy rewritten. |
+| **G-PUB** (v1.3) | Publish on Settle It previews | G-QV engine (V-QV-01, -02, -03, -06) · V-PUB-01 to -14 Y · V-FUN-13 and V-SEC-16 Y (finality and chain-rendered cards) · V-PRIV-02/03 consent flow Y · V-OPS-04 budget breaker Y and sized for `PUBLISH_DAILY_CAP` · `publish-onchain-v1` counsel-reviewed · overrule copy and trust-page rows (§9.10) reviewed · ≥ 50 SHADOW publishes with FINALIZED_SUCCESS ≥ 95% and the overrule rate recorded. |
+| **G-PL** (v1.3) | Pattern Ledger LIVE: public digest and "Recorded on GenLayer" line | G-RF · written counsel sign-off on ADR-020 (V-SAFE-09) · V-PL-01 to -13, -15, -16 Y · `pattern-optin-v1` counsel-reviewed · private run plus SHADOW: ≥ 200 records reviewed by staff with **0** containing identifying data, a brand, a link, a number or an amount · no-consensus rate ≤ 10% over the last 100 submissions · digest review runbook drilled once. |
 | **G-RF** (Red Flag Court) | Red Flag Court open to the public | G-PUBLIC · Quick Verdict engine (V-QV-01, -02, -03, -06) · V-RF-01 to -15 Y · stamp tokens in the brand guide (V-SAFE-02) · moderation and help-line path (V-RF-14, V-SAFE-04) · V-SAFE-06 report queue · counsel reply on playbook §10 questions 4–6. |
 | **G-JB** (Jailbreak the Jury) | Jailbreak the Jury open to the public | G-PUBLIC · practice court (V-JB-01) · V-SEC-05 Y (V-JB-12) · V-JB-02 to -05 and -08 to -13 Y · red-team store and patch queue · disclosure inbox and patch-then-credit runbook. |
 | **G-JB-RERUN** | Weekly testnet re-runs of Jailbreak finalists | G-JB · V-JB-06, V-JB-07 Y · ADR-015 item 9 decided · replay pipeline drilled once. |
@@ -582,6 +694,26 @@ Shown on every surface before a take leaves the browser. Two unticked boxes; bot
 
 Live Court host attestation (`notice-v1-host`): "☐ Both contestants are 18 or older, are here on stream, and agreed that their takes will be public and permanent."
 
+### 11a. Publish notice (`publish-onchain-v1`, v1.3, ADR-019; draft for counsel review)
+
+Shown to **each** side before its publish consent. One unticked box. Required from both sides.
+
+> **Publish this case?**
+> Your takes become public and permanent.
+> - We'll re-hear the case on a public network. Its ruling is the one that counts, even if it differs from the preview.
+> - Both takes and the network's ruling will be saved on that network for good. Nobody, including VERDICT, can erase them.
+> - Nothing happens until both of you agree. You can change your mind until it's sent.
+> - Once it's sent, you can still cancel until the first network ruling is final. After that, either side can ask us to hide the case from VERDICT's pages, but the takes stay on the public network, and the other side can still appeal.
+>
+> ☐ I understand our takes become public and permanent.
+
+### 11b. Pattern opt-in notice (`pattern-optin-v1`, v1.3, ADR-020; draft for counsel review)
+
+> **Help warn others**
+> We'll write a short, general description of this kind of scam, with no names, numbers, links, brands or amounts, and add it to a public list on a network nobody can edit. The message itself is never shared or saved.
+>
+> ☐ Add a description of this scam pattern.
+
 ---
 
 ## 12. Traceability: who depends on which requirement
@@ -594,7 +726,9 @@ Live Court host attestation (`notice-v1-host`): "☐ Both contestants are 18 or 
 | `docs/THREAT_MODEL.md` | all V-SEC, V-PRIV, V-SAFE |
 | `brand/brand-guide.md` | V-LEGAL-09, V-SAFE-02, §3 glossary, §8 |
 | `marketing/security-games-playbook.md` | V-QV-01–08 · V-RF-01–18 · V-JB-01–14 · V-LEGAL-09, -12, -13 · V-SAFE-02, -04 · gates G-RF, G-JB, G-JB-RERUN |
-| `business/monetization.md`, `business/underwriting/underwriting-memo.md` | V-QV-04, V-QV-05, G-QV |
+| `business/monetization.md`, `business/underwriting/underwriting-memo.md` | V-QV-04, V-QV-05 (superseded), G-QV · *(v1.3)* V-PUB-06, V-PUB-11, G-PUB |
+| `docs/DESIGN-genlayer-fit.md` (v1.3) | V-PUB-01–14 · V-PL-01–16 · §2b metric · G-PUB, G-PL |
+| `contracts/pattern_ledger.py` (v1.3) | V-PL-02, -04 to -08 |
 
 ## 13. Open questions (tracked, not blocking v1.0)
 
@@ -608,10 +742,20 @@ Live Court host attestation (`notice-v1-host`): "☐ Both contestants are 18 or 
 6. Jailbreak's weekly case opens at Monday 00:00 PT, but daily allowances roll over at 00:00 UTC (glossary "UTC day"). Confirm that the mixed clocks are intended, or move the case open to UTC. Owner: Blair.
 7. PATCHED (playbook §5, the sealed card after a fix) is not in VERIFY's stamp list or in V-SAFE-02. Decide whether it is a stamp or a label. Owner: Blair, COPY.
 
+*Questions 8–13 are new in v1.3 (ADR-019, ADR-020).*
+
+8. Does the daily free appeal cover a Tier 3 appeal on a published case? ADR-004 and §2 item 5 say one free appeal per day at either tier, but the design brief prices Tier 3 at $4.99 with no free option. V-PUB-11 follows §6.3 as built until this is decided. Owner: Blair.
+9. Should a REQUESTED publish expire if the other side never answers, and after how long? Owner: Blair.
+10. The publish cap uses the LA day, and the free appeal uses the UTC day (ADR-018 item 3). Is that mix of clocks in one flow intended? Owner: Blair.
+11. Should the digest hide patterns below a minimum sightings count? A one-sighting pattern is public on-chain anyway, but it could be traced back to one person's situation. Owner: Blair, counsel.
+12. The design brief §4 lists "Hall of Contempt testnet re-runs" and "self-chosen Jailbreak re-checks" as separate GenLayer decisions. These docs define only one opt-in testnet re-run (V-JB-06). Confirm whether a second, self-chosen re-check is intended. Owner: lead.
+13. `RF_DAILY_CAP` and `JB_DAILY_ATTEMPTS` in §5 still say UTC day, but ADR-018 item 3 moved all game clocks to LA. Engineering to confirm which is built. Owner: REL.
+
 ## 14. Change log
 
 | Version | Date | Change |
 |---|---|---|
+| v1.3 | 2026-10-31 | Publish and the Scam Pattern Ledger (ADR-019, ADR-020; source `docs/DESIGN-genlayer-fit.md`). Added §2b (on-chain decisions per week, the north-star companion metric); glossary entries Preview, Publish, Published case, Overruled preview, Pattern Ledger, Pattern record, Sighting and LA day; C11; authority rows; constants; §6.7 Publish and §6.8 Pattern submission machines and §6.1 T3p; §9.11 V-PUB-01–14 and §9.12 V-PL-01–16 (all N); gates G-PUB and G-PL; notices `publish-onchain-v1` and `pattern-optin-v1` (drafts); open questions 8–13. V-QV-05 superseded. Amended §2a, the UTC day entry, §6.6 SHADOW labels ("preview" → "test run"), V-SEC-06, V-SAFE-09, V-LEGAL-09, V-QV-04, V-QV-07, V-RF-09, V-RF-17, G-QV and the §9.10 claim map. |
 | v1.2 | 2026-10-31 | Security games and Quick Verdict (ADR-013 to ADR-017). Added §2a scoping note, glossary terms, C9/C10 and TB9/TB10, game constants, §9.7 V-QV-01–08, §9.8 V-RF-01–18, §9.9 V-JB-01–14, §9.10 trust-page claim map, V-LEGAL-12 and -13, gates G-QV, G-RF, G-JB and G-JB-RERUN, and open questions 4–7. Amended V-SAFE-02 (game stamps), V-PRIV-04 (Red Flag redacts instead of rejecting), V-SEC-06 (game counters) and V-LEGAL-09 (new banned phrases). Moved Quick Verdict from out of scope to in scope. |
 | v1.1 | 2026-10-31 | Revocation narrowed (ADR-012, supersedes ADR-011): only before the Tier 1 verdict reaches FINALIZED_SUCCESS; afterwards takedown only, and takedown no longer closes a case or affects appeals. Updated glossary, §6.1 T11 and takedown note, §6.3 FAILED/CLOSED/A1/A8, V-FUN-12, V-PRIV-07, V-SAFE-05, technical-refund definition and the §11 notice. |
 | v1.0 | 2026-10-31 | First baseline. Consolidates README, REVIEW second pass and the canonical product rules; adds case, appeal, ledger, Prediction and mode state machines; packageDigest, provenance, revocation, expiry; "does and does not prove"; numbered requirements and gates. |
