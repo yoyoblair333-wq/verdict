@@ -103,6 +103,7 @@ const state = {
   pin: null, // {state, digest}
   source: null, // {kind: "live"|"snapshot", at}
   evidence: {}, // caseId -> [{fn, hash}]
+  takenDown: [], // case ids hidden after an off-chain takedown (still on-chain)
   cases: [],
 };
 
@@ -130,7 +131,10 @@ async function loadEvidence() {
     const r = await fetch("evidence.json", { cache: "no-cache" });
     if (r.ok) {
       const j = await r.json();
-      if (j.contract?.toLowerCase() === C.CONTRACT_ADDRESS.toLowerCase()) state.evidence = j.cases ?? {};
+      if (j.contract?.toLowerCase() === C.CONTRACT_ADDRESS.toLowerCase()) {
+        state.evidence = j.cases ?? {};
+        state.takenDown = Array.isArray(j.takenDown) ? j.takenDown : [];
+      }
     }
   } catch {
     /* evidence index is optional */
@@ -372,7 +376,18 @@ function renderCases() {
     box.append(h("p", { class: "empty" }, "No cases on this contract yet."));
     return;
   }
-  for (const c of state.cases) box.append(caseCard(c));
+  for (const c of state.cases) {
+    if (state.takenDown.includes(c.id)) {
+      box.append(
+        h("article", { class: "case", "data-case-id": c.id },
+          h("div", { class: "casehead" }, h("span", { class: "no" }, `Case #${c.id}`), h("span", { class: "chips" }, h("span", { class: "chip" }, "hidden"))),
+          h("div", { class: "casebody" }, h("p", { class: "meta" }, "Hidden from VERDICT's gallery after a takedown request. The text remains in the public blockchain's history and cannot be erased.")),
+        ),
+      );
+      continue;
+    }
+    box.append(caseCard(c));
+  }
 }
 
 // ------------------------------------------------------------ write mode
