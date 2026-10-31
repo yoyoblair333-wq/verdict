@@ -1,6 +1,10 @@
 # VERDICT: Review and status
 
-**Current state: 2026-10-31, round 3** (Quick Verdict, Red Flag Court, Jailbreak the Jury practice court, and the independent-audit fixes). This top section is current. Everything under "History" further down is kept for the record: the 2026-10-30 tables describe findings as they stood then, and the status map below says which are fixed.
+**Current state: 2026-10-31, round 4** (CI fix, Publish = network check with the ADR-022 budget and queue, Scam Pattern Ledger routes, owner/relayer split; see "Round 4" below). Round 3 notes follow it.
+
+**Round 4 results** (fresh copy of the tree, empty `HOME`, Python 3.12.3, Node 22.23.4): `scripts/verify.sh` **VERIFY: PASS**, all 8 steps. Contracts **294 passed, 1 skipped** (279 direct on the pinned GenVM v0.2.16 SDK, 15 static; the cold cache held only v0.2.16). Relayer **203 passed, 1 skipped** (112 unit, 91 stand-in, 1 live skipped). Offline demo PASS. Mutation sweep **107 / 107 killed** (the round-3 appeal-onto-chain mutants were replaced by Publish, budget, ledger-route, owner/relayer and SDK-pin mutants). The table below is the round-3 record.
+
+Earlier header: **2026-10-31, round 3** (Quick Verdict, Red Flag Court, Jailbreak the Jury practice court, and the independent-audit fixes). This top section is current. Everything under "History" further down is kept for the record: the 2026-10-30 tables describe findings as they stood then, and the status map below says which are fixed.
 
 ## Results now
 

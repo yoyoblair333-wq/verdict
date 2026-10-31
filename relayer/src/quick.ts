@@ -641,7 +641,7 @@ export function registerQuickRoutes(app: Express, ctx: QuickCtx): void {
       }
       if (typeof body.message !== "string" || body.message.trim() === "") throw new HttpError(400, "message must be a non-empty string");
       // Redact again here, before moderation and the LLM call: the browser copy may be missing or modified.
-      const red = { ...redact(""), text: body.message };
+      const red = redact(body.message);
       const text = red.text.trim();
       const len = measure(text);
       if (len > RED_FLAG_MAX_CHARS) throw new HttpError(400, `message exceeds ${RED_FLAG_MAX_CHARS} characters; paste the sketchiest part`, { length: len });
