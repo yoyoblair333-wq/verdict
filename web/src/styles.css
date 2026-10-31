@@ -175,3 +175,74 @@ details.receipt code.full{display:block;overflow-wrap:anywhere;margin-top:4px}
 .cases>*{min-width:0}
 div.group{display:grid;gap:16px;min-width:0}
 details.visitors>.case{margin-top:16px}
+
+/* Header nav wraps under the logo on narrow screens (three tabs at 375 px). */
+.top{flex-wrap:wrap}
+.tabs{flex-wrap:wrap}
+.tabs a[aria-current="page"]{background:var(--fg);color:var(--bg)}
+
+/* "Try to rig it." trust page (ADR-017) */
+.proof{display:inline-block;font-size:11px;font-weight:900;letter-spacing:.07em;text-transform:uppercase;border:1.5px solid currentColor;border-radius:5px;padding:1px 6px;white-space:nowrap;line-height:1.5}
+.proof[data-kind="live"]{color:var(--ok)}
+.proof[data-kind="snapshot"]{color:var(--warn)}
+.proof[data-kind="recorded"]{color:var(--muted)}
+.proof[data-kind="tested"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.proof[data-kind="pending"]{color:var(--stamp);border-style:dashed}
+.proof[data-kind="unchecked"]{color:var(--stamp)}
+.legend{list-style:none;margin:14px 0 0;padding:0;display:grid;gap:6px;font-size:13px;color:var(--muted)}
+.legend .proof{margin-right:6px}
+@media (min-width:560px){.legend{grid-template-columns:1fr 1fr}}
+.rigsect{min-width:0}
+.panel.rigsect h2{font-size:clamp(24px,7vw,30px);line-height:1}
+.panel.rigsect .lede{margin-top:10px}
+.claims{list-style:none;margin:14px 0 0;padding:0;display:grid;gap:10px}
+.claim{display:grid;grid-template-columns:minmax(0,1fr);gap:4px;font-size:15px;border-top:1px solid var(--line);padding-top:10px;min-width:0}
+.claim>.proof{justify-self:start}
+.ctext{font-weight:700;overflow-wrap:anywhere}
+.reqs{font-weight:600}
+.req{font-family:var(--mono);font-size:11px;color:var(--muted);white-space:nowrap}
+details.testedby summary{font-size:13px;color:var(--fg)}
+.tests{list-style:none;margin:6px 0 0;padding:0;display:grid;gap:8px}
+.tests li{display:grid;gap:2px;font-size:13px;border-left:3px solid var(--line);padding-left:10px;min-width:0}
+.tests li a{overflow-wrap:anywhere}
+.tests .n{font-weight:900;font-family:var(--display);font-size:18px;line-height:1}
+.tests .w{color:var(--muted)}
+h3.testsh{font:900 22px/1 var(--display);margin:22px 0 8px;letter-spacing:.02em}
+.note{font-size:13px;color:var(--muted);margin:14px 0 0;border-left:4px solid var(--line);padding:4px 10px}
+.txgrid{display:grid;gap:12px;margin-top:6px}
+.txcard{border:2px solid var(--fg);border-radius:12px;padding:10px 12px;min-width:0;background:var(--bg)}
+.txhead{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;font-weight:800;font-size:14px}
+.txhead .no{font:900 22px/1 var(--display);letter-spacing:.04em}
+.chip.refused{background:var(--stamp);color:#fff;border-color:var(--stamp)}
+.txcard .hash{display:block;margin:6px 0;font-size:11px;color:var(--muted)}
+.checks{list-style:none;margin:6px 0;padding:0;display:grid;gap:2px;font-size:13px}
+.checks .ok{color:var(--ok)}
+.checks .bad{color:var(--stamp)}
+.checks li{overflow-wrap:anywhere}
+.votes{list-style:none;margin:8px 0;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+.votes li{display:inline-flex;gap:5px;align-items:baseline;font-size:12px;border:1.5px solid var(--line);border-radius:999px;padding:2px 8px;max-width:100%}
+.votes li[data-vote="agree"]{border-color:var(--ok)}
+.votes li[data-vote="disagree"]{border-color:var(--stamp);border-style:dashed}
+.votes li b{font-weight:900}
+.votes li small{font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.txcard .row{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;font-weight:700;margin:4px 0 0}
+.revert{margin:6px 0;display:grid;gap:2px}
+.revert small{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.revert code{font-weight:700;color:var(--stamp);overflow-wrap:anywhere}
+.verdictbox{display:grid;gap:4px;border-radius:12px;padding:10px 12px;margin:12px 0 4px;border:2px solid var(--fg);font-weight:700;font-size:15px}
+.verdictbox .big{font:900 44px/.9 var(--display);letter-spacing:.01em}
+.verdictbox.match{background:var(--pad);color:var(--robe);border-color:var(--pad)}
+.verdictbox.differ{border-color:var(--stamp);color:var(--stamp)}
+.digests dd small{color:var(--muted);overflow-wrap:anywhere}
+.digests code{display:block}
+pre.cmd{margin:4px 0 0;padding:10px 12px;border-radius:10px;background:var(--robe);color:var(--pad);font-size:12px;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-all;max-width:100%}
+.noproof{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.noproof li{border:2px solid var(--fg);border-radius:12px;padding:10px 12px;background:var(--surface);font-size:15px;overflow-wrap:anywhere}
+.noproof li b{display:block;font:900 22px/1.05 var(--display);letter-spacing:.01em;margin-bottom:4px}
+.noproof .cfg{display:block;margin-top:6px;font-size:13px;color:var(--muted)}
+.notyet{display:grid;gap:8px}
+.ny{display:grid;gap:3px;border-left:4px dashed var(--stamp);padding:4px 10px;font-size:14px;min-width:0}
+.ny .proof{justify-self:start}
+.ny b{overflow-wrap:anywhere}
+.tryit .cta{text-align:center;text-decoration:none}
+a.plain{font-size:13px;font-weight:700}

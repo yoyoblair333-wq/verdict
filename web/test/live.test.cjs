@@ -99,6 +99,59 @@ async function main() {
     await ctx.close();
   }
 
+  // "Try to rig it." trust page (ADR-017): every live section must read real data.
+  const ev = JSON.parse(fs.readFileSync(path.join(DIST, "evidence.json"), "utf8"));
+  for (const [w, hgt] of [[375, 812], [1280, 900]]) {
+    const ctx = await browser.newContext({ viewport: { width: w, height: hgt }, deviceScaleFactor: w === 375 ? 2 : 1 });
+    const page = await ctx.newPage();
+    page.on("pageerror", (e) => errors.push(`rig ${w}px: ${e.message}`));
+    const rpc = [];
+    const gh = [];
+    page.on("request", (r) => {
+      if (r.url().startsWith("https://studio.genlayer.com/api")) rpc.push(r.postDataJSON()?.method);
+      if (r.url().startsWith("https://raw.githubusercontent.com/")) gh.push(r.url());
+    });
+    await step(`rig ${w}px: all three live sections read the network and GitHub (not the snapshot)`, async () => {
+      await page.goto(url + "rig.html", { waitUntil: "domcontentloaded" });
+      await page.waitForSelector('body[data-ready="1"]', { timeout: 120_000 });
+      for (const s of ["network", "code", "appeals"]) {
+        const st = await page.getAttribute(`.source[data-for="${s}"]`, "data-state");
+        assert.equal(st, "live", `${s} is ${st}: ${await page.getAttribute(`.source[data-for="${s}"]`, "title")}`);
+      }
+      assert.ok(rpc.includes("gen_getContractCode"), "deployed code not read");
+      assert.ok(rpc.some((m) => /transaction/i.test(m ?? "")), `no transaction read; RPC methods: ${[...new Set(rpc)].join(",")}`);
+      assert.ok(gh.some((u) => u.endsWith("/main/contracts/judge_router.py")), "GitHub source not fetched");
+    });
+    await step(`rig ${w}px: real jury txs are FINALIZED/SUCCESS with real validator votes`, async () => {
+      assert.equal(await page.locator("#network .txcard").count(), ev.trust.jury.length);
+      for (const j of ev.trust.jury) {
+        const card = page.locator(`#network .txcard[data-hash="${j.hash}"]`);
+        assert.equal(await card.getAttribute("data-finality"), "FINALIZED_SUCCESS");
+        assert.equal(await card.locator('.checks li[data-ok="0"]').count(), 0, `a check failed on ${j.hash}`);
+        assert.ok((await card.locator(".votes li").count()) >= 3, "validator votes missing");
+        assert.ok((await card.locator('.votes li[data-vote="agree"]').count()) >= 3);
+      }
+    });
+    await step(`rig ${w}px: deployed code sha256 = GitHub main sha256, both computed in the browser`, async () => {
+      assert.equal(await page.getAttribute("#code [data-code]", "data-code"), "match");
+      const a = await page.locator('#code [data-digest="chain"]').innerText();
+      const b = await page.locator('#code [data-digest="github"]').innerText();
+      assert.match(a, /^[0-9a-f]{64}$/);
+      assert.equal(a, b);
+    });
+    await step(`rig ${w}px: the live revoke tx is FINALIZED/ERROR with the contract's refusal`, async () => {
+      assert.equal(await page.getAttribute("#appeals .txcard", "data-revoke"), "refused");
+      assert.match(await page.locator("#appeals [data-reason]").innerText(), /verdict is final; request an off-chain takedown instead/);
+    });
+    await step(`rig ${w}px: no horizontal scroll`, async () => {
+      const { sw, iw } = await page.evaluate(() => ({ sw: document.documentElement.scrollWidth, iw: window.innerWidth }));
+      assert.ok(sw <= iw, `scrollWidth ${sw} > innerWidth ${iw}`);
+    });
+    await page.screenshot({ path: path.join(OUT, `rig-live-${w}.png`), fullPage: true });
+    await page.screenshot({ path: path.join(OUT, `rig-live-${w}-top.png`) });
+    await ctx.close();
+  }
+
   if (fs.existsSync(path.join(DIST, "snapshot.json"))) {
     const ctx = await browser.newContext({ viewport: { width: 375, height: 812 } });
     const page = await ctx.newPage();

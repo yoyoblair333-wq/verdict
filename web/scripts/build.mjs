@@ -1,11 +1,14 @@
 // Build the static site into web/dist/:
-//   app.js          genlayer-js + app code, bundled for the browser by esbuild
-//   index.html, styles.css, favicon.svg
+//   app.js, rig.js  the court record and the "Try to rig it." trust page,
+//                   bundled for the browser by esbuild (genlayer-js shared in chunks/)
+//   index.html, rig.html, styles.css, favicon.svg
 //   evidence.json   tx-hash index for the recorded studionet run
 //                   (docs/live/studionet-run.json) and the browser-signed demo
 //                   case (docs/live/demo-case.json); the contract does not store
 //                   tx hashes, so this is how read mode links them. Its case ids
-//                   are the pinned evidence cases.
+//                   are the pinned evidence cases. Its `trust` block names the
+//                   transactions the trust page reads live: each case's Tier 1
+//                   jury tx and the revoke negative test.
 // snapshot.json is written separately by scripts/snapshot.mjs (Pages workflow).
 import { build } from "esbuild";
 import { copyFile, mkdir, readFile, writeFile } from "node:fs/promises";
@@ -18,8 +21,11 @@ const dist = path.join(web, "dist");
 await mkdir(dist, { recursive: true });
 
 await build({
-  entryPoints: [path.join(web, "src/app.js")],
-  outfile: path.join(dist, "app.js"),
+  entryPoints: [path.join(web, "src/app.js"), path.join(web, "src/rig.js")],
+  outdir: dist,
+  entryNames: "[name]",
+  chunkNames: "chunks/[name]-[hash]",
+  splitting: true,
   bundle: true,
   format: "esm",
   platform: "browser",
@@ -30,7 +36,7 @@ await build({
   logLevel: "info",
 });
 
-for (const f of ["index.html", "styles.css"]) await copyFile(path.join(web, "src", f), path.join(dist, f));
+for (const f of ["index.html", "rig.html", "styles.css"]) await copyFile(path.join(web, "src", f), path.join(dist, f));
 await copyFile(path.join(root, "brand/logo-mark.svg"), path.join(dist, "favicon.svg"));
 await writeFile(path.join(dist, ".nojekyll"), "");
 
@@ -70,6 +76,28 @@ for (const x of hc.hidden ?? []) {
   hidden.push({ id: x.id, reason: typeof x.reason === "string" ? x.reason : "" });
 }
 for (const id of takenDown) if (!hidden.some((x) => x.id === id)) hidden.push({ id, reason: "" });
+// Trust page (ADR-017): the relayer run's Tier 1 jury txs (one per case) and its
+// on-chain revoke after confirm_verdict, which must revert with this reason.
+const EXPECT_REVOKE = "verdict is final; request an off-chain takedown instead";
+const source = await readFile(path.join(root, "contracts/judge_router.py"), "utf8");
+if (!source.includes(EXPECT_REVOKE)) throw new Error("trust: the revoke revert reason is no longer in contracts/judge_router.py");
+const caseOfTx = new Map(Object.entries(cases).flatMap(([id, txs]) => txs.map((t) => [t.hash, Number(id)])));
+const relayerCaseIds = new Set((run.cases ?? []).map((c) => c.caseId));
+const jury = [];
+for (const t of run.transactions ?? []) {
+  const caseId = caseOfTx.get(t.hash);
+  if (t.fn === "judge" && relayerCaseIds.has(caseId) && !jury.some((j) => j.caseId === caseId)) jury.push({ caseId, fn: t.fn, hash: t.hash });
+}
+const rv = (run.transactions ?? []).find((t) => t.fn === "revoke");
+const relayerStep = (run.cases ?? []).flatMap((c) => (c.steps ?? []).map((s) => ({ caseId: c.caseId, ...s }))).find((s) => /winner revoke via relayer/i.test(s.step ?? ""));
+const trust = {
+  jury: jury.slice(0, 3),
+  revoke: rv ? { caseId: caseOfTx.get(rv.hash), hash: rv.hash } : null,
+  expectRevoke: EXPECT_REVOKE,
+  relayerRevoke: relayerStep ? { caseId: relayerStep.caseId, status: relayerStep.status, error: String(relayerStep.body?.error ?? "") } : null,
+};
+if (trust.jury.length < 2 || !trust.revoke) throw new Error("trust: the evidence run no longer has the jury and revoke transactions the trust page reads");
+
 const evidence = {
   source: "docs/live/studionet-run.json + docs/live/demo-case.json",
   network: run.network,
@@ -79,6 +107,7 @@ const evidence = {
   pinned,
   takenDown,
   hidden,
+  trust,
 };
 await writeFile(path.join(dist, "evidence.json"), JSON.stringify(evidence, null, 2));
-console.log(`evidence.json: ${Object.keys(cases).length} cases (pinned ${JSON.stringify(pinned)}), ${Object.values(cases).flat().length} txs, hidden=${JSON.stringify(hidden.map((x) => x.id))}`);
+console.log(`evidence.json: ${Object.keys(cases).length} cases (pinned ${JSON.stringify(pinned)}), ${Object.values(cases).flat().length} txs, hidden=${JSON.stringify(hidden.map((x) => x.id))}, trust jury=${JSON.stringify(trust.jury.map((j) => j.caseId))} revoke=case ${trust.revoke.caseId}`);

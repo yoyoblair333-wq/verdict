@@ -9,6 +9,7 @@ import * as C from "./config.js";
 import { buildPackage, localCheck, preflight, randomRequestKey, sha256Hex } from "./lib/package.js";
 import { classifyTx, revertReason, voteSummary } from "./lib/finality.js";
 import { hideDecision } from "./lib/display.js";
+import { h } from "./lib/dom.js";
 import { groupCases, idsToFetch, isRelayerCase, provenanceLabel, receiptDisplay, RELAYER_CHIP, tierStatus, VISITOR_CHIP } from "./lib/gallery.js";
 
 const NUM_TO_NAME = transactionsStatusNumberToName;
@@ -33,18 +34,6 @@ const $ = (id) => document.getElementById(id);
 const read = createClient({ chain: studionet, endpoint: C.RPC_URL });
 
 // ------------------------------------------------------------- utilities
-
-function h(tag, attrs = {}, ...kids) {
-  const el = document.createElement(tag);
-  for (const [k, v] of Object.entries(attrs ?? {})) {
-    if (v === undefined || v === null || v === false) continue;
-    if (k === "class") el.className = v;
-    else if (k.startsWith("on")) el.addEventListener(k.slice(2), v);
-    else el.setAttribute(k, v === true ? "" : String(v));
-  }
-  for (const kid of kids.flat()) if (kid !== null && kid !== undefined && kid !== false) el.append(kid instanceof Node ? kid : String(kid));
-  return el;
-}
 
 /** genlayer-js decodes calldata maps as Map and ints as bigint; make plain JSON. */
 function plain(v) {

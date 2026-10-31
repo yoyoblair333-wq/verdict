@@ -20,6 +20,7 @@ import { CONTRACT_ADDRESS, CONTRACT_CODE_DIGEST, RELAYER_ADDRESS } from "../src/
 import { hideDecision } from "../src/lib/display.js";
 import { groupCases, idsToFetch, isRelayerCase, provenanceLabel, receiptDisplay, tierStatus, VISITOR_LINE } from "../src/lib/gallery.js";
 import { buildPackage, canonicalize, sanitiseText, sha256Hex } from "../src/lib/package.js";
+import { ALL_TEST_REFS, BANNED, compareCode, juryChecks, NOT_YET, revokeChecks, summarizeTx, tally, trustPlan } from "../src/lib/trust.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const DIST = path.resolve(here, "../dist");
@@ -270,5 +271,195 @@ test("browser (offline): no horizontal scroll at 375 and 1280 px", async () => {
     assert.ok(sw <= iw, `${w}px: scrollWidth ${sw} > innerWidth ${iw}`);
     assert.ok(right <= iw, `${w}px: a case card overflows to ${right}px (viewport ${iw})`);
     await ctx.close();
+  }
+});
+
+// ------------------------------------------- "Try to rig it." (ADR-017)
+
+test("trust: every test the page links to is still at its line on disk (so the GitHub link is honest)", () => {
+  assert.ok(ALL_TEST_REFS.length >= 15);
+  for (const r of ALL_TEST_REFS) {
+    const lines = fs.readFileSync(path.join(ROOT, r.path), "utf8").split("\n");
+    assert.ok(lines[r.line - 1]?.includes(r.anchor), `${r.path}:${r.line} no longer holds ${r.anchor}`);
+    assert.equal(r.url, `https://github.com/yoyoblair333-wq/verdict/blob/main/${r.path}#L${r.line}`);
+    assert.ok(Number.isSafeInteger(r.count) && r.count >= 1);
+  }
+});
+
+test("trust: SPEC §9.10 rows that are not Y stay in the 'not proven yet' list", () => {
+  const spec = fs.readFileSync(path.join(ROOT, "docs/SPEC.md"), "utf8");
+  const status = (id) => spec.match(new RegExp(`^\\| ${id} \\|.*\\| ([^|]*)\\|\\s*$`, "m"))?.[1].trim() ?? "";
+  for (const row of NOT_YET) {
+    for (const id of row.req.split(/,\s*/)) {
+      if (row.status === "Not claimed") continue;
+      assert.doesNotMatch(status(id), /^Y\b/, `${id} is Y in SPEC: move "${row.claim}" out of the not-proven list (ADR-017 item 4)`);
+    }
+  }
+});
+
+test("trust: tx summary, checks and code comparison", () => {
+  const C = CONTRACT_ADDRESS;
+  const tx = {
+    hash: "0x1", statusName: "FINALIZED", txExecutionResultName: "FINISHED_WITH_RETURN", result_name: "MAJORITY_AGREE",
+    to_address: C.toLowerCase(), from_address: RELAYER_ADDRESS,
+    consensus_data: { votes: { "0xbb": "idle", "0xaa": "agree", "0xcc": "disagree", "0xdd": "agree", "0xee": "agree" }, leader_receipt: [{ node_config: { address: "0xaa" } }] },
+  };
+  const s = summarizeTx(tx, {});
+  assert.equal(s.finality, "FINALIZED_SUCCESS");
+  assert.deepEqual(s.votes.map((v) => v.vote), ["agree", "agree", "agree", "disagree", "idle"]);
+  assert.equal(tally(s.votes), "agree 3 · disagree 1 · idle 1");
+  assert.deepEqual(juryChecks(s, C, RELAYER_ADDRESS), { finalized: true, toContract: true, fromRelayer: true, agreeMajority: true });
+  assert.equal(juryChecks({ ...s, votes: s.votes.slice(1) }, C, RELAYER_ADDRESS).agreeMajority, false, "2 of 4 is not a majority");
+  assert.equal(juryChecks({ ...s, to: VISITOR }, C, RELAYER_ADDRESS).toContract, false);
+  const rv = summarizeTx({ ...tx, txExecutionResultName: "FINISHED_WITH_ERROR", consensus_data: { ...tx.consensus_data, leader_receipt: [{ result: { payload: { readable: "[EXPECTED] verdict is final; request an off-chain takedown instead" } } }] } }, {});
+  assert.deepEqual(revokeChecks(rv, C, "verdict is final"), { finalizedError: true, toContract: true, reasonMatches: true });
+  assert.equal(revokeChecks(s, C, "verdict is final").finalizedError, false, "a successful revoke is not a refusal");
+  assert.equal(revokeChecks(rv, C, "").reasonMatches, false);
+  const a = "a".repeat(64);
+  assert.equal(compareCode(a, a, a).state, "match");
+  assert.equal(compareCode(a, a, a).pinnedToo, true);
+  assert.equal(compareCode(a, "b".repeat(64), a).state, "differ");
+  assert.equal(compareCode(a, "", a).state, "incomplete");
+  assert.equal(compareCode(a, "<img>", a).state, "incomplete");
+});
+
+test("build: evidence.json names the trust page's transactions (Tier 1 juries of cases 1-3, revoke on case 3)", () => {
+  const ev = JSON.parse(fs.readFileSync(path.join(DIST, "evidence.json"), "utf8"));
+  const plan = trustPlan(ev);
+  assert.deepEqual(plan.jury.map((j) => j.caseId), [1, 2, 3]);
+  assert.ok(plan.jury.every((j) => j.fn === "judge"));
+  assert.equal(plan.revoke.caseId, 3);
+  assert.equal(plan.revoke.hash, "0xfcecc671e08106833d11e92c495cdada542ce9012e7d8673b2ebea6fb29984c4");
+  assert.ok(fs.readFileSync(path.join(ROOT, "contracts/judge_router.py"), "utf8").includes(plan.expectRevoke));
+  assert.deepEqual(trustPlan({ trust: { jury: [{ caseId: 1, hash: "<img>" }], revoke: { caseId: "x", hash: "0x1" } } }), { jury: [], revoke: null, expectRevoke: "" });
+});
+
+test("trust: banned wording appears nowhere in the site source (ADR-017 item 1)", () => {
+  for (const f of ["index.html", "rig.html", "rig.js", "app.js"]) {
+    const t = fs.readFileSync(path.join(here, "../src", f), "utf8");
+    for (const re of BANNED) assert.doesNotMatch(t, re, `${f} says ${re}`);
+  }
+});
+
+async function rigPage(width = 375, { githubDigest = CONTRACT_CODE_DIGEST } = {}) {
+  const ev = JSON.parse(fs.readFileSync(path.join(DIST, "evidence.json"), "utf8"));
+  const plan = trustPlan(ev);
+  const sum = (hash, extra) => ({
+    hash, chainStatus: "FINALIZED", execution: "SUCCESS", finality: "FINALIZED_SUCCESS", consensus: "MAJORITY_AGREE",
+    to: CONTRACT_ADDRESS, from: RELAYER_ADDRESS, leader: "0x00000000000000000000000000000000000000a1", reason: "",
+    votes: [
+      { address: "0x00000000000000000000000000000000000000a1", vote: "agree" }, { address: "0x00000000000000000000000000000000000000a2", vote: "agree" },
+      { address: `0xa3${IMG}`, vote: "agree" }, { address: "0x00000000000000000000000000000000000000a4", vote: `disagree${IMG}` },
+      { address: "0x00000000000000000000000000000000000000a5", vote: "idle" },
+    ],
+    ...extra,
+  });
+  const txs = Object.fromEntries(plan.jury.map((j) => [j.hash, sum(j.hash)]));
+  txs[plan.revoke.hash] = sum(plan.revoke.hash, { execution: "ERROR", finality: "FINALIZED_ERROR", reason: `[EXPECTED] ${plan.expectRevoke} <script>window.__xss=9</script>` });
+  const rigStub = { ...stub, trust: { at: "2026-10-31T19:30:00Z", txs, github: { url: "x", digest: githubDigest } } };
+  const ctx = await browser.newContext({ viewport: { width, height: 812 }, serviceWorkers: "block" });
+  const page = await ctx.newPage();
+  const errors = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  page.on("dialog", (d) => {
+    errors.push(`dialog opened (${d.message()})`);
+    d.dismiss();
+  });
+  await ctx.route((u) => !u.href.startsWith(url), (r) => r.abort());
+  await page.route("**/verdict/snapshot.json", (r) => r.fulfill({ contentType: "application/json", body: JSON.stringify(rigStub) }));
+  await page.goto(`${url}rig.html`, { waitUntil: "domcontentloaded" });
+  await page.waitForSelector('body[data-ready="1"]', { timeout: 30_000 });
+  return { ctx, page, errors, plan };
+}
+
+test("browser (offline): main page links to the trust page", async () => {
+  const { ctx, page } = await stubbedPage();
+  const nav = page.locator("nav.tabs a#nav-rig");
+  assert.equal(await nav.getAttribute("href"), "rig.html");
+  await nav.click();
+  await page.waitForSelector('body[data-ready="1"]', { timeout: 30_000 });
+  assert.equal((await page.locator("h1").innerText()).replace(/\s+/g, " "), "Try to rig it.");
+  assert.match(await page.title(), /^Try to rig it\./);
+  await ctx.close();
+});
+
+test("browser (offline): trust page renders from the stub, labelled as a snapshot, with every check passing", async () => {
+  const { ctx, page, errors, plan } = await rigPage();
+  for (const s of ["network", "code", "appeals"]) {
+    assert.equal(await page.getAttribute(`.source[data-for="${s}"]`, "data-state"), "snapshot", `${s} should say snapshot`);
+    assert.match(await page.locator(`.source[data-for="${s}"]`).innerText(), /Snapshot · taken/i);
+  }
+  assert.equal(await page.locator("#network .txcard").count(), 3);
+  for (const j of plan.jury) {
+    const card = page.locator(`#network .txcard[data-hash="${j.hash}"]`);
+    assert.equal(await card.getAttribute("data-finality"), "FINALIZED_SUCCESS");
+    assert.equal(await card.locator('.checks li[data-ok="0"]').count(), 0);
+    assert.equal(await card.locator(".votes li").count(), 5);
+  }
+  assert.equal(await page.locator("#network .votes li small", { hasText: "leader" }).count(), 3);
+  assert.equal(await page.getAttribute("#appeals .txcard", "data-revoke"), "refused");
+  assert.match(await page.locator("#appeals [data-reason]").innerText(), /verdict is final; request an off-chain takedown instead/);
+  assert.equal(await page.getAttribute("#code [data-code]", "data-code"), "match");
+  // live claims fall back to "Snapshot", never "Live"
+  assert.equal(await page.locator('#network .claim[data-kind="live"], #code .claim[data-kind="live"], #appeals .claim[data-kind="live"]').count(), 0);
+  assert.ok((await page.locator('.claim[data-kind="snapshot"]').count()) >= 3);
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test("browser (offline): trust page claims are labelled and linked; nothing banned; Try it links to the write flow", async () => {
+  const { ctx, page } = await rigPage();
+  // every tested claim and the injection section link to test files on GitHub
+  const testLinks = await page.$$eval("#injection .tests a", (as) => as.map((a) => a.href));
+  assert.ok(testLinks.length >= 8 && testLinks.every((h) => h.startsWith("https://github.com/yoyoblair333-wq/verdict/blob/main/") && /#L\d+$/.test(h)));
+  for (const c of await page.$$('.claim[data-kind="tested"]')) {
+    const inSection4 = await c.evaluate((e) => !!e.closest("#injection"));
+    if (!inSection4) assert.ok(await c.$("details.testedby .tests a"), "a tested claim outside section 4 must carry its own test links");
+  }
+  assert.match(await page.locator("#injection").innerText(), /proven by the\s+tests below/i);
+  assert.match(await page.locator("#injection .testsh").innerText(), /The \d+ tests behind these claims/);
+  const limits = await page.locator("#limits").innerText();
+  for (const t of ["That the verdict is right.", "Which AI model each validator actually ran.", "Who picks the validators."]) assert.ok(limits.includes(t), `missing "${t}"`);
+  assert.ok((await page.locator("#limits .ny").count()) >= NOT_YET.length);
+  const body = await page.locator("body").innerText();
+  for (const re of BANNED) assert.doesNotMatch(body, re);
+  assert.equal(await page.getAttribute("#tryit-link", "href"), "./#try");
+  assert.equal(await page.getAttribute('nav.tabs a[aria-current="page"]', "href"), "rig.html");
+  await ctx.close();
+});
+
+test("browser (offline): trust page escapes hostile snapshot and chain strings", async () => {
+  const { ctx, page, errors } = await rigPage();
+  await page.waitForTimeout(300);
+  assert.equal(await page.evaluate(() => window.__xss), undefined, "injected script ran");
+  assert.equal(await page.locator("main img, section img, section script, .txcard svg").count(), 0, "hostile text became elements");
+  assert.ok((await page.locator("#network").textContent()).includes(`disagree${IMG}`), "hostile vote not shown literally");
+  assert.ok((await page.locator("#appeals").textContent()).includes("<script>window.__xss=9</script>"));
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test("browser (offline): trust page shows 'Differ' when GitHub and the deployed code disagree", async () => {
+  const { ctx, page } = await rigPage(375, { githubDigest: "b".repeat(64) });
+  assert.equal(await page.getAttribute("#code [data-code]", "data-code"), "differ");
+  assert.match(await page.locator("#code .verdictbox").innerText(), /Differ/);
+  await ctx.close();
+});
+
+test("browser (offline): trust page and main header have no horizontal scroll at 375 and 1280 px", async () => {
+  for (const w of [375, 1280]) {
+    const { ctx, page } = await rigPage(w);
+    const { sw, iw, right } = await page.evaluate(() => ({
+      sw: document.documentElement.scrollWidth, iw: window.innerWidth,
+      right: Math.max(...[...document.querySelectorAll(".wrap *")].map((e) => e.getBoundingClientRect().right)),
+    }));
+    assert.ok(sw <= iw, `${w}px: scrollWidth ${sw} > innerWidth ${iw}`);
+    assert.ok(right <= iw, `${w}px: an element overflows to ${right}px (viewport ${iw})`);
+    await page.screenshot({ path: path.join(OUT, `rig-offline-${w}.png`), fullPage: true });
+    await ctx.close();
+    const m = await stubbedPage(w);
+    const r2 = await m.page.evaluate(() => Math.max(...[...document.querySelectorAll("header.top *")].map((e) => e.getBoundingClientRect().right)));
+    assert.ok(r2 <= w, `${w}px: main page header overflows to ${r2}px`);
+    await m.ctx.close();
   }
 });
