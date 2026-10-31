@@ -10,10 +10,10 @@ import path from "node:path";
 import { test } from "node:test";
 import { StubProvider } from "../../src/lib/jury.js";
 import { loadPracticeConfig } from "../../src/lib/practice.js";
-import { CONSENT, harness, KEY, type Harness } from "./harness.js";
+import { CONSENT, harness, KEY, openAndJudge, type Harness } from "./harness.js";
 
 const PRACTICE = loadPracticeConfig(new URL("../../../config/practice-rules.v1.json", import.meta.url).pathname);
-const APPEAL_CONSENT = { consent: true, adult_confirmed: true, notice_version: "appeal-onchain-v1" };
+const PUBLISH_CONSENT = { consent: true, adult_confirmed: true, notice_version: "publish-onchain-v1" };
 
 /** Contest stub: juror j votes votes[j] (scores consistent with the vote). */
 const contest = (votes: number[]) =>
@@ -99,116 +99,269 @@ function baseQuick() {
   return { dailyCap: 10, practiceDailyCap: 10, publishDailyCap: 3, ttlSec: 86400, practiceRulesPath: "", storePath: path.join(d, "quick.jsonl"), redTeamPath: path.join(d, "redteam.jsonl"), sealedPath: path.join(d, "sealed.jsonl"), accountKeySecret: "s" };
 }
 
-// ------------------------------------------------- appeal onto the chain
-async function quickCase(h: Harness) {
-  const r = await h.post("/quick", quickBody(), KEY);
+// ---------------------------------------- Publish = network check (Design §1)
+async function quickCase(h: Harness, headers: Record<string, string> = KEY) {
+  const r = await h.post("/quick", quickBody(), headers);
   assert.equal(r.status, 201);
   const [t0, t1] = r.json.side_tokens as string[];
+  // contest([0,...]) previews side 0 as the winner
   return { id: r.json.quick_id as string, winner: t0!, loser: t1!, body: r.json };
 }
+const side = (t: string, headers: Record<string, string> = KEY) => ({ ...headers, "x-side-token": t });
+async function bothConsent(h: Harness, q: { id: string; winner: string; loser: string }) {
+  assert.equal((await h.post(`/quick/${q.id}/consent`, { disclosure: PUBLISH_CONSENT }, side(q.winner))).status, 200);
+  assert.equal((await h.post(`/quick/${q.id}/consent`, { disclosure: PUBLISH_CONSENT }, side(q.loser))).status, 200);
+}
 
-test("quick appeal: winner -> 403; other side not consented -> 409 and nothing on-chain (ADR-018)", async () => {
+test("publish: the Quick Verdict offers Publish (not an appeal) and says appeals need publishing first", async () => {
   await withH({}, { judgeProvider: contest([0, 0, 0, 0, 0]) }, async (h) => {
     const q = await quickCase(h);
-    assert.equal((await h.post(`/quick/${q.id}/appeal`, { disclosure: APPEAL_CONSENT }, { ...KEY, "x-side-token": q.winner })).status, 403);
-    assert.equal((await h.post(`/quick/${q.id}/appeal`, { disclosure: APPEAL_CONSENT }, { ...KEY, "x-side-token": "nope" })).status, 403);
-    const r = await h.post(`/quick/${q.id}/appeal`, { disclosure: APPEAL_CONSENT }, { ...KEY, "x-side-token": q.loser });
-    assert.equal(r.status, 409);
-    assert.equal(r.json.code, "other_side_not_consented");
-    // appeal-time consent needs the new notice version
-    const nv = await h.post(`/quick/${q.id}/consent`, { disclosure: CONSENT }, { ...KEY, "x-side-token": q.winner });
-    assert.equal(nv.status, 422);
-    assert.equal(nv.json.code, "notice_version_required");
+    honest(q.body);
+    assert.equal(q.body.appealable, false);
+    assert.match(q.body.appeal, /^Publish first/);
+    assert.equal(q.body.publish.notice_version, "publish-onchain-v1");
+    assert.match(q.body.publish.notice, /public and permanent/);
+    assert.equal(q.body.publish.publish_path, `/quick/${q.id}/publish`);
+    assert.equal(q.body.appeal_onto_chain, undefined, "the old appeal-onto-chain offer is gone");
+    // an unpublished Quick Verdict can never be appealed, by either side
+    for (const t of [q.winner, q.loser]) {
+      const a = await h.post(`/quick/${q.id}/appeal`, { disclosure: PUBLISH_CONSENT }, side(t));
+      assert.equal(a.status, 409);
+      assert.equal(a.json.code, "publish_first");
+    }
     assert.equal(h.chain.broadcasts.length, 0);
   });
 });
 
-test("quick appeal: both consent -> fresh on-chain Tier 1 via the package path; first appeal is free, then $1.99 credit", async () => {
+test("publish: needs publish-onchain-v1 consent from BOTH sides; until then it waits and nothing goes on-chain", async () => {
   await withH({}, { judgeProvider: contest([0, 0, 0, 0, 0]) }, async (h) => {
     const q = await quickCase(h);
-    assert.equal((await h.post(`/quick/${q.id}/consent`, { disclosure: APPEAL_CONSENT }, { ...KEY, "x-side-token": q.winner })).status, 200);
-    const r = await h.post(`/quick/${q.id}/appeal`, { disclosure: APPEAL_CONSENT }, { ...KEY, "x-side-token": q.loser });
+    assert.equal((await h.post(`/quick/${q.id}/publish`, { disclosure: PUBLISH_CONSENT }, side("nope"))).status, 403);
+    // the old appeal notice and the plain consent are not enough
+    for (const d of [CONSENT, { ...CONSENT, notice_version: "appeal-onchain-v1" }, { ...PUBLISH_CONSENT, consent: "true" }, { ...PUBLISH_CONSENT, adult_confirmed: 1 }]) {
+      const r = await h.post(`/quick/${q.id}/consent`, { disclosure: d }, side(q.winner));
+      assert.equal(r.status, 422, JSON.stringify(d));
+    }
+    const nv = await h.post(`/quick/${q.id}/publish`, { disclosure: CONSENT }, side(q.loser));
+    assert.equal(nv.json.code, "notice_version_required");
+    // one side publishes: it waits for the other
+    const w = await h.post(`/quick/${q.id}/publish`, { disclosure: PUBLISH_CONSENT }, side(q.loser));
+    assert.equal(w.status, 409);
+    assert.equal(w.json.code, "waiting_for_other_side");
+    assert.equal(w.json.status, "waiting");
+    assert.deepEqual(w.json.awaiting_sides, [0]);
+    // the other side sees a pending publish request when it consents
+    const c = await h.post(`/quick/${q.id}/consent`, { disclosure: PUBLISH_CONSENT }, side(q.winner));
+    assert.equal(c.json.status, "ready");
+    assert.equal(c.json.publish_requested, true);
+    assert.deepEqual(c.json.awaiting_sides, []);
+    assert.equal(h.chain.broadcasts.length, 0, "consent alone never publishes");
+  });
+});
+
+test("publish: either side can withdraw its own consent before submission, and then Publish waits again", async () => {
+  await withH({}, { judgeProvider: contest([0, 0, 0, 0, 0]) }, async (h) => {
+    const q = await quickCase(h);
+    await bothConsent(h, q);
+    const wd = await h.post(`/quick/${q.id}/consent/withdraw`, {}, side(q.winner));
+    assert.equal(wd.status, 200);
+    assert.equal(wd.json.consented, false);
+    assert.deepEqual(wd.json.awaiting_sides, [0]);
+    const r = await h.post(`/quick/${q.id}/publish`, {}, side(q.loser));
+    assert.equal(r.status, 409);
+    assert.equal(r.json.code, "waiting_for_other_side");
+    // the withdrawn side can't be published by a body-less tap: it must accept the notice again
+    assert.equal((await h.post(`/quick/${q.id}/publish`, {}, side(q.winner))).status, 422);
+    assert.equal(h.chain.broadcasts.length, 0);
+  });
+});
+
+test("publish: free, not an appeal; fresh on-chain Tier 1 through the package path with 2 appeals left", async () => {
+  await withH({}, { judgeProvider: contest([0, 0, 0, 0, 0]) }, async (h) => {
+    const q = await quickCase(h);
+    await bothConsent(h, q);
+    // the preview's WINNER may publish too
+    const r = await h.post(`/quick/${q.id}/publish`, {}, side(q.winner));
     assert.equal(r.status, 202, JSON.stringify(r.json));
+    assert.equal(r.json.published, true);
     assert.equal(r.json.tier, 1);
-    assert.equal(r.json.paid_with, "free");
-    assert.ok(typeof r.json.package_digest === "string" && r.json.package_digest.length === 64, "on-chain case has a real receipt");
+    assert.equal(r.json.price_cents, 0);
+    assert.equal(r.json.appeals_used, 0);
+    assert.equal(r.json.appeals_left, 2);
+    assert.deepEqual(r.json.next_appeal, { tier: 2, jurors: 7, free_or_cents: 199 });
+    assert.equal(r.json.publishes_left_today, 2);
+    assert.ok(typeof r.json.package_digest === "string" && r.json.package_digest.length === 64, "the published case has a real receipt");
+    assert.equal(h.credits.balance(`key:${KEY["x-api-key"]}`), 0, "nothing charged");
     await h.app.idle();
     const fns = h.chain.broadcasts.map((b) => b.fn);
     assert.ok(fns.includes("open_case_package") && fns.includes("judge"), fns.join(","));
-    // the same side tokens drive the on-chain case
-    const c = await h.get(`/cases/${r.json.id}`);
-    assert.equal(c.status, 200);
-    // already appealed
-    assert.equal((await h.post(`/quick/${q.id}/appeal`, { disclosure: APPEAL_CONSENT }, { ...KEY, "x-side-token": q.loser })).status, 409);
-    // second quick appeal by the same payer today: no free appeal, no credit -> 402, then credit pays 199
-    const q2 = await quickCase(h);
-    await h.post(`/quick/${q2.id}/consent`, { disclosure: APPEAL_CONSENT }, { ...KEY, "x-side-token": q2.winner });
-    const before = h.chain.broadcasts.length;
-    assert.equal((await h.post(`/quick/${q2.id}/appeal`, { disclosure: APPEAL_CONSENT }, { ...KEY, "x-side-token": q2.loser })).status, 402);
-    assert.equal(h.chain.broadcasts.length, before);
-    h.credits.grant(`key:${KEY["x-api-key"]}`, 199);
-    const paid = await h.post(`/quick/${q2.id}/appeal`, { disclosure: APPEAL_CONSENT }, { ...KEY, "x-side-token": q2.loser });
-    assert.equal(paid.status, 202);
-    assert.equal(paid.json.paid_with, "credit");
-    assert.equal(h.credits.balance(`key:${KEY["x-api-key"]}`), 0);
-    await h.app.idle();
+    // the old appeal endpoint and a second publish now point at the on-chain case
+    for (const p of ["publish", "appeal", "consent"]) {
+      const again = await h.post(`/quick/${q.id}/${p}`, { disclosure: PUBLISH_CONSENT }, side(q.loser));
+      assert.equal(again.status, 409, p);
+      assert.equal(again.json.code, "already_published", p);
+      assert.equal(again.json.appeal_path, `/cases/${r.json.id}/appeal`);
+    }
+    assert.equal((await h.post(`/quick/${q.id}/consent/withdraw`, {}, side(q.loser))).status, 409, "no withdrawal after submission");
   });
 });
 
-test("quick appeal: the on-chain case has one appeal left (Tier 2 at $4.99), then the cap; never the Supreme Court", async () => {
+test("publish: the network's Tier 1 ruling replaces the preview; a changed winner is flagged overruled_preview", async () => {
+  await withH({}, { judgeProvider: contest([0, 0, 0, 0, 0]) }, async (h) => {
+    // preview: side 0 wins 5-0. Network (FakeChain default): side 1 wins 4-1.
+    const q = await quickCase(h);
+    await bothConsent(h, q);
+    const r = await h.post(`/quick/${q.id}/publish`, {}, side(q.loser));
+    assert.equal(r.status, 202);
+    assert.equal(r.json.preview_winner_index, 0);
+    await h.app.idle();
+    const c = await h.get(`/cases/${r.json.id}`);
+    assert.equal(c.json.verdict_final, true);
+    assert.equal(c.json.case.winner_index, 1, "the network's ruling is the one shown");
+    assert.equal(c.json.card.verdict.winnerIndex, 1);
+    assert.equal(c.json.card.overruled_preview, true);
+    assert.equal(c.json.card.overruled_line, "The network overruled the preview.");
+    assert.equal(c.json.card.footer, "Checked by GenLayer · Finalized");
+    assert.equal(c.json.card.receipt_number, r.json.package_digest);
+    assert.equal(c.json.card.published_from_quick, q.id);
+  });
+  await withH({}, { judgeProvider: contest([1, 1, 1, 1, 1]) }, async (h) => {
+    // preview: side 1 wins. Network agrees: no overrule line.
+    const q = await quickCase(h);
+    await bothConsent(h, q);
+    const r = await h.post(`/quick/${q.id}/publish`, {}, side(q.winner));
+    await h.app.idle();
+    const c = await h.get(`/cases/${r.json.id}`);
+    assert.equal(c.json.card.overruled_preview, false);
+    assert.equal(c.json.card.overruled_line, undefined);
+    assert.equal(c.json.card.footer, "Checked by GenLayer · Finalized");
+  });
+  await withH({}, {}, async (h) => {
+    // a case opened directly on-chain (never a preview) carries no preview fields
+    const o = await openAndJudge(h);
+    const c = await h.get(`/cases/${o.id}`);
+    assert.equal(c.json.card.overruled_preview, undefined);
+    assert.equal(c.json.card.published_from_quick, undefined);
+  });
+});
+
+test("publish: after publishing, the normal ladder: losing side only, Tier 2 free or $1.99, Tier 3 $4.99, max 2", async () => {
   await withH({}, { judgeProvider: contest([0, 0, 0, 0, 0]) }, async (h) => {
     const q = await quickCase(h);
-    await h.post(`/quick/${q.id}/consent`, { disclosure: APPEAL_CONSENT }, { ...KEY, "x-side-token": q.winner });
-    const r = await h.post(`/quick/${q.id}/appeal`, { disclosure: APPEAL_CONSENT }, { ...KEY, "x-side-token": q.loser });
-    assert.equal(r.status, 202);
-    assert.equal(r.json.appeals_left, 1);
-    assert.equal(r.json.next_appeal_cents, 499);
+    await bothConsent(h, q);
+    const r = await h.post(`/quick/${q.id}/publish`, {}, side(q.loser));
     await h.app.idle();
-    const c = await h.get(`/cases/${r.json.id}`);
-    assert.equal(c.json.verdict_final, true, JSON.stringify(c.json));
-    const loserTok = c.json.case.winner_index === 0 ? q.loser : q.winner;
+    const id = r.json.id as number;
     const payer = `key:${KEY["x-api-key"]}`;
-    // today's free appeal went on the quick appeal; Tier 2 needs 499 of credit
-    h.credits.grant(payer, 199);
-    assert.equal((await h.post(`/cases/${r.json.id}/appeal`, {}, { ...KEY, "x-side-token": loserTok })).status, 402, "199 is not enough");
-    h.credits.grant(payer, 300);
-    const a2 = await h.post(`/cases/${r.json.id}/appeal`, {}, { ...KEY, "x-side-token": loserTok });
+    const c = await h.get(`/cases/${id}`);
+    const tokFor = (w: number) => (w === 0 ? q.winner : q.loser); // side 0 = preview winner token
+    const loserTok = tokFor(1 - c.json.case.winner_index);
+    assert.equal((await h.post(`/cases/${id}/appeal`, {}, side(tokFor(c.json.case.winner_index)))).status, 403, "the winning side cannot appeal");
+    // publishing did NOT use today's free appeal: Tier 2 is free
+    const a2 = await h.post(`/cases/${id}/appeal`, {}, side(loserTok));
     assert.equal(a2.status, 202, JSON.stringify(a2.json));
+    assert.equal(a2.json.paid_with, "free");
+    await h.app.idle();
+    const c2 = await h.get(`/cases/${id}`);
+    assert.equal(c2.json.case.tier, 2);
+    assert.equal(c2.json.case.jurors, 7);
+    const loser2 = tokFor(1 - c2.json.case.winner_index);
+    h.credits.grant(payer, 199);
+    assert.equal((await h.post(`/cases/${id}/appeal`, {}, side(loser2))).status, 402, "Tier 3 is $4.99; 199 is not enough");
+    h.credits.grant(payer, 300);
+    const a3 = await h.post(`/cases/${id}/appeal`, {}, side(loser2));
+    assert.equal(a3.status, 202, JSON.stringify(a3.json));
     assert.equal(h.credits.balance(payer), 0);
     await h.app.idle();
-    const c2 = await h.get(`/cases/${r.json.id}`);
-    assert.equal(c2.json.case.tier, 2);
-    const loser2 = c2.json.case.winner_index === 0 ? q.loser : q.winner;
-    h.credits.grant(payer, 499);
-    const a3 = await h.post(`/cases/${r.json.id}/appeal`, {}, { ...KEY, "x-side-token": loser2 });
-    assert.equal(a3.status, 429, "max 2 appeals: a Quick Verdict case never reaches Tier 3");
+    const c3 = await h.get(`/cases/${id}`);
+    assert.equal(c3.json.case.tier, 3, "a published case can reach the Supreme Court");
+    assert.equal(c3.json.card.overruled_preview, true, "the overrule flag describes the publish moment and stays");
+    const a4 = await h.post(`/cases/${id}/appeal`, {}, side(tokFor(1 - c3.json.case.winner_index)));
+    assert.ok(a4.status === 409 || a4.status === 429, `max 2 appeals (${a4.status})`);
   });
 });
 
-test("quick appeal: refused when a consent record is on a notice that did not disclose publication", async () => {
+test("publish: 3 free publishes per user per Los Angeles day, then 429 with nothing on-chain; resets at LA midnight", async () => {
+  await withH({}, { judgeProvider: contest([0, 0, 0, 0, 0]) }, async (h) => {
+    // 2026-10-31T12:00Z is 05:00 in Los Angeles
+    for (let i = 0; i < 3; i++) {
+      const q = await quickCase(h);
+      await bothConsent(h, q);
+      const r = await h.post(`/quick/${q.id}/publish`, {}, side(q.loser));
+      assert.equal(r.status, 202, `publish ${i + 1}`);
+      assert.equal(r.json.publishes_left_today, 2 - i);
+    }
+    await h.app.idle();
+    const q4 = await quickCase(h);
+    await bothConsent(h, q4);
+    const before = h.chain.broadcasts.length;
+    const over = await h.post(`/quick/${q4.id}/publish`, {}, side(q4.loser));
+    assert.equal(over.status, 429);
+    assert.equal(over.json.code, "publish_cap");
+    assert.equal(h.chain.broadcasts.length, before);
+    // another user is not affected
+    const other = { "x-api-key": "other-user-key" };
+    const qo = await quickCase(h, other);
+    await h.post(`/quick/${qo.id}/consent`, { disclosure: PUBLISH_CONSENT }, side(qo.winner, other));
+    await h.post(`/quick/${qo.id}/consent`, { disclosure: PUBLISH_CONSENT }, side(qo.loser, other));
+    assert.equal((await h.post(`/quick/${qo.id}/publish`, {}, side(qo.loser, other))).status, 202);
+    // 2026-11-01T06:59Z is still Oct 31 in LA; 07:00Z is the LA midnight
+    h.clock.now = new Date("2026-11-01T06:59:00Z");
+    assert.equal((await h.post(`/quick/${q4.id}/publish`, {}, side(q4.loser))).status, 429, "still the same LA day");
+    h.clock.now = new Date("2026-11-01T07:00:00Z");
+    assert.equal((await h.post(`/quick/${q4.id}/publish`, {}, side(q4.loser))).status, 202, "a new LA day");
+    await h.app.idle();
+  });
+});
+
+test("publish: a failed open refunds the publish (nothing was published)", async () => {
+  await withH({ quick: { ...baseQuick(), publishDailyCap: 1 } }, { judgeProvider: contest([0, 0, 0, 0, 0]) }, async (h) => {
+    const q = await quickCase(h);
+    await bothConsent(h, q);
+    h.chain.failBroadcast = true;
+    const bad = await h.post(`/quick/${q.id}/publish`, {}, side(q.loser));
+    assert.ok(bad.status >= 500, String(bad.status));
+    const ok = await h.post(`/quick/${q.id}/publish`, {}, side(q.loser));
+    assert.equal(ok.status, 202, JSON.stringify(ok.json));
+    await h.app.idle();
+  });
+});
+
+test("publish: refused when a consent record is on a notice that did not disclose publication; expired -> 410", async () => {
   const dir = mkdtempSync(path.join(tmpdir(), "verdict-qold-"));
   const tok = ["tokA-old-notice-0000000000", "tokB-old-notice-0000000000"];
-  const rec = {
-    id: "oldcase", rubric: "whos_right", entries: ["Tabs are better.", "Spaces are better."], sideTokenHashes: tok.map((t) => createHash("sha256").update(t).digest("hex")),
+  const hashes = tok.map((t) => createHash("sha256").update(t).digest("hex"));
+  const row = (id: string, consentNotice: string[], expiresAt: string, extra: Record<string, unknown> = {}) => ({
+    id, rubric: "whos_right", entries: ["Tabs are better.", "Spaces are better."], sideTokenHashes: hashes,
     verdict: { winnerIndex: 0, scores: [80, 30], jurorVotes: [0, 0, 0, 0, 0], split: "5-0", reason: "r", jurors: 5 },
-    createdAt: "2026-10-31T11:00:00Z", expiresAt: "2026-11-01T11:00:00Z", consentNotice: ["notice-v1", "quick-v1"], appealConsent: [true, false], hidden: false, caseId: null,
-  };
-  writeFileSync(path.join(dir, "quick.jsonl"), JSON.stringify(rec) + "\n");
+    createdAt: "2026-10-31T11:00:00Z", expiresAt, consentNotice, publishConsent: [true, true], hidden: false, caseId: null, ...extra,
+  });
+  const rows = [
+    row("oldcase", ["notice-v1", "quick-v1"], "2026-11-01T11:00:00Z"),
+    row("expired", ["quick-v2", "quick-v2"], "2026-10-31T11:30:00Z"),
+    // a pre-publish row: consent given under appeal-onchain-v1 is NOT carried over
+    { ...row("legacy", ["quick-v1", "quick-v1"], "2026-11-01T11:00:00Z"), publishConsent: undefined, appealConsent: [true, true] },
+  ];
+  writeFileSync(path.join(dir, "quick.jsonl"), rows.map((r) => JSON.stringify(r)).join("\n") + "\n");
   await withH({}, { dir, judgeProvider: contest([0, 0, 0, 0, 0]) }, async (h) => {
-    const r = await h.post("/quick/oldcase/appeal", { disclosure: APPEAL_CONSENT }, { ...KEY, "x-side-token": tok[1]! });
+    const r = await h.post("/quick/oldcase/publish", {}, side(tok[1]!));
     assert.equal(r.status, 409);
     assert.equal(r.json.code, "notice_not_disclosing");
+    assert.equal((await h.post("/quick/expired/publish", {}, side(tok[1]!))).status, 410);
+    const legacy = await h.post("/quick/legacy/publish", { disclosure: PUBLISH_CONSENT }, side(tok[1]!));
+    assert.equal(legacy.status, 409);
+    assert.equal(legacy.json.code, "waiting_for_other_side", "old appeal consent does not count as publish consent");
     assert.equal(h.chain.broadcasts.length, 0);
   });
 });
 
-test("quick: revoke after Done -> 409; takedown never blocks the appeal (V-QV-07)", async () => {
+test("quick: revoke after Done -> 409; takedown never blocks publishing (V-QV-07)", async () => {
   await withH({}, { judgeProvider: contest([0, 0, 0, 0, 0]) }, async (h) => {
     const q = await quickCase(h);
-    assert.equal((await h.post(`/quick/${q.id}/revoke`, {}, { ...KEY, "x-side-token": q.winner })).status, 409);
-    assert.equal((await h.post(`/quick/${q.id}/takedown`, {}, { ...KEY, "x-side-token": q.winner })).json.hidden, true);
-    await h.post(`/quick/${q.id}/consent`, { disclosure: APPEAL_CONSENT }, { ...KEY, "x-side-token": q.winner });
-    assert.equal((await h.post(`/quick/${q.id}/appeal`, { disclosure: APPEAL_CONSENT }, { ...KEY, "x-side-token": q.loser })).status, 202);
+    assert.equal((await h.post(`/quick/${q.id}/revoke`, {}, side(q.winner))).status, 409);
+    assert.equal((await h.post(`/quick/${q.id}/takedown`, {}, side(q.winner))).json.hidden, true);
+    await bothConsent(h, q);
+    assert.equal((await h.post(`/quick/${q.id}/publish`, {}, side(q.loser))).status, 202);
     await h.app.idle();
   });
 });
