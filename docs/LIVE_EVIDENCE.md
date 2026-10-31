@@ -1,10 +1,114 @@
 # Live evidence: studionet
 
-Two deployments are recorded here. The **current** one carries the audited contract; the **earlier** one is kept for the record (its address no longer matches the pinned digest).
+Every studionet deployment is recorded here. The **current** one matches `contracts/judge_router.py` byte for byte (pin below); the **earlier** ones are kept for the record and no longer match the source.
 
 ## Current deployment (2026-10-31)
 
 Recorded by `relayer/src/tools/liveRun.ts`: the **real relayer in live mode** (HTTP routes, case packages, outbox, contract pin check, two-step finality, inbox, `confirm_verdict`) driving `genlayer-js` 1.1.8 against studionet. Rendered from [`docs/live/studionet-run.json`](live/studionet-run.json) by `scripts/live_evidence.py`.
+
+This deployment exists because `contracts/judge_router.py` changed after the previous studionet deployment (`0x7DBc10d8…`, pin `3ef39cc8…`): it now has an owner/relayer split (constructor argument `relayer`, owner-only `set_relayer`, `relayer` in `get_config`, and `judge` / `appeal` / `finalize` / `confirm_verdict` open to the case creator, the owner or the current relayer; `revoke` stays creator-or-owner). The GenVM SDK header (`py-genlayer:1jb45aa8…`) is unchanged and pinned. The previous address no longer matches the source, so the contract was redeployed and re-pinned. The constructor `relayer` was left empty, so the throwaway deployer is both owner and relayer: this is still a testnet evidence deployment, not the final owner deployment (`deploy/OWNER_DEPLOY.md`).
+
+| Item | Value |
+|---|---|
+| Network / RPC | studionet, `https://studio.genlayer.com/api` |
+| Contract address | `0x3f867934247d88Aa3134d897a9246cfB1324B1Fa` |
+| Deploy tx | `0xf9606205fa12c2126b1499c814054ed5b9dba9077dad55968a3b1812344a8622`: FINALIZED, execution SUCCESS; validators agree 5 |
+| `get_config` roles | owner `0x34653Fb290480a8C99B4D92D4857123B5624c37d`, relayer `0x34653Fb290480a8C99B4D92D4857123B5624c37d` (the throwaway deployer holds both roles: constructor `relayer` left empty) |
+| Relayer key used for the run (throwaway) | `0x34653Fb290480a8C99B4D92D4857123B5624c37d` (same key as the earlier deployments) |
+| Code pin | `gen_getContractCode` → sha256 `7c18143cf8f5224d6f8cdccebcdcc70b3b584f0b9247bf55c8439d2fac10ca1b` = sha256 of `contracts/judge_router.py` `7c18143cf8f5224d6f8cdccebcdcc70b3b584f0b9247bf55c8439d2fac10ca1b` = `EXPECTED_CONTRACT_CODE_DIGEST` (**match**) |
+| Run | 2026-10-31T19:58:22.603Z → 2026-10-31T20:13:26.253Z (904 s, 3 cases, 17 transactions) |
+
+### The three cases
+
+#### Who's right? (Settle It) (case id 1)
+
+Receipt number (packageDigest): `43b09ddff2cfd7fdbc58a16298d15bdee819bee7921bfc3cdfe1fd372931883e`
+
+* POST /cases: HTTP 201, tx `0xe08409184d086bb6cb3e92dc0da1e672490e5b212123b7d75a37c6de4a3d3d14`, finality at response: ACCEPTED
+* POST judge: HTTP 202, tx `0x926597b1a497e9e7a1b313958b23d6027615741116a08b0c3e82d8bf371e910f`, finality at response: ACCEPTED
+* **Tier 1 final**: winner entry 0, split 5-0, 5 jurors, mean scores [68, 32], reason: "Sweet and salty pairing is a demonstrable culinary principle; tradition-based objection offers no logical counterargumen"
+  * provenance label: "All takes submitted through Settle It; authorship not verified. The receipt number proves which takes were judged, not that the verdict is correct."
+* appeal -> Tier 2: HTTP 202, tx `0xfed31cf680876d75769ef4150b4763be285f0e386556aaed4c538685488c9e89`, finality at response: ACCEPTED, paid_with free
+* **Tier 2 final**: winner entry 0, split 7-0, 7 jurors, mean scores [79, 34], reason: "One gives a clear, broadly grounded rationale; the other relies on hyperbole instead of support."
+* appeal -> Supreme Court: HTTP 202, tx `0x2f653265ab200902585fb3903babd6fa88d987d0b5e13cab8ef09eb15ee146b0`, finality at response: ACCEPTED, paid_with free
+* **Supreme Court final**: winner entry 0, split 9-0, 9 jurors, mean scores [69, 31], reason: "Sweet and salty pairings have broad culinary support; tradition alone isn't a counter-argument."
+
+#### Better roast (Live Court) (case id 2)
+
+Receipt number (packageDigest): `eb167ed7cfbd30029133da432dd390b55ef8de0d6940eaa277dcb3e3df302ebd`
+
+* POST /cases: HTTP 201, tx `0x71d325273244b0965a0b58b021b67efc3c26d794b6bd7945a653af3c6264180d`, finality at response: ACCEPTED
+* POST judge: HTTP 202, tx `0x5adc60577f1d84d58adeb292d21050e21b5f272f4371b0cd9e8227ad850a175c`, finality at response: ACCEPTED
+* **Tier 1 final**: winner entry 1, split 5-0, 5 jurors, mean scores [66, 86], reason: "Entry 1 offers a sharper, more psychologically astute roast with greater originality, while entry 0 relies on a common, "
+  * provenance label: "All takes relayed by the stream host; authorship not verified. The receipt number proves which takes were judged, not that the verdict is correct."
+* appeal -> Tier 2: HTTP 202, tx `0x50f2e49cee3af3f79357453692ba4d90415856dc3e112580b31b08d41febbef2`, finality at response: ACCEPTED, paid_with free
+* **Tier 2 final**: winner entry 1, split 6-1, 7 jurors, mean scores [57, 73], reason: "Entry 1 is punchier and more pointed, while Entry 0’s familiar bug comparison feels less original."
+* finalize (operator): tx `0x373f9d4e28e99282ee4c0bca13b4f1f29f1689520643f0bbbd847a5122dcfde7` → FINALIZED / execution SUCCESS
+* status after finalize: {"status": "final"}
+
+#### Pettiest text (API) (case id 3)
+
+Receipt number (packageDigest): `05ceb5420f6ad332eaa3d5063cb7e66ce53c811aee8f769464acf05ffdb235cc`
+
+* POST /cases: HTTP 201, tx `0x06e9c4ea8b940fdb7e35d21b4c00fc9d96f2530259a0203a996c9e4ec3ccfcf4`, finality at response: ACCEPTED
+* POST judge: HTTP 202, tx `0x6f4b2f84e3274c53e56c0c2716be24c5bf786aa025d2e703a020a9682f119e9a`, finality at response: ACCEPTED
+* **Tier 1 final**: winner entry 1, split 3-2, 5 jurors, mean scores [68, 76], reason: "The birthday threat-free promise of calculated future neglect is a masterclass in passive-aggressive precision and delay"
+  * provenance label: "All takes submitted by an API client; authorship not verified. The receipt number proves which takes were judged, not that the verdict is correct."
+* winner revoke via relayer (must be 409): HTTP 409, "the verdict is final; request a takedown instead (POST /cases/:id/takedown)"
+* raw on-chain revoke after confirm_verdict (must revert): tx `0xfcecc671e08106833d11e92c495cdada542ce9012e7d8673b2ebea6fb29984c4` → FINALIZED / execution ERROR; revert reason `[EXPECTED] verdict is final; request an off-chain takedown instead`
+* takedown (off-chain): HTTP 200, "Hidden from VERDICT's gallery and cards. The text remains in the public blockchain's history and cannot be erased.", `GET /cases/3` afterwards → HTTP 410
+
+### Every transaction
+
+Times are seconds after broadcast, as observed by the relayer's poller (3 s interval). Votes are the final `consensus_data.votes`.
+
+| # | Call | Tx hash | Observed transitions | ACCEPTED | FINALIZED | Result | Validator votes |
+|---|---|---|---|---|---|---|---|
+| 1 | `open_case_package` | `0xe08409184d086bb6cb3e92dc0da1e672490e5b212123b7d75a37c6de4a3d3d14` | PENDING (UNKNOWN) @0.1s → COMMITTING (SUCCESS) @3.2s → ACCEPTED (SUCCESS) @6.3s → FINALIZED (SUCCESS) @53.8s | 6.3 s | 53.8 s | FINALIZED / MAJORITY_AGREE / SUCCESS | agree 3, idle 2 |
+| 2 | `judge` | `0x926597b1a497e9e7a1b313958b23d6027615741116a08b0c3e82d8bf371e910f` | PENDING (UNKNOWN) @0.1s → PROPOSING (UNKNOWN) @3.1s → COMMITTING (SUCCESS) @12.3s → ACCEPTED (SUCCESS) @46.1s → FINALIZED (SUCCESS) @77.1s | 46.1 s | 77.1 s | FINALIZED / MAJORITY_AGREE / SUCCESS | agree 3, idle 2 |
+| 3 | `confirm_verdict` | `0xb36de12d1af430a2e720fe66bbd6243e99ac665010e85b4ea6d90c063f83bd01` | PENDING (UNKNOWN) @0.1s → COMMITTING (SUCCESS) @3.1s → ACCEPTED (SUCCESS) @6.2s → FINALIZED (SUCCESS) @38.3s | 6.2 s | 38.3 s | FINALIZED / MAJORITY_AGREE / SUCCESS | agree 3, idle 2 |
+| 4 | `appeal` | `0xfed31cf680876d75769ef4150b4763be285f0e386556aaed4c538685488c9e89` | PENDING (UNKNOWN) @0.1s → PROPOSING (UNKNOWN) @3.2s → COMMITTING (SUCCESS) @18.5s → ACCEPTED (SUCCESS) @46.2s → FINALIZED (SUCCESS) @77.1s | 46.2 s | 77.1 s | FINALIZED / MAJORITY_AGREE / SUCCESS | agree 3, idle 2 |
+| 5 | `confirm_verdict` | `0xc7456472fc6f43306e2eba800b06505d39f6e14ef8e3537e04e11b226e11ffc6` | PROPOSING (UNKNOWN) @0.1s → COMMITTING (SUCCESS) @3.2s → ACCEPTED (SUCCESS) @6.3s → FINALIZED (SUCCESS) @35.2s | 6.3 s | 35.2 s | FINALIZED / MAJORITY_AGREE / SUCCESS | agree 3, idle 2 |
+| 6 | `appeal` | `0x2f653265ab200902585fb3903babd6fa88d987d0b5e13cab8ef09eb15ee146b0` | PENDING (UNKNOWN) @0.1s → PROPOSING (UNKNOWN) @3.1s → COMMITTING (SUCCESS) @21.6s → ACCEPTED (SUCCESS) @58.5s → FINALIZED (SUCCESS) @89.4s | 58.5 s | 89.4 s | FINALIZED / MAJORITY_AGREE / SUCCESS | agree 3, idle 2 |
+| 7 | `confirm_verdict` | `0xf54171fe6553b48b63a7e1df932034d01dbc9c50d77f7b76f6144427a1ccfa99` | PENDING (UNKNOWN) @0.1s → COMMITTING (SUCCESS) @3.1s → ACCEPTED (SUCCESS) @6.2s → FINALIZED (SUCCESS) @38.3s | 6.2 s | 38.3 s | FINALIZED / MAJORITY_AGREE / SUCCESS | agree 3, idle 2 |
+| 8 | `open_case_package` | `0x71d325273244b0965a0b58b021b67efc3c26d794b6bd7945a653af3c6264180d` | PENDING (UNKNOWN) @0.1s → PROPOSING (UNKNOWN) @3.1s → ACCEPTED (SUCCESS) @6.2s → FINALIZED (SUCCESS) @66.3s | 6.2 s | 66.3 s | FINALIZED / MAJORITY_AGREE / SUCCESS | agree 3, idle 2 |
+| 9 | `judge` | `0x5adc60577f1d84d58adeb292d21050e21b5f272f4371b0cd9e8227ad850a175c` | PENDING (UNKNOWN) @0.1s → PROPOSING (UNKNOWN) @3.1s → COMMITTING (SUCCESS) @12.3s → ACCEPTED (SUCCESS) @58.5s → FINALIZED (SUCCESS) @89.5s | 58.5 s | 89.5 s | FINALIZED / MAJORITY_AGREE / SUCCESS | agree 3, disagree 1, idle 1 |
+| 10 | `confirm_verdict` | `0xf7b73e5b3ce6ea976a94408f925a1ed349621d3802f5b67b2d0c3b2fedd72805` | PENDING (UNKNOWN) @0.1s → PROPOSING (UNKNOWN) @3.1s → ACCEPTED (SUCCESS) @6.2s → FINALIZED (SUCCESS) @38.1s | 6.2 s | 38.1 s | FINALIZED / MAJORITY_AGREE / SUCCESS | agree 3, idle 2 |
+| 11 | `appeal` | `0x50f2e49cee3af3f79357453692ba4d90415856dc3e112580b31b08d41febbef2` | PROPOSING (UNKNOWN) @0.1s → COMMITTING (SUCCESS) @33.8s → ACCEPTED (SUCCESS) @110.4s → FINALIZED (SUCCESS) @141.4s | 110.4 s | 141.4 s | FINALIZED / MAJORITY_AGREE / SUCCESS | agree 3, idle 2 |
+| 12 | `confirm_verdict` | `0x96820ef22fe4a91c51f4000f8db84c9556e615da639e255833f1d652bf39351c` | PENDING (UNKNOWN) @0.1s → PROPOSING (UNKNOWN) @3.2s → COMMITTING (SUCCESS) @9.3s → ACCEPTED (SUCCESS) @12.4s → FINALIZED (SUCCESS) @44.4s | 12.4 s | 44.4 s | FINALIZED / MAJORITY_AGREE / SUCCESS | agree 3, idle 2 |
+| 13 | `finalize` | `0x373f9d4e28e99282ee4c0bca13b4f1f29f1689520643f0bbbd847a5122dcfde7` | PENDING (UNKNOWN) @0.1s → COMMITTING (SUCCESS) @3.1s → ACCEPTED (SUCCESS) @6.2s → FINALIZED (SUCCESS) @37s | 6.2 s | 37 s | FINALIZED / MAJORITY_AGREE / SUCCESS | agree 3, idle 2 |
+| 14 | `open_case_package` | `0x06e9c4ea8b940fdb7e35d21b4c00fc9d96f2530259a0203a996c9e4ec3ccfcf4` | PENDING (UNKNOWN) @0.1s → COMMITTING (SUCCESS) @3.2s → ACCEPTED (SUCCESS) @6.2s → FINALIZED (SUCCESS) @44.3s | 6.2 s | 44.3 s | FINALIZED / MAJORITY_AGREE / SUCCESS | agree 3, idle 2 |
+| 15 | `judge` | `0x6f4b2f84e3274c53e56c0c2716be24c5bf786aa025d2e703a020a9682f119e9a` | PENDING (UNKNOWN) @0.1s → PROPOSING (UNKNOWN) @3.2s → COMMITTING (SUCCESS) @12.3s → ACCEPTED (SUCCESS) @36.9s → FINALIZED (SUCCESS) @67.8s | 36.9 s | 67.8 s | FINALIZED / MAJORITY_AGREE / SUCCESS | agree 3, disagree 1, idle 1 |
+| 16 | `confirm_verdict` | `0xf333ed24f6ddcec2b2454f753e6e0f64259ba2a62767f3a1e73b3af4edf6c1bc` | PENDING (UNKNOWN) @0.1s → COMMITTING (SUCCESS) @3.1s → ACCEPTED (SUCCESS) @6.2s → FINALIZED (SUCCESS) @35.1s | 6.2 s | 35.1 s | FINALIZED / MAJORITY_AGREE / SUCCESS | agree 3, idle 2 |
+| 17 | `revoke` | `0xfcecc671e08106833d11e92c495cdada542ce9012e7d8673b2ebea6fb29984c4` | PENDING (UNKNOWN) @0.1s → PROPOSING (UNKNOWN) @3.1s → ACCEPTED (ERROR) @6.2s → FINALIZED (ERROR) @40.1s | 6.2 s | 40.1 s | FINALIZED / MAJORITY_AGREE / ERROR | agree 3, idle 2 |
+
+### What this run shows
+
+* **Two-step finality.** Jury transactions (`judge`, `appeal`) reached ACCEPTED after 36.9–110.4 s and FINALIZED after 67.8–141.4 s. Cards, the inbox receipt and `confirm_verdict` waited for FINALIZED + SUCCESS.
+* **Execution result is separate from status.** `revoke` `0xfcecc671e0…` reached FINALIZED with execution ERROR (`[EXPECTED] verdict is final; request an off-chain takedown instead`): the revocation window closed once Tier 1 was confirmed final.
+* **Receipts.** The inbox holds 6 hash-chained FINALIZED_SUCCESS receipts whose `packageDigest` equals the on-chain receipt number.
+* **Access.** Every write came from the relayer, which here is also the owner and the case creator. A stranger's `judge`, a non-owner `open_case`, and a relayer that is not the owner calling admin methods are refused by the contract; that is covered by the direct-mode tests, not by this run.
+
+## Reproduce
+
+The key file is written only if it does not exist yet, so this block can never overwrite the throwaway key that owns a deployment.
+
+```bash
+cd relayer && npm ci && npm run build
+[ -e .env.local ] || node -e 'import("genlayer-js").then(m=>console.log("RELAYER_PRIVATE_KEY="+m.generatePrivateKey()))' > .env.local
+set -a; . ./.env.local; set +a
+GENLAYER_NETWORK=studionet NODE_USE_ENV_PROXY=1 npm run deploy          # prints address + digest
+JUDGE_ROUTER_ADDRESS=0x... EXPECTED_CONTRACT_CODE_DIGEST=... GENLAYER_NETWORK=studionet \
+  NODE_USE_ENV_PROXY=1 node dist/tools/liveRun.js ../docs/live/run.json
+python3 ../scripts/live_evidence.py ../docs/live/run.json --deploy-tx 0x... --deploy-votes "agree 5"
+```
+
+## Earlier deployment (2026-10-31, `0x7DBc10d8922A5Ba498007D212F2088872F2aCe06`)
+
+Superseded by the current deployment above: `contracts/judge_router.py` has changed since (owner/relayer split: constructor `relayer`, owner-only `set_relayer`, lifecycle calls open to the current relayer), so this address no longer matches the source or the pinned digest. Its run data is kept in [`docs/live/studionet-run-0x7DBc10d8.json`](live/studionet-run-0x7DBc10d8.json).
+
+
+Recorded by `relayer/src/tools/liveRun.ts`: the **real relayer in live mode** (HTTP routes, case packages, outbox, contract pin check, two-step finality, inbox, `confirm_verdict`) driving `genlayer-js` 1.1.8 against studionet. Rendered from [`docs/live/studionet-run-0x7DBc10d8.json`](live/studionet-run-0x7DBc10d8.json) by `scripts/live_evidence.py`.
 
 This deployment exists because the contract changed after the independent audit: `judge` now requires the case creator or the owner, and the legacy `open_case` path is owner-only. A contract change means a new address and a new pin.
 
@@ -17,9 +121,9 @@ This deployment exists because the contract changed after the independent audit:
 | Code pin | `gen_getContractCode` → sha256 `3ef39cc8a02f7c2bdbf3f3b7d19340622439a381192ced7cbcd799232139ea25` = `EXPECTED_CONTRACT_CODE_DIGEST` (**match**) |
 | Run | 2026-10-31T18:29:04.795Z → 2026-10-31T18:43:32.304Z (868 s, 3 cases, 17 transactions) |
 
-### The three cases
+#### The three cases
 
-#### Who's right? (Settle It) (case id 1)
+##### Who's right? (Settle It) (case id 1)
 
 Receipt number (packageDigest): `c29281263bd4b100bb0b4117d09155b5e868a16d3b7a7e2e2c7e331523a2d349`
 
@@ -32,7 +136,7 @@ Receipt number (packageDigest): `c29281263bd4b100bb0b4117d09155b5e868a16d3b7a7e2
 * appeal -> Supreme Court: HTTP 202, tx `0x3c9dac7e2633bb0d05e0b25db5c9fa8547199848bc53e93ba5c62a9c2308573f`, finality at response: ACCEPTED, paid_with free
 * **Supreme Court final**: winner entry 0, split 9-0, 9 jurors, mean scores [69, 31], reason: "Sweet-salty contrast is a legitimate culinary principle; tradition-based dismissal offers no supporting logic."
 
-#### Better roast (Live Court) (case id 2)
+##### Better roast (Live Court) (case id 2)
 
 Receipt number (packageDigest): `a91f4f0c421a82383bdb0afb5095a6aa9395755ae4f19a230a9bb90322b14705`
 
@@ -45,7 +149,7 @@ Receipt number (packageDigest): `a91f4f0c421a82383bdb0afb5095a6aa9395755ae4f19a2
 * finalize (operator): tx `0xce7e10f252a3d95da9959394d3bd60bb88f44a04083879f1599f9bc7b114d3c0` → FINALIZED / execution SUCCESS
 * status after finalize: {"status": "final"}
 
-#### Pettiest text (API) (case id 3)
+##### Pettiest text (API) (case id 3)
 
 Receipt number (packageDigest): `cbf26c1037bb6a262bc4b9c91fe0c12f8895bfe039612ae36958cd4df08fb5ee`
 
@@ -57,7 +161,7 @@ Receipt number (packageDigest): `cbf26c1037bb6a262bc4b9c91fe0c12f8895bfe039612ae
 * raw on-chain revoke after confirm_verdict (must revert): tx `0x3ff5be06c9e2be6a601c8abdc78e89491841cc45bfbfe42926ee4ea711acfb4e` → FINALIZED / execution ERROR; revert reason `[EXPECTED] verdict is final; request an off-chain takedown instead`
 * takedown (off-chain): HTTP 200, "Hidden from VERDICT's gallery and cards. The text remains in the public blockchain's history and cannot be erased.", `GET /cases/3` afterwards → HTTP 410
 
-### Every transaction
+#### Every transaction
 
 Times are seconds after broadcast, as observed by the relayer's poller (3 s interval). Votes are the final `consensus_data.votes`.
 
@@ -81,32 +185,18 @@ Times are seconds after broadcast, as observed by the relayer's poller (3 s inte
 | 16 | `confirm_verdict` | `0x280ea5d14324a789c434b0b21773831e0e2ed1747d0a973cdd556be768812031` | PENDING (UNKNOWN) @0.1s → COMMITTING (SUCCESS) @3.1s → ACCEPTED (SUCCESS) @6.2s → FINALIZED (SUCCESS) @35.1s | 6.2 s | 35.1 s | FINALIZED / MAJORITY_AGREE / SUCCESS | agree 5 |
 | 17 | `revoke` | `0x3ff5be06c9e2be6a601c8abdc78e89491841cc45bfbfe42926ee4ea711acfb4e` | PENDING (UNKNOWN) @0.1s → ACCEPTED (ERROR) @3.2s → FINALIZED (ERROR) @34s | 3.2 s | 34 s | FINALIZED / MAJORITY_AGREE / ERROR | agree 3, idle 2 |
 
-### What this run shows
+#### What this run shows
 
 * **Two-step finality.** Jury transactions (`judge`, `appeal`) reached ACCEPTED after 27.7–132.1 s and FINALIZED after 58.8–160 s. Cards, the inbox receipt and `confirm_verdict` waited for FINALIZED + SUCCESS.
 * **Execution result is separate from status.** `revoke` `0x3ff5be06c9…` reached FINALIZED with execution ERROR (`[EXPECTED] verdict is final; request an off-chain takedown instead`): the revocation window closed once Tier 1 was confirmed final.
 * **Receipts.** The inbox holds 6 hash-chained FINALIZED_SUCCESS receipts whose `packageDigest` equals the on-chain receipt number.
 * **Access (new in this deployment).** Every write came from the case creator (the relayer). A stranger's `judge` and a non-owner `open_case` are refused by the contract; that is covered by the direct-mode tests, not by this run.
 
-## Reproduce
-
-The key file is written only if it does not exist yet, so this block can never overwrite the throwaway key that owns a deployment.
-
-```bash
-cd relayer && npm ci && npm run build
-[ -e .env.local ] || node -e 'import("genlayer-js").then(m=>console.log("RELAYER_PRIVATE_KEY="+m.generatePrivateKey()))' > .env.local
-set -a; . ./.env.local; set +a
-GENLAYER_NETWORK=studionet NODE_USE_ENV_PROXY=1 npm run deploy          # prints address + digest
-JUDGE_ROUTER_ADDRESS=0x... EXPECTED_CONTRACT_CODE_DIGEST=... GENLAYER_NETWORK=studionet \
-  NODE_USE_ENV_PROXY=1 node dist/tools/liveRun.js ../docs/live/run.json
-python3 ../scripts/live_evidence.py ../docs/live/run.json --deploy-tx 0x... --deploy-votes "agree 5"
-```
-
 ## Earlier deployment (2026-10-31)
 
 Superseded by the current deployment above: this contract still lets anyone call `judge` and lets anyone use `open_case`. Its run data is kept in [`docs/live/studionet-run-earlier-deployment.json`](live/studionet-run-earlier-deployment.json). Its old reproduce block (which could overwrite `.env.local`) is removed; use the one above.
 
-Recorded by `relayer/src/tools/liveRun.ts`: the **real relayer in live mode** (HTTP routes, case packages, outbox, contract pin check, two-step finality, inbox, `confirm_verdict`) driving the real `genlayer-js` 1.1.8 client against GenLayer **studionet**. Raw data: [docs/live/studionet-run.json](live/studionet-run.json) (every transaction, every observed status transition, final validator votes, the inbox receipts). A fresh throwaway key was generated locally for this run; it is stored only in the git-ignored `relayer/.env.local` and appears in no file in this repo. No mainnet, no real value.
+Recorded by `relayer/src/tools/liveRun.ts`: the **real relayer in live mode** (HTTP routes, case packages, outbox, contract pin check, two-step finality, inbox, `confirm_verdict`) driving the real `genlayer-js` 1.1.8 client against GenLayer **studionet**. Raw data: [docs/live/studionet-run-earlier-deployment.json](live/studionet-run-earlier-deployment.json) (every transaction, every observed status transition, final validator votes, the inbox receipts). A fresh throwaway key was generated locally for this run; it is stored only in the git-ignored `relayer/.env.local` and appears in no file in this repo. No mainnet, no real value.
 
 ### Deployment
 

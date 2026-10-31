@@ -14,8 +14,10 @@ accepted.
 docs/live/studionet-run.json is rewritten to point there).
 --why: one paragraph on why this deployment exists.
 --owner / --relayer: get_config roles read from the deployed contract.
+--source: contracts/judge_router.py; its sha256 is printed beside the on-chain one.
 """
 import argparse
+import hashlib
 import json
 import re
 from collections import Counter
@@ -36,7 +38,7 @@ DEFAULT_WHY = ("This deployment exists because the contract changed after the in
                "creator or the owner, and the legacy `open_case` path is owner-only. A contract change means a new address and a new pin.")
 
 
-def render(run, deploy_tx, deploy_votes, revoke_reason, why=DEFAULT_WHY, owner="", relayer=""):
+def render(run, deploy_tx, deploy_votes, revoke_reason, why=DEFAULT_WHY, owner="", relayer="", source_digest=""):
     tx_by_hash = {t["hash"]: t for t in run["transactions"]}
     out = []
     w = out.append
@@ -55,7 +57,11 @@ def render(run, deploy_tx, deploy_votes, revoke_reason, why=DEFAULT_WHY, owner="
         w(f"| Relayer key used for the run (throwaway) | `{run['relayer']}` (same key as the earlier deployments) |")
     else:
         w(f"| Owner / relayer (throwaway) | `{run['relayer']}` (same key as the earlier deployment) |")
-    w(f"| Code pin | `gen_getContractCode` → sha256 `{run['pin']['digest']}` = `EXPECTED_CONTRACT_CODE_DIGEST` (**{run['pin']['state']}**) |")
+    if source_digest:
+        same = "=" if source_digest == run["pin"]["digest"] else "≠"
+        w(f"| Code pin | `gen_getContractCode` → sha256 `{run['pin']['digest']}` {same} sha256 of `contracts/judge_router.py` `{source_digest}` = `EXPECTED_CONTRACT_CODE_DIGEST` (**{run['pin']['state']}**) |")
+    else:
+        w(f"| Code pin | `gen_getContractCode` → sha256 `{run['pin']['digest']}` = `EXPECTED_CONTRACT_CODE_DIGEST` (**{run['pin']['state']}**) |")
     w(f"| Run | {run['startedAt']} → {run['finishedAt']} ({run['elapsedSec']} s, {len(run['cases'])} cases, {len(run['transactions'])} transactions) |\n")
     w("### The three cases\n")
     for c in run["cases"]:
@@ -129,8 +135,8 @@ def demote_current(old, address, run_file):
     tail = old[old.index("\n## Earlier deployment") + 1:] if "\n## Earlier deployment" in old else ""
     addr = f", `{address}`" if address else ""
     lines = [f"## Earlier deployment ({cur.group(1)}{addr})", "",
-             "Superseded by the current deployment above: `contracts/judge_router.py` has changed since (owner/relayer split, pinned SDK), "
-             "so this address no longer matches the source or the pinned digest."
+             "Superseded by the current deployment above: `contracts/judge_router.py` has changed since (owner/relayer split: constructor "
+             "`relayer`, owner-only `set_relayer`, lifecycle calls open to the current relayer), so this address no longer matches the source or the pinned digest."
              + (f" Its run data is kept in [`docs/live/{run_file}`](live/{run_file})." if run_file else ""), ""]
     body = cur.group(2)
     if run_file:
@@ -175,12 +181,14 @@ def main():
     ap.add_argument("--why", default=DEFAULT_WHY)
     ap.add_argument("--owner", default="")
     ap.add_argument("--relayer", default="")
+    ap.add_argument("--source", default="", help="contract source file; its sha256 is shown next to the on-chain digest")
     a = ap.parse_args()
+    source_digest = hashlib.sha256(open(a.source, "rb").read()).hexdigest() if a.source else ""
     run = json.load(open(a.run, encoding="utf-8"))
     page = [f"# Live evidence: studionet\n",
             "Every studionet deployment is recorded here. The **current** one matches `contracts/judge_router.py` byte for byte (pin below); "
             "the **earlier** ones are kept for the record and no longer match the source.\n",
-            render(run, a.deploy_tx, a.deploy_votes, a.revoke_reason, a.why, a.owner, a.relayer),
+            render(run, a.deploy_tx, a.deploy_votes, a.revoke_reason, a.why, a.owner, a.relayer, source_digest),
             "## Reproduce\n",
             "The key file is written only if it does not exist yet, so this block can never overwrite the throwaway key that owns a deployment.\n",
             "```bash",

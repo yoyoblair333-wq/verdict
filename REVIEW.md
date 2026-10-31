@@ -17,7 +17,7 @@ Earlier header: **2026-10-31, round 3** (Quick Verdict, Red Flag Court, Jailbrea
 | `make demo` | PASS |
 | Guard mutation sweep (`scripts/mutation_check.py`) | **74 / 74 mutants killed (31 earlier + 35 for Quick Verdict, Red Flag Court and the practice court + 8 for the audit fixes)** |
 | `scripts/verify.sh` on a fresh copy with an empty `HOME` (cold caches) | **VERIFY: PASS**, all 8 steps, 433 s total (python 3.13.18, cold pip / npm / GenVM / linter caches, no `.env.local` in the copy). Counts in the copy match the table above, and the offline demo prints DEMO: PASS |
-| studionet redeploy + 3-case live run (contract changed: `judge` and `open_case` access) | contract `0x7DBc10d8922A5Ba498007D212F2088872F2aCe06`, pin match; see `docs/LIVE_EVIDENCE.md` |
+| studionet redeploy + 3-case live run (contract changed: owner/relayer split) | contract `0x3f867934247d88Aa3134d897a9246cfB1324B1Fa`, deploy tx `0xf9606205…8622` FINALIZED (agree 5); `gen_getContractCode` sha256 = source sha256 = `7c18143c…ca1b` (pin match); 17 txs, full ladder on case 1, revoke-blocked on case 3; the superseded `0x7DBc10d8…` run is kept as an earlier deployment in `docs/LIVE_EVIDENCE.md` |
 
 ## Round 4 (engineering A): CI fix, Publish, ledger routes, owner/relayer split
 
@@ -63,7 +63,7 @@ Correction applied (lead, round 4): `open_case_package` stays callable by anyone
 
 ### Owner / relayer split on JudgeRouter
 
-`__init__(daily_limit=0, relayer="")`, owner-only `set_relayer`, `relayer` in `get_config`. `judge`, `appeal`, `confirm_verdict`, `finalize` accept the case creator, the owner or the current relayer (so a rotated key keeps working); `open_case_package` and `expire` were already open to any sender. `revoke` stays creator-or-owner (the relayer role does not extend to it, but the relayer key that opened a case is its creator, so the revoke route still works). Admin and legacy `open_case` stay owner-only. Tests: `contracts/tests/direct/test_relayer_role.py`. **The contract source changed, so its digest no longer matches the deployed studionet contract**; nothing was redeployed. Blair deploys the final versions from her wallet: `deploy/OWNER_DEPLOY.md`.
+`__init__(daily_limit=0, relayer="")`, owner-only `set_relayer`, `relayer` in `get_config`. `judge`, `appeal`, `confirm_verdict`, `finalize` accept the case creator, the owner or the current relayer (so a rotated key keeps working); `open_case_package` and `expire` were already open to any sender. `revoke` stays creator-or-owner (the relayer role does not extend to it, but the relayer key that opened a case is its creator, so the revoke route still works). Admin and legacy `open_case` stay owner-only. Tests: `contracts/tests/direct/test_relayer_role.py`. The contract source changed, so it was redeployed to studionet as a throwaway-key evidence deployment (`0x3f867934247d88Aa3134d897a9246cfB1324B1Fa`, constructor `relayer` empty, so the deployer holds both roles) and re-pinned; see `docs/LIVE_EVIDENCE.md`. Blair deploys the final versions from her wallet: `deploy/OWNER_DEPLOY.md`.
 
 ## Round 3: what was built
 
