@@ -13,7 +13,8 @@ import express, { type Express, type NextFunction, type Request, type Response }
 import { HttpError, wrap } from "./lib/http.js";
 import type { JudgeProvider } from "./lib/jury.js";
 import type { PracticeConfig } from "./lib/practice.js";
-import { registerQuickRoutes } from "./quick.js";
+import { registerQuickRoutes, type PatternReader } from "./quick.js";
+import { PatternLedgerClient, patternConfigFromEnv, type PatternChainPort, type PatternConfig } from "./lib/pattern.js";
 import type { Config } from "./config.js";
 import { digestEquals } from "./lib/canonical.js";
 import { FileCredits, type CreditStore } from "./lib/credits.js";
@@ -119,6 +120,10 @@ export interface Deps {
   judgeProvider?: JudgeProvider;
   /** Reviewed practice-court rule list. Absent -> practice routes answer 503. */
   practice?: PracticeConfig;
+  /** Scam Pattern Ledger. Defaults: config from env; chain + reader from PatternLedgerClient. */
+  patternConfig?: PatternConfig;
+  patternChain?: PatternChainPort;
+  patternReader?: PatternReader;
 }
 
 export type VerdictApp = Express & {
@@ -991,8 +996,25 @@ export function buildApp(deps: Deps): VerdictApp {
     }),
   );
 
-  // Quick Verdict (off-chain): Settle It quick + escalation, Red Flag Court, practice court.
+  // Scam Pattern Ledger (ADR-020): SHADOW unless PATTERN_LEDGER_MODE=live AND VERDICT_MODE=live.
+  const pcfg = deps.patternConfig ?? patternConfigFromEnv(process.env, cfg.mode);
+  let ledger: PatternLedgerClient | undefined;
+  const ledgerClient = (): PatternLedgerClient | undefined => {
+    if (!ledger && pcfg.address) ledger = new PatternLedgerClient({ network: cfg.network, rpcUrl: cfg.rpcUrl, address: pcfg.address, privateKey: cfg.relayerPrivateKey });
+    return ledger;
+  };
+  const patternChain = deps.patternChain ?? (pcfg.mode === "live" ? ledgerClient() : undefined);
+  const patternReader = deps.patternReader ?? ledgerClient();
+
+  // Quick Verdict (off-chain): Settle It quick + publish, Red Flag Court (+ pattern ledger), practice court.
   registerQuickRoutes(app, {
+    shadowLabel: SHADOW_LABEL,
+    pattern: {
+      cfg: pcfg,
+      limiter: new DailyCounter(pcfg.dailyCap, laDay), // 5 per user per LA day (ADR-021 item 4)
+      ...(patternChain ? { chain: patternChain } : {}),
+      ...(patternReader ? { reader: patternReader } : {}),
+    },
     cfg,
     clock,
     provider: deps.judgeProvider,

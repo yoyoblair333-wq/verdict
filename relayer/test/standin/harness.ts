@@ -89,7 +89,7 @@ export interface Harness {
 export async function harness(
   over: Partial<Config> = {},
   chain = new FakeChain(),
-  extra: { dir?: string; moderationProvider?: Deps["moderationProvider"]; credits?: Deps["credits"]; defaultCredits?: boolean; judgeProvider?: Deps["judgeProvider"]; practice?: Deps["practice"] } = {},
+  extra: { dir?: string; moderationProvider?: Deps["moderationProvider"]; credits?: Deps["credits"]; defaultCredits?: boolean; judgeProvider?: Deps["judgeProvider"]; practice?: Deps["practice"]; patternConfig?: Deps["patternConfig"]; patternChain?: Deps["patternChain"]; patternReader?: Deps["patternReader"] } = {},
 ): Promise<Harness> {
   const dir = extra.dir ?? mkdtempSync(path.join(tmpdir(), "verdict-test-"));
   const cfg = baseConfig(dir, over);
@@ -127,6 +127,10 @@ export async function harness(
     ...(extra.moderationProvider ? { moderationProvider: extra.moderationProvider } : {}),
     ...(extra.judgeProvider ? { judgeProvider: extra.judgeProvider } : {}),
     ...(extra.practice ? { practice: extra.practice } : {}),
+    // never read PATTERN_* from the developer's environment in tests
+    patternConfig: extra.patternConfig ?? { mode: "shadow", address: null, dailyCap: 5 },
+    ...(extra.patternChain ? { patternChain: extra.patternChain } : {}),
+    ...(extra.patternReader ? { patternReader: extra.patternReader } : {}),
   });
   const server = app.listen(0);
   await new Promise((r) => server.once("listening", r));

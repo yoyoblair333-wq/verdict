@@ -35,6 +35,36 @@ import { DailyCounter, laDay, utcDay } from "./lib/rateLimit.js";
 import { measure, redact, summary } from "./lib/redact.js";
 import { decideRuling, FLAG_CODES, isMoneyOffer, LEGIT_STANDING, RULING_COPY, runRedFlagPanel, STILL_TO_CHECK } from "./lib/redflag.js";
 import { validateVerdictPayload } from "./lib/verdict.js";
+import { patternLlmFrom, submitPattern, type PatternChainPort, type PatternConfig, type PatternOutcome } from "./lib/pattern.js";
+import type { Ruling } from "./lib/redflag.js";
+
+/** Reads the digest needs (PatternLedgerClient implements it). */
+export interface PatternReader {
+  topPatternsSince(since: string, n: number): Promise<unknown>;
+}
+
+/** Scam Pattern Ledger wiring (Design §2, ADR-020). SHADOW unless both gates say live. */
+export interface PatternWiring {
+  cfg: PatternConfig;
+  /** One shared counter per process: 5 per user per LA day. */
+  limiter: DailyCounter;
+  /** Live mode only. */
+  chain?: PatternChainPort;
+  /** Optional: the weekly digest reads the ledger (works in SHADOW too). */
+  reader?: PatternReader;
+}
+
+/** Ledger outcome -> HTTP status. Content problems are answers, never 500s. */
+export const PATTERN_HTTP: Readonly<Record<PatternOutcome["status"], number>> = {
+  skipped: 422,
+  rate_limited: 429,
+  summary_failed: 502,
+  rejected_locally: 422,
+  shadow: 202,
+  submitted: 202,
+  submit_failed: 502,
+};
+const PATTERN_RULINGS: readonly Ruling[] = ["SCAM", "SUS", "LOOKS LEGIT"];
 
 /** Red Flag Court input limit: 1,000 code points (ADR-014 item 9 amends
  * ADR-007 for Red Flag Court only). Counted after redaction, with each
@@ -148,6 +178,8 @@ export interface QuickCtx {
   }) => Promise<{ status: number; body: Record<string, unknown> }>;
   /** Starts Tier 1; onTier1Failed runs if that Tier 1 ends without a ruling (FINALIZED_ERROR, STALE, ...). */
   judgeOpened: (id: number, onTier1Failed?: () => void) => Promise<Record<string, unknown>>;
+  pattern?: PatternWiring;
+  shadowLabel: string;
 }
 
 const sha256 = (s: string) => createHash("sha256").update(s).digest("hex");
@@ -547,6 +579,81 @@ export function registerQuickRoutes(app: Express, ctx: QuickCtx): void {
         next_step: RULING_COPY[r.ruling].next,
         bench: votes.map((v, j) => ({ juror: JUROR_PERSONAS[j]![0], vote: v.label, line: v.reason })),
       }));
+    }),
+  );
+
+  // ------------------------------------------- Scam Pattern Ledger (opt-in)
+  // "Help warn others" after a SCAM or SUS ruling (default off). The browser
+  // re-sends its own redacted text; the relayer redacts it twice more and holds
+  // it only for this request (ADR-021 item 8). Only an abstract pattern record
+  // can reach the chain: never the message, the sender or the user.
+  app.post(
+    "/redflag/warn",
+    wrap(async (req, res) => {
+      const pw = ctx.pattern;
+      if (!pw) throw new HttpError(503, "the pattern ledger is not configured", { code: "pattern_unavailable" });
+      const body = (req.body ?? {}) as Record<string, unknown>;
+      if (body.optIn !== true) throw new HttpError(422, "optIn must be exactly true: warning others is opt-in", { code: "opt_in_required" });
+      if (typeof body.text !== "string" || body.text.trim() === "") throw new HttpError(400, "text must be the redacted message, as a non-empty string");
+      if (measure(redact(body.text).text) > RED_FLAG_MAX_CHARS) throw new HttpError(400, `text exceeds ${RED_FLAG_MAX_CHARS} characters`);
+      if (typeof body.ruling !== "string" || !PATTERN_RULINGS.includes(body.ruling as Ruling)) throw new HttpError(400, "ruling must be SCAM, SUS or LOOKS LEGIT");
+      if (!Array.isArray(body.flags) || !body.flags.every((f) => typeof f === "string") || body.flags.length > 32) throw new HttpError(400, "flags must be an array of flag codes");
+      const provider = needProvider();
+      const out = await submitPattern(
+        {
+          mode: pw.cfg.mode,
+          llm: patternLlmFrom(provider),
+          ...(pw.chain ? { chain: pw.chain } : {}),
+          limiter: pw.limiter,
+          userKey: accountKey(req),
+          clock,
+        },
+        { ruling: body.ruling as Ruling, flags: body.flags as string[], text: body.text },
+        true,
+      );
+      const status = PATTERN_HTTP[out.status];
+      switch (out.status) {
+        case "skipped":
+          res.status(status).json({ status: out.status, reason: out.reason, code: `pattern_${out.reason}` });
+          return;
+        case "rate_limited":
+          res.status(status).json({ status: out.status, code: "pattern_cap", error: `that's ${pw.cfg.dailyCap} warnings today; it reopens at midnight Pacific` });
+          return;
+        case "summary_failed":
+          res.status(status).json({ status: out.status, error: "we couldn't write a safe summary of this pattern; nothing was recorded" });
+          return;
+        case "rejected_locally":
+          res.status(status).json({ status: out.status, reason: out.reason, error: "the summary failed the privacy screen; nothing was recorded" });
+          return;
+        case "shadow":
+          res.status(status).json({ status: out.status, mode: "shadow", label: ctx.shadowLabel, would_submit: { category: out.request.category, flag_codes: out.request.flagCodes, summary: out.request.summary } });
+          return;
+        case "submitted":
+          res.status(status).json({ status: out.status, category: out.request.category, flag_codes: out.request.flagCodes, summary: out.request.summary, request_key: out.request.requestKey, tx: out.tx, note: "Thanks. The network checks the pattern before it's recorded." });
+          return;
+        case "submit_failed":
+          res.status(status).json({ status: out.status, error: "the pattern couldn't be sent to the network; nothing was recorded" });
+          return;
+      }
+    }),
+  );
+
+  // Weekly "Scams going around" digest, read from the ledger (Design §2 views).
+  app.get(
+    "/redflag/digest",
+    wrap(async (req, res) => {
+      const reader = ctx.pattern?.reader;
+      if (!reader) throw new HttpError(503, "the pattern ledger digest is not configured", { code: "pattern_unavailable" });
+      const days = Math.min(30, Math.max(1, Number(req.query.days ?? 7) || 7));
+      const n = Math.min(20, Math.max(1, Number(req.query.n ?? 10) || 10));
+      const since = new Date(clock().getTime() - days * 86400_000).toISOString().replace(/\.\d{3}Z$/, "Z");
+      let patterns: unknown;
+      try {
+        patterns = await reader.topPatternsSince(since, n);
+      } catch (e) {
+        throw new HttpError(502, `the pattern ledger could not be read: ${(e as Error).message}`);
+      }
+      res.json({ title: "Scams going around", since, days, mode: ctx.pattern!.cfg.mode, patterns: Array.isArray(patterns) ? patterns : [], proof_line: "Recorded on GenLayer" });
     }),
   );
 
