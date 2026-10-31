@@ -5,8 +5,15 @@ is generated from the recorded run instead of typed by hand.
         --deploy-tx 0x... --deploy-votes "agree 5" \
         --earlier docs/LIVE_EVIDENCE.earlier.md > docs/LIVE_EVIDENCE.md
 
---earlier: the previous page; it is appended under "Earlier deployment" with
-its headings demoted one level, so older evidence is kept, not replaced.
+--earlier: the previous page. Its "Current deployment" section becomes an
+"Earlier deployment" section (headings demoted one level) and any earlier
+deployment sections it already holds are kept as they are, so older evidence
+is kept, not replaced. A page in the first single-deployment format is still
+accepted.
+--earlier-run: where the previous page's raw run JSON now lives (its link to
+docs/live/studionet-run.json is rewritten to point there).
+--why: one paragraph on why this deployment exists.
+--owner / --relayer: get_config roles read from the deployed contract.
 """
 import argparse
 import json
@@ -25,7 +32,11 @@ def votes_text(final):
     return ", ".join(f"{k} {c[k]}" for k in ("agree", "disagree", "idle", "timeout") if c.get(k)) or "n/a"
 
 
-def render(run, deploy_tx, deploy_votes, revoke_reason):
+DEFAULT_WHY = ("This deployment exists because the contract changed after the independent audit: `judge` now requires the case "
+               "creator or the owner, and the legacy `open_case` path is owner-only. A contract change means a new address and a new pin.")
+
+
+def render(run, deploy_tx, deploy_votes, revoke_reason, why=DEFAULT_WHY, owner="", relayer=""):
     tx_by_hash = {t["hash"]: t for t in run["transactions"]}
     out = []
     w = out.append
@@ -33,13 +44,17 @@ def render(run, deploy_tx, deploy_votes, revoke_reason):
     w("Recorded by `relayer/src/tools/liveRun.ts`: the **real relayer in live mode** (HTTP routes, case packages, outbox, "
       "contract pin check, two-step finality, inbox, `confirm_verdict`) driving `genlayer-js` 1.1.8 against studionet. "
       "Rendered from [`docs/live/studionet-run.json`](live/studionet-run.json) by `scripts/live_evidence.py`.\n")
-    w("This deployment exists because the contract changed after the independent audit: `judge` now requires the case "
-      "creator or the owner, and the legacy `open_case` path is owner-only. A contract change means a new address and a new pin.\n")
+    w(why + "\n")
     w("| Item | Value |\n|---|---|")
     w("| Network / RPC | studionet, `https://studio.genlayer.com/api` |")
     w(f"| Contract address | `{run['contract']}` |")
     w(f"| Deploy tx | `{deploy_tx}`: FINALIZED, execution SUCCESS; validators {deploy_votes} |")
-    w(f"| Owner / relayer (throwaway) | `{run['relayer']}` (same key as the earlier deployment) |")
+    if owner or relayer:
+        same = owner.lower() == relayer.lower() == run["relayer"].lower()
+        w(f"| `get_config` roles | owner `{owner}`, relayer `{relayer}`" + (" (the throwaway deployer holds both roles: constructor `relayer` left empty)" if same else "") + " |")
+        w(f"| Relayer key used for the run (throwaway) | `{run['relayer']}` (same key as the earlier deployments) |")
+    else:
+        w(f"| Owner / relayer (throwaway) | `{run['relayer']}` (same key as the earlier deployment) |")
     w(f"| Code pin | `gen_getContractCode` → sha256 `{run['pin']['digest']}` = `EXPECTED_CONTRACT_CODE_DIGEST` (**{run['pin']['state']}**) |")
     w(f"| Run | {run['startedAt']} → {run['finishedAt']} ({run['elapsedSec']} s, {len(run['cases'])} cases, {len(run['transactions'])} transactions) |\n")
     w("### The three cases\n")
@@ -100,8 +115,52 @@ def render(run, deploy_tx, deploy_votes, revoke_reason):
     for t in errs:
         w(f"* **Execution result is separate from status.** `{t['fn']}` `{t['hash'][:12]}…` reached FINALIZED with execution {t['final']['execution']}" + (f" (`{revoke_reason}`)" if revoke_reason else "") + ": the revocation window closed once Tier 1 was confirmed final.")
     w(f"* **Receipts.** The inbox holds {len(run['inbox'])} hash-chained FINALIZED_SUCCESS receipts whose `packageDigest` equals the on-chain receipt number.")
-    w("* **Access (new in this deployment).** Every write came from the case creator (the relayer). A stranger's `judge` and a non-owner `open_case` are refused by the contract; that is covered by the direct-mode tests, not by this run.\n")
+    w("* **Access.** Every write came from the relayer, which here is also the owner and the case creator. A stranger's `judge`, a non-owner `open_case`, "
+      "and a relayer that is not the owner calling admin methods are refused by the contract; that is covered by the direct-mode tests, not by this run.\n")
     return "\n".join(out)
+
+
+def demote_current(old, address, run_file):
+    """Page in the multi-deployment format: its current section becomes an
+    earlier one; its existing earlier sections and their prose stay as they are."""
+    cur = re.search(r"^## Current deployment \((.*?)\)\n(.*?)(?=^## )", old, flags=re.M | re.S)
+    if not cur:
+        raise SystemExit("--earlier: no '## Current deployment' section")
+    tail = old[old.index("\n## Earlier deployment") + 1:] if "\n## Earlier deployment" in old else ""
+    addr = f", `{address}`" if address else ""
+    lines = [f"## Earlier deployment ({cur.group(1)}{addr})", "",
+             "Superseded by the current deployment above: `contracts/judge_router.py` has changed since (owner/relayer split, pinned SDK), "
+             "so this address no longer matches the source or the pinned digest."
+             + (f" Its run data is kept in [`docs/live/{run_file}`](live/{run_file})." if run_file else ""), ""]
+    body = cur.group(2)
+    if run_file:
+        body = body.replace("(live/studionet-run.json)", f"(live/{run_file})").replace("`docs/live/studionet-run.json`", f"`docs/live/{run_file}`")
+    # The first-format section's raw-data link pointed at the then-current run file.
+    tail = tail.replace("[docs/live/studionet-run.json](live/studionet-run.json)",
+                        "[docs/live/studionet-run-earlier-deployment.json](live/studionet-run-earlier-deployment.json)")
+    for line in body.rstrip().splitlines():
+        m = re.match(r"^(#{2,5}) (.*)$", line)
+        lines.append(("#" + m.group(1) + " " + m.group(2)) if m else line)
+    return "\n".join(lines) + "\n\n" + tail.rstrip() + "\n"
+
+
+def demote_first_format(old):
+    old = re.sub(r"^# Live evidence: studionet, (.*)$", r"## Earlier deployment (\1)", old, count=1, flags=re.M)
+    lines = []
+    first = True
+    for line in old.splitlines():
+        if line.startswith("## Earlier deployment") and first:
+            first = False
+            lines.append(line)
+            lines.append("")
+            lines.append("Superseded by the current deployment above: this contract still lets anyone call `judge` and lets anyone use `open_case`. "
+                         "Its run data is kept in [`docs/live/studionet-run-earlier-deployment.json`](live/studionet-run-earlier-deployment.json). "
+                         "Its old reproduce block (which could overwrite `.env.local`) is removed; use the one above.")
+            continue
+        m = re.match(r"^(#{2,5}) (.*)$", line)
+        lines.append(("#" + m.group(1) + " " + m.group(2)) if m else line)
+    text = "\n".join(lines)
+    return re.split(r"\n### Reproduce\n", text)[0].rstrip() + "\n"
 
 
 def main():
@@ -111,12 +170,17 @@ def main():
     ap.add_argument("--deploy-votes", required=True)
     ap.add_argument("--revoke-reason", default="")
     ap.add_argument("--earlier")
+    ap.add_argument("--earlier-run", default="")
+    ap.add_argument("--earlier-address", default="")
+    ap.add_argument("--why", default=DEFAULT_WHY)
+    ap.add_argument("--owner", default="")
+    ap.add_argument("--relayer", default="")
     a = ap.parse_args()
     run = json.load(open(a.run, encoding="utf-8"))
     page = [f"# Live evidence: studionet\n",
-            "Two deployments are recorded here. The **current** one carries the audited contract; the **earlier** one is kept for the record "
-            "(its address no longer matches the pinned digest).\n",
-            render(run, a.deploy_tx, a.deploy_votes, a.revoke_reason),
+            "Every studionet deployment is recorded here. The **current** one matches `contracts/judge_router.py` byte for byte (pin below); "
+            "the **earlier** ones are kept for the record and no longer match the source.\n",
+            render(run, a.deploy_tx, a.deploy_votes, a.revoke_reason, a.why, a.owner, a.relayer),
             "## Reproduce\n",
             "The key file is written only if it does not exist yet, so this block can never overwrite the throwaway key that owns a deployment.\n",
             "```bash",
@@ -130,23 +194,10 @@ def main():
             "```\n"]
     if a.earlier:
         old = open(a.earlier, encoding="utf-8").read()
-        old = re.sub(r"^# Live evidence: studionet, (.*)$", r"## Earlier deployment (\1)", old, count=1, flags=re.M)
-        lines = []
-        first = True
-        for line in old.splitlines():
-            if line.startswith("## Earlier deployment") and first:
-                first = False
-                lines.append(line)
-                lines.append("")
-                lines.append("Superseded by the current deployment above: this contract still lets anyone call `judge` and lets anyone use `open_case`. "
-                             "Its run data is kept in [`docs/live/studionet-run-earlier-deployment.json`](live/studionet-run-earlier-deployment.json). "
-                             "Its old reproduce block (which could overwrite `.env.local`) is removed; use the one above.")
-                continue
-            m = re.match(r"^(#{2,5}) (.*)$", line)
-            lines.append(("#" + m.group(1) + " " + m.group(2)) if m else line)
-        text = "\n".join(lines)
-        text = re.split(r"\n### Reproduce\n", text)[0].rstrip() + "\n"
-        page.append(text)
+        if re.search(r"^## Current deployment ", old, flags=re.M):
+            page.append(demote_current(old, a.earlier_address, a.earlier_run))
+        else:
+            page.append(demote_first_format(old))
     print("\n".join(page))
 
 

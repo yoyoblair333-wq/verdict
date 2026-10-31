@@ -149,8 +149,8 @@ async function main() {
       creator: `0x${"1".repeat(40)}${IMG}`, ...extra,
     });
     const stub = {
-      snapshotAt: "2026-10-31T19:00:00Z", contract: "0x7DBc10d8922A5Ba498007D212F2088872F2aCe06",
-      pin: { state: "match", digest: "3ef39cc8a02f7c2bdbf3f3b7d19340622439a381192ced7cbcd799232139ea25" },
+      snapshotAt: "2026-10-31T19:00:00Z", contract: "0x3f867934247d88Aa3134d897a9246cfB1324B1Fa",
+      pin: { state: "match", digest: "7c18143cf8f5224d6f8cdccebcdcc70b3b584f0b9247bf55c8439d2fac10ca1b" },
       config: { owner: IMG, paused: false, next_id: 4, tier_jurors: { 1: 5, 2: 7, 3: 9 } },
       cases: [
         base(901, {
