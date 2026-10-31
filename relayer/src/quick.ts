@@ -57,6 +57,11 @@ export const PUBLISH_NOTICE =
   "and the network's ruling replaces this preview. It can't be erased. 18+ only.";
 /** Free publishes per user per Los Angeles day (VERDICT pays the fee). */
 export const PUBLISH_DAILY_CAP_DEFAULT = 3;
+/** A publish request that the other side hasn't agreed to lapses after 72 hours (ADR-021 item 6). */
+export const PUBLISH_REQUEST_TTL_MS = 72 * 3600 * 1000;
+export const PUBLISH_REQUEST_EXPIRED = "The other side didn't agree to go public.";
+/** A preview's share control: previews are shared only privately, with the two sides (ADR-021 item 7). */
+export const PREVIEW_SHARE = "Publish to share";
 export const PUBLISH_FIRST = "Publish first: a Quick Verdict is a private preview and can't be appealed until the network has ruled on it.";
 
 export const QUICK_FOOTER = "Five AI juror personas · Quick Verdict · Not network-checked";
@@ -106,6 +111,10 @@ interface QuickCase {
   publishConsent: boolean[];
   /** Side that last tapped Publish while waiting for the other side's consent; null if none. */
   publishRequestedBy?: number | null;
+  /** When that request was made; it lapses after PUBLISH_REQUEST_TTL_MS (ADR-021 item 6). */
+  publishRequestedAt?: string | null;
+  /** Set when a request lapsed; shown to the requester once, then cleared. */
+  publishRequestExpiredFor?: number | null;
   hidden: boolean;
   /** On-chain case id once published; null while it is still a private preview. */
   caseId: number | null;
@@ -137,7 +146,8 @@ export interface QuickCtx {
     sideTokenHashes: string[];
     preview: { quickId: string; winnerIndex: number };
   }) => Promise<{ status: number; body: Record<string, unknown> }>;
-  judgeOpened: (id: number) => Promise<Record<string, unknown>>;
+  /** Starts Tier 1; onTier1Failed runs if that Tier 1 ends without a ruling (FINALIZED_ERROR, STALE, ...). */
+  judgeOpened: (id: number, onTier1Failed?: () => void) => Promise<Record<string, unknown>>;
 }
 
 const sha256 = (s: string) => createHash("sha256").update(s).digest("hex");
@@ -199,6 +209,29 @@ export function registerQuickRoutes(app: Express, ctx: QuickCtx): void {
 
   const awaiting = (q: QuickCase) => q.publishConsent.flatMap((c, i) => (c ? [] : [i]));
 
+  /** Lapse a publish request the other side never agreed to (72 h). Returns true if it just lapsed. */
+  function lapse(q: QuickCase): boolean {
+    if (q.publishRequestedBy === null || q.publishRequestedBy === undefined || !q.publishRequestedAt) return false;
+    if (q.publishConsent.every(Boolean)) return false;
+    if (clock().getTime() - Date.parse(q.publishRequestedAt) < PUBLISH_REQUEST_TTL_MS) return false;
+    q.publishRequestExpiredFor = q.publishRequestedBy;
+    q.publishRequestedBy = null;
+    q.publishRequestedAt = null;
+    save(q);
+    return true;
+  }
+
+  function publishStatus(q: QuickCase, side: number): Record<string, unknown> {
+    lapse(q);
+    if (q.caseId !== null) return { status: "published", case_id: q.caseId, appeal_path: `/cases/${q.caseId}/appeal` };
+    const left = awaiting(q);
+    if (q.publishRequestExpiredFor === side) return { status: "expired", awaiting_sides: left, message: PUBLISH_REQUEST_EXPIRED };
+    if (q.publishRequestedBy !== null && q.publishRequestedBy !== undefined) {
+      return { status: left.length ? "waiting" : "ready", requested_by: q.publishRequestedBy, awaiting_sides: left, request_expires_at: new Date(Date.parse(q.publishRequestedAt!) + PUBLISH_REQUEST_TTL_MS).toISOString() };
+    }
+    return { status: left.length ? "private" : "ready", awaiting_sides: left };
+  }
+
   // ------------------------------------------------ Settle It Quick Verdict
   app.post(
     "/quick",
@@ -247,6 +280,7 @@ export function registerQuickRoutes(app: Express, ctx: QuickCtx): void {
         consentNotice: [QUICK_NOTICE_VERSION, QUICK_NOTICE_VERSION],
         publishConsent: [false, false],
         publishRequestedBy: null,
+        publishRequestedAt: null,
         hidden: false,
         caseId: null,
       };
@@ -264,6 +298,7 @@ export function registerQuickRoutes(app: Express, ctx: QuickCtx): void {
           footer: QUICK_FOOTER,
           appealable: false,
           appeal: PUBLISH_FIRST,
+          share: PREVIEW_SHARE,
           publish: {
             who: "Either side. Both sides must first accept the publish notice; until then Publish waits.",
             consent_path: `/quick/${q.id}/consent`,
@@ -279,12 +314,44 @@ export function registerQuickRoutes(app: Express, ctx: QuickCtx): void {
     }),
   );
 
+  // The preview's private link: its two sides only (ADR-021 item 7, V-PUB-01).
+  // Without a valid side token it does not exist (404). Once published, the
+  // preview is no longer shown as the result (V-PUB-08): it points at the case.
+  app.get(
+    "/quick/:id",
+    wrap(async (req, res) => {
+      const q = typeof req.params.id === "string" ? cases.get(req.params.id) : undefined;
+      const side = q ? ctx.sideForToken(q.sideTokenHashes, req.header("x-side-token") ?? undefined) : -1;
+      if (!q || side < 0) throw new HttpError(404, "quick verdict not found");
+      res.setHeader("cache-control", "private, no-store");
+      if (q.caseId !== null) {
+        send(res, 200, quickFrame({ quick_id: q.id, side, published: true, case_id: q.caseId, verdict: null, note: "This case was published. The network's ruling is the result: see the on-chain case." }));
+        return;
+      }
+      send(res, 200, quickFrame({
+        quick_id: q.id, side, published: false, visibility: "private to the two sides", hidden: q.hidden, expires_at: q.expiresAt,
+        verdict: q.verdict, footer: QUICK_FOOTER, share: PREVIEW_SHARE, appealable: false, appeal: PUBLISH_FIRST,
+        publish: publishStatus(q, side),
+      }));
+    }),
+  );
+
+  // Publish state for one side: private / waiting / ready / expired / published.
+  app.get(
+    "/quick/:id/publish",
+    wrap(async (req, res) => {
+      const { q, side } = quickSide(req);
+      res.json(publishStatus(q, side));
+    }),
+  );
+
   // Either side accepts the publish notice (Design §1). Nothing is published yet.
   app.post(
     "/quick/:id/consent",
     wrap(async (req, res) => {
       const { q, side } = quickSide(req);
       notPublished(q);
+      lapse(q);
       requirePublishConsent((req.body ?? {}) as Record<string, unknown>);
       q.publishConsent[side] = true;
       save(q);
@@ -304,7 +371,10 @@ export function registerQuickRoutes(app: Express, ctx: QuickCtx): void {
       const { q, side } = quickSide(req);
       if (q.caseId !== null) throw new HttpError(409, "already submitted to the network; consent can no longer be withdrawn", { code: "already_published", case_id: q.caseId });
       q.publishConsent[side] = false;
-      if (q.publishRequestedBy === side) q.publishRequestedBy = null;
+      if (q.publishRequestedBy === side) {
+        q.publishRequestedBy = null; // the requester cancels its own request
+        q.publishRequestedAt = null;
+      }
       save(q);
       res.json({ consented: false, side, awaiting_sides: awaiting(q), status: "private", note: "Your consent is withdrawn. Nothing was published." });
     }),
@@ -321,13 +391,23 @@ export function registerQuickRoutes(app: Express, ctx: QuickCtx): void {
         throw new HttpError(409, "a side consented on a notice that did not disclose publication", { code: "notice_not_disclosing" });
       }
       const body = (req.body ?? {}) as Record<string, unknown>;
+      if (lapse(q) || q.publishRequestExpiredFor === side) {
+        // The other side never agreed within 72 h: tell the requester, once, and start over.
+        q.publishRequestExpiredFor = null;
+        q.publishConsent[side] = false;
+        save(q);
+        throw new HttpError(409, PUBLISH_REQUEST_EXPIRED, { code: "publish_request_expired", status: "expired" });
+      }
       if (body.disclosure !== undefined || !q.publishConsent[side]) {
         requirePublishConsent(body); // the publishing side accepts the publish notice now
         q.publishConsent[side] = true;
       }
       const other = 1 - side;
       if (!q.publishConsent[other]) {
-        q.publishRequestedBy = side;
+        if (q.publishRequestedBy !== side) {
+          q.publishRequestedBy = side;
+          q.publishRequestedAt = clock().toISOString(); // the 72 h clock starts at the first tap
+        }
         save(q);
         // Publish waits: it does not go ahead without the other side.
         throw new HttpError(409, "waiting for the other side to accept the publish notice; nothing was published", {
@@ -356,15 +436,17 @@ export function registerQuickRoutes(app: Express, ctx: QuickCtx): void {
         throw e;
       }
       if (opened.status !== 201) {
-        if (opened.status >= 400) publishCap.refund(acct);
+        publishCap.refund(acct); // nothing was published (refused, or a SHADOW test run)
         res.status(opened.status).json({ ...opened.body, from_quick_verdict: q.id, published: false, price_cents: 0 });
         return;
       }
       const id = opened.body.id as number;
       q.caseId = id;
       q.publishRequestedBy = null;
+      q.publishRequestedAt = null;
       save(q);
-      const judged = await ctx.judgeOpened(id);
+      // No ruling (FINALIZED_ERROR, STALE, ...) restores the allowance: a technical refund (V-PUB-06).
+      const judged = await ctx.judgeOpened(id, () => publishCap.refund(acct));
       res.status(202).json({
         ...opened.body, published: true, tier: 1, appeals_used: 0, appeals_left: cfg.maxAppealsPerCase,
         next_appeal: { tier: 2, jurors: 7, free_or_cents: cfg.appealPriceCents.tier2 }, judge: judged,

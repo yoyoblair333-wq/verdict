@@ -274,14 +274,18 @@ def _parse_review(raw, candidate_ids: list) -> dict:
         raw = json.loads(s[start:end + 1])
     if not isinstance(raw, dict):
         raise ValueError("not an object")
-    if set(raw.keys()) != {"contains_identifying_data", "is_coherent_scam_pattern", "decision", "same_as"}:
-        raise ValueError("unexpected keys")
+    # Like judge_router._parse_juror_output: required fields are strictly
+    # typed, extra keys (e.g. a model's "reason") are ignored. Observed live on
+    # studionet: an exact-key-set check failed every real model reply.
+    for k in ("contains_identifying_data", "is_coherent_scam_pattern", "decision"):
+        if k not in raw:
+            raise ValueError(f"missing {k}")
     pii = raw["contains_identifying_data"]
     coherent = raw["is_coherent_scam_pattern"]
     if not isinstance(pii, bool) or not isinstance(coherent, bool):
         raise ValueError("booleans required")
     decision = raw["decision"]
-    same_as = raw["same_as"]
+    same_as = raw.get("same_as")
     if decision == "new":
         if same_as is not None and same_as != 0:
             raise ValueError("same_as must be null for a new pattern")

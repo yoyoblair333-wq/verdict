@@ -83,7 +83,7 @@ export interface Harness {
   clock: { now: Date };
   close(): void;
   post(p: string, body: unknown, headers?: Record<string, string>): Promise<{ status: number; json: Record<string, any> }>;
-  get(p: string): Promise<{ status: number; json: Record<string, any> }>;
+  get(p: string, headers?: Record<string, string>): Promise<{ status: number; json: Record<string, any> }>;
 }
 
 export async function harness(
@@ -143,7 +143,7 @@ export async function harness(
     app, base, chain, cfg, dir, twitchCalls, webhooks, credits, outbox, inbox, clock,
     close: () => void server.close(),
     post: (p, body, headers) => call("POST", p, body, headers),
-    get: (p) => call("GET", p),
+    get: (p, headers) => call("GET", p, undefined, headers),
   };
 }
 

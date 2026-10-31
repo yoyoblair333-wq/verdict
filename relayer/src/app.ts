@@ -33,10 +33,16 @@ import {
   type Surface,
 } from "./lib/package.js";
 import { Pipeline, PipelineError, type ReconcileEntry } from "./lib/pipeline.js";
-import { DailyCounter } from "./lib/rateLimit.js";
+import { DailyCounter, laDay } from "./lib/rateLimit.js";
 import { validateCaseVerdict } from "./lib/verdict.js";
 import { deliverWebhook, validateCallbackUrl, type WebhookEvent } from "./lib/webhook.js";
 import type { TwitchPrediction, TwitchPredictions } from "./twitch/predictions.js";
+
+/** User-facing label on every SHADOW (dry-run) result (ADR-021 item 5; SPEC §6.6 v1.3). */
+export const SHADOW_LABEL = "Test run · Not public yet";
+/** Approved card line (ADR-019 item 8 as widened by ADR-021 item 1): any on-chain
+ * card whose verdict reached FINALIZED_SUCCESS; never a Quick Verdict or practice card. */
+export const FINALIZED_LINE = "Checked by GenLayer · Finalized";
 
 export const CONSENT_NOTICE =
   "Your take will be published on a public blockchain and cannot be erased. You can withdraw before the verdict is final " +
@@ -179,7 +185,9 @@ export function buildApp(deps: Deps): VerdictApp {
   const keyCases = new DailyCounter(cfg.perKeyDailyCap);
   const ipActions = new DailyCounter(cfg.perIpDailyCap * 4);
   const keyActions = new DailyCounter(cfg.perKeyDailyActionCap);
-  const freeAppeals = new DailyCounter(cfg.freeAppealsPerDay === 0 ? -1 : cfg.freeAppealsPerDay);
+  // The daily free appeal covers Tier 2 OR Tier 3 and resets at 00:00 Los Angeles,
+  // like every consumer allowance (ADR-021 items 3 and 4).
+  const freeAppeals = new DailyCounter(cfg.freeAppealsPerDay === 0 ? -1 : cfg.freeAppealsPerDay, laDay);
   const credits = deps.credits ?? new FileCredits(cfg.creditsPath);
 
   const tasks = new Set<Promise<unknown>>();
@@ -342,14 +350,15 @@ export function buildApp(deps: Deps): VerdictApp {
       published_from_quick: m.preview.quickId,
       preview_winner_index: m.preview.winnerIndex,
       overruled_preview: overruled,
-      ...(overruled ? { overruled_line: "The network overruled the preview." } : {}),
-      footer: "Checked by GenLayer · Finalized",
+      // The line is about Tier 1 only; later tiers say UPHELD / OVERTURNED (V-PUB-09).
+      ...(overruled && r.tier === 1 ? { overruled_line: "The network overruled the preview." } : {}),
     };
   }
 
   function card(r: Receipt) {
     return {
       ...publishedFields(r, meta.get(r.caseId)),
+      ...(r.finality === "FINALIZED_SUCCESS" && r.verdict ? { footer: FINALIZED_LINE } : {}),
       receipt_number: r.packageDigest,
       case_id: r.caseId,
       tier: r.tier,
@@ -485,6 +494,7 @@ export function buildApp(deps: Deps): VerdictApp {
         status: 202,
         body: {
           mode: "shadow",
+          label: SHADOW_LABEL,
           request_key: o.requestKey,
           package_digest: v.digest,
           provenance,
@@ -554,7 +564,7 @@ export function buildApp(deps: Deps): VerdictApp {
 
   // ------------------------------------------------------------- judge flow
 
-  async function startJudge(id: number, m: CaseMeta): Promise<{ hash: string; accepted: Classification; done: Promise<void> } | { shadow: Record<string, unknown> }> {
+  async function startJudge(id: number, m: CaseMeta, onTier1Failed?: () => void): Promise<{ hash: string; accepted: Classification; done: Promise<void> } | { shadow: Record<string, unknown> }> {
     if (m.revoked) throw new HttpError(409, "case revoked", { finality: "REVOKED" });
     const current = await chain.getCase(id);
     if (!digestEquals(current.package_digest, m.packageDigest)) throw new HttpError(409, "receipt number mismatch between relayer and chain");
@@ -566,13 +576,14 @@ export function buildApp(deps: Deps): VerdictApp {
     const intent: OpIntent = { opKey: `${m.requestKey}:judge`, kind: "judge", requestKey: m.requestKey, packageDigest: m.packageDigest, caseId: id, fn: "judge", args: [id, m.packageDigest] };
     if (!live) {
       pipeline.shadow(intent);
-      return { shadow: { mode: "shadow", would_submit: { function: "judge", args: intent.args } } };
+      return { shadow: { mode: "shadow", label: SHADOW_LABEL, would_submit: { function: "judge", args: intent.args } } };
     }
     if (m.twitch) {
       const tw = m.twitch;
       await twitchCall(`lock case ${id}`, () => twitch.lock(tw.id), m);
     }
     const onFailure = async (why: string) => {
+      onTier1Failed?.(); // e.g. restore a publish allowance: no ruling was delivered
       await cancelTwitch(m, "judging failed");
       notify(id, "case.failed", { stage: "judge", error: why });
     };
@@ -762,12 +773,12 @@ export function buildApp(deps: Deps): VerdictApp {
       };
       if (!live) {
         pipeline.shadow(intent);
-        res.status(202).json({ mode: "shadow", would_submit: { function: "appeal", args: intent.args }, would_charge: { free_or_cents: price } });
+        res.status(202).json({ mode: "shadow", label: SHADOW_LABEL, would_submit: { function: "appeal", args: intent.args }, would_charge: { free_or_cents: price } });
         return;
       }
       // Payment, after every check above.
       let paidWith: "free" | "credit";
-      if (freeAppeals.take(payer) >= 0) paidWith = "free";
+      if (freeAppeals.take(payer, clock()) >= 0) paidWith = "free";
       else if (credits.spend(payer, price)) paidWith = "credit";
       else throw new HttpError(402, `today's free appeal is used; this appeal needs ${price} cents of prepaid credit`);
       const refund = () => {
@@ -825,7 +836,7 @@ export function buildApp(deps: Deps): VerdictApp {
       const intent: OpIntent = { opKey: `${m.requestKey}:revoke`, kind: "revoke", requestKey: m.requestKey, packageDigest: m.packageDigest, caseId: id, fn: "revoke", args: [id, m.packageDigest, side] };
       if (!live) {
         pipeline.shadow(intent);
-        res.status(202).json({ mode: "shadow", would_submit: { function: "revoke", args: intent.args } });
+        res.status(202).json({ mode: "shadow", label: SHADOW_LABEL, would_submit: { function: "revoke", args: intent.args } });
         return;
       }
       // Suppress cards / Twitch at once, even for verdicts still in flight.
@@ -991,8 +1002,8 @@ export function buildApp(deps: Deps): VerdictApp {
     requireDisclosure,
     sideForToken,
     openCase: (o) => openCase(o),
-    judgeOpened: async (id) => {
-      const r = await startJudge(id, meta.get(id)!);
+    judgeOpened: async (id, onTier1Failed) => {
+      const r = await startJudge(id, meta.get(id)!, onTier1Failed);
       if ("shadow" in r) return r.shadow;
       return { tx: r.hash, finality: r.accepted.finality, final: false, verdict_final: false };
     },

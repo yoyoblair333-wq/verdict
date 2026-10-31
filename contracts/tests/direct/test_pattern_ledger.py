@@ -128,6 +128,16 @@ class TestAccept:
         direct_vm.mock_llm(PROMPT_RE, "```json\n" + review() + "\n``` ")
         assert ledger.submit_pattern(["urgency"], "delivery", PARCEL, RK1)["outcome"] == "new"
 
+    @pytest.mark.parametrize("reply", [
+        # Shapes real models return (live studionet run): extra keys, same_as omitted.
+        '{"contains_identifying_data": false, "is_coherent_scam_pattern": true, "decision": "new", "same_as": null, "reason": "generic parcel fee lure"}',
+        '{"contains_identifying_data": false, "is_coherent_scam_pattern": true, "decision": "new"}',
+    ])
+    def test_tolerated_real_model_shapes(self, direct_vm, ledger, reply):
+        direct_vm.mock_llm(PROMPT_RE, reply)
+        assert ledger.submit_pattern(["urgency"], "delivery", PARCEL, RK1)["outcome"] == "new"
+        assert direct_vm.run_validator() is True
+
     def test_new_with_zero_same_as_accepted(self, direct_vm, ledger):
         direct_vm.mock_llm(PROMPT_RE, review(same_as=0))
         assert ledger.submit_pattern(["urgency"], "delivery", PARCEL, RK1)["pattern_id"] == 1
@@ -358,7 +368,9 @@ class TestMalformed:
         '{"contains_identifying_data": "false", "is_coherent_scam_pattern": true, "decision": "new", "same_as": null}',
         '{"contains_identifying_data": false, "is_coherent_scam_pattern": 1, "decision": "new", "same_as": null}',
         '{"contains_identifying_data": false, "is_coherent_scam_pattern": true, "decision": "add", "same_as": null}',
-        '{"contains_identifying_data": false, "is_coherent_scam_pattern": true, "decision": "new", "same_as": null, "note": "x"}',
+        '{"is_coherent_scam_pattern": true, "decision": "new", "same_as": null}',
+        '{"contains_identifying_data": false, "is_coherent_scam_pattern": true, "same_as": null}',
+        '{"contains_identifying_data": false, "is_coherent_scam_pattern": true, "decision": "same"}',
         '{"contains_identifying_data": false, "is_coherent_scam_pattern": true, "decision": "new", "same_as": 3}',
         '{"contains_identifying_data": false, "is_coherent_scam_pattern": true, "decision": "same", "same_as": true}',
         '[true, true]',
