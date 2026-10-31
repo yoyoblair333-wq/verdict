@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://verdict.invalid/schemas/case-package.v1.json",
+  "title": "VERDICT case package v1",
+  "description": "Everything a JudgeRouter case is opened from. Canonicalised (sorted keys, UTF-8, no insignificant whitespace, integers only: an RFC 8785 subset) and hashed with SHA-256; that hex digest is the case's receipt number (packageDigest). EVERYTHING IN THIS OBJECT IS PUBLISHED ON-CHAIN, permanently. Key sets are closed (additionalProperties: false) so no IP, token, API key or email can ride along. Mirrored by contracts/judge_router.py `_verify_package` and relayer/src/lib/package.ts `verifyPackage`.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "requestKey", "identity", "rubric", "surface", "entries", "moderation", "disclosure", "destination", "lifetime"],
+  "properties": {
+    "schema": { "const": "verdict.case-package.v1" },
+    "requestKey": {
+      "description": "Idempotency key. Sent on-chain as the client_ref; the contract returns the existing case for a resubmit with the same digest and reverts for a different one.",
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{16,64}$"
+    },
+    "identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["clientRef", "caseId", "tier", "attempt"],
+      "properties": {
+        "clientRef": { "type": "string", "pattern": "^[A-Za-z0-9_-]{16,64}$", "description": "Must equal requestKey (checked in code)." },
+        "caseId": { "type": "null", "description": "Always null: the on-chain id does not exist until open_case_package runs." },
+        "tier": { "const": 1 },
+        "attempt": { "type": "integer", "minimum": 1, "maximum": 100, "description": "Bumped only when an operator deliberately files a NEW requestKey for the same dispute. Retries reuse the outbox bytes unchanged." }
+      }
+    },
+    "rubric": { "type": "string", "minLength": 1, "maxLength": 200, "description": "Preset key (whos_right, better_roast, pettiest_text, better_comeback) or custom text." },
+    "surface": { "enum": ["settle", "live", "api"] },
+    "entries": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 10,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["index", "text", "sha256", "provenance"],
+        "properties": {
+          "index": { "type": "integer", "minimum": 0, "maximum": 9 },
+          "text": { "type": "string", "minLength": 1, "maxLength": 280, "description": "Already sanitised: NFKC, zero-width/bidi and control characters removed, trimmed. sanitise(text) must equal text." },
+          "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$", "description": "sha256(UTF-8 bytes of text), lowercase hex." },
+          "provenance": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["entrySource", "assurance"],
+            "properties": {
+              "entrySource": { "enum": ["participant_submitted", "host_submitted", "api_client_submitted"], "description": "Fixed by surface: settle -> participant_submitted, live -> host_submitted, api -> api_client_submitted." },
+              "assurance": { "enum": ["self_asserted", "verified_participant"], "description": "verified_participant only when a side-token holder submitted this entry (participant_submitted only). It is the relayer's claim; the chain cannot check it." }
+            }
+          }
+        }
+      }
+    },
+    "moderation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["result", "policyVersion"],
+      "properties": {
+        "result": { "const": "pass" },
+        "policyVersion": { "type": "string", "minLength": 1, "maxLength": 64 }
+      }
+    },
+    "disclosure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["consent", "adultConfirmed", "noticeVersion"],
+      "properties": {
+        "consent": { "const": true, "description": "Exactly boolean true: the submitter agreed that entries become public, permanent on-chain data that cannot be erased." },
+        "adultConfirmed": { "const": true, "description": "Exactly boolean true: 18+ confirmed." },
+        "noticeVersion": { "type": "string", "minLength": 1, "maxLength": 64 }
+      }
+    },
+    "destination": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["network", "contractAddress", "contractCodeDigest"],
+      "properties": {
+        "network": { "enum": ["localnet", "studionet", "testnetAsimov", "testnetBradbury"] },
+        "contractAddress": { "type": "string", "pattern": "^0x[0-9a-fA-F]{40}$", "description": "The contract checks this equals its own address (no cross-deployment replay)." },
+        "contractCodeDigest": { "type": "string", "pattern": "^[0-9a-f]{64}$", "description": "sha256 of the contract source the relayer pinned. Recorded; the contract cannot check its own code." }
+      }
+    },
+    "lifetime": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["submissionDeadline", "appealWindowExpiry"],
+      "properties": {
+        "submissionDeadline": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$", "description": "open_case_package reverts (expired) after this tx time." },
+        "appealWindowExpiry": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$", "description": "No judge/appeal after this; a still-pending case can then be expired to stale. Must be after submissionDeadline and at most 30 days later." }
+      }
+    }
+  }
+}

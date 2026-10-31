@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://verdict.invalid/schemas/verdict-receipt.v1.json",
+  "title": "VERDICT verdict receipt v1 (inbox record)",
+  "description": "One line of the relayer inbox (relayer/data/inbox.jsonl): an outcome imported from the chain. Records are hash-chained: prevHash is the previous record's recordHash (64 zeros for the first), recordHash = sha256(canonical(record without recordHash)). Only `finality: FINALIZED_SUCCESS` records with a verdict may drive a card or a Twitch resolution; REVOKED and STALE records carry no verdict.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "seq", "prevHash", "recordHash", "caseId", "requestKey", "packageDigest", "op", "txHash", "finality", "caseStatus", "tier", "verdict", "provenance", "provenanceLabel", "destination", "observedAt"],
+  "properties": {
+    "schema": { "const": "verdict.verdict-receipt.v1" },
+    "seq": { "type": "integer", "minimum": 1 },
+    "prevHash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "recordHash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "caseId": { "type": "integer", "minimum": 1 },
+    "requestKey": { "type": "string", "pattern": "^[A-Za-z0-9_-]{16,64}$" },
+    "packageDigest": { "type": "string", "pattern": "^[0-9a-f]{64}$", "description": "Receipt number. Must equal the case's on-chain package_digest; the relayer refuses to import a record where they differ." },
+    "op": { "enum": ["judge", "appeal", "revoke", "expire"] },
+    "txHash": { "type": ["string", "null"], "pattern": "^0x[0-9a-fA-F]+$" },
+    "finality": { "enum": ["FINALIZED_SUCCESS", "REVOKED", "STALE"] },
+    "caseStatus": { "enum": ["judged", "appealed", "final", "revoked", "stale"] },
+    "tier": { "enum": [1, 2, 3] },
+    "verdict": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["winnerIndex", "scores", "jurorVotes", "split", "reason", "jurors"],
+          "properties": {
+            "winnerIndex": { "type": "integer", "minimum": 0, "maximum": 9 },
+            "scores": { "type": "array", "minItems": 2, "maxItems": 10, "items": { "type": "integer", "minimum": 0, "maximum": 100 } },
+            "jurorVotes": { "type": "array", "items": { "type": "integer", "minimum": 0, "maximum": 9 } },
+            "split": { "type": "string", "pattern": "^\\d+(-\\d+)+$" },
+            "reason": { "type": "string", "maxLength": 120 },
+            "jurors": { "enum": [5, 7, 9] }
+          }
+        }
+      ]
+    },
+    "provenance": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["entrySource", "assurance"],
+        "properties": {
+          "entrySource": { "enum": ["participant_submitted", "host_submitted", "api_client_submitted"] },
+          "assurance": { "enum": ["self_asserted", "verified_participant"] }
+        }
+      }
+    },
+    "provenanceLabel": { "type": "string", "minLength": 1, "description": "Human label the card must show, e.g. 'Takes relayed by the host. Not verified.' Never implies more than the recorded assurance." },
+    "destination": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["network", "contractAddress"],
+      "properties": {
+        "network": { "enum": ["localnet", "studionet", "testnetAsimov", "testnetBradbury"] },
+        "contractAddress": { "type": "string", "pattern": "^0x[0-9a-fA-F]{40}$" }
+      }
+    },
+    "observedAt": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{3})?Z$" }
+  }
+}

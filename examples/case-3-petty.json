@@ -1,0 +1,39 @@
+{
+  "title": "Pettiest text (API)",
+  "rubric": "pettiest_text",
+  "entries": [
+    "k.",
+    "Noted. I'll remember this at your birthday."
+  ],
+  "surface": "api",
+  "studio": {
+    "open_case": {
+      "rubric": "pettiest_text",
+      "entries": [
+        "k.",
+        "Noted. I'll remember this at your birthday."
+      ],
+      "surface": "api",
+      "client_ref": "demo-case-3"
+    },
+    "then": [
+      "judge(case_id, \"\")",
+      "get_verdict(case_id)",
+      "appeal(case_id, \"\", 1)",
+      "appeal(case_id, \"\", 2)  # optional: Supreme Court",
+      "finalize(case_id, \"\")  # only if you stop before tier 3"
+    ]
+  },
+  "relayer": {
+    "rubric": "pettiest_text",
+    "entries": [
+      "k.",
+      "Noted. I'll remember this at your birthday."
+    ],
+    "surface": "api",
+    "disclosure": {
+      "consent": true,
+      "adult_confirmed": true
+    }
+  }
+}

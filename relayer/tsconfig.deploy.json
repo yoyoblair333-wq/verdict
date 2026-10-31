@@ -1,0 +1,29 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "..",
+    "outDir": "dist-deploy",
+    "sourceMap": false,
+    "baseUrl": ".",
+    "typeRoots": [
+      "./node_modules/@types"
+    ],
+    "types": [
+      "node"
+    ],
+    "paths": {
+      "genlayer-js": [
+        "./node_modules/genlayer-js/dist/index.d.ts"
+      ],
+      "genlayer-js/chains": [
+        "./node_modules/genlayer-js/dist/chains/index.d.ts"
+      ],
+      "genlayer-js/types": [
+        "./node_modules/genlayer-js/dist/types/index.d.ts"
+      ]
+    }
+  },
+  "include": [
+    "../deploy/deploy.ts"
+  ]
+}

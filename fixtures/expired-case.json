@@ -1,0 +1,129 @@
+{
+  "description": "Lifetime enforcement. (1) A package past its submissionDeadline is rejected at open (code expired) by both runtimes. (2) A case opened in time but not judged before appealWindowExpiry cannot be judged (contract revert 'case expired', relayer 409 before gas) and expire() turns it stale.",
+  "now": "2026-10-31T12:00:00Z",
+  "contractAddress": "0x00000000000000000000000000000000000000aa",
+  "contractCodeDigest": "c0dec0dec0dec0dec0dec0dec0dec0dec0dec0dec0dec0dec0dec0dec0dec0de",
+  "cases": [
+    {
+      "name": "submission deadline passed",
+      "package": {
+        "schema": "verdict.case-package.v1",
+        "requestKey": "fixture-expired-0001",
+        "identity": {
+          "clientRef": "fixture-expired-0001",
+          "caseId": null,
+          "tier": 1,
+          "attempt": 1
+        },
+        "rubric": "whos_right",
+        "surface": "settle",
+        "entries": [
+          {
+            "index": 0,
+            "text": "Pineapple belongs on pizza: sweet + salty is a classic pairing.",
+            "sha256": "415cefe3c864412f5d031b298de39cc4363257bf015a15be00332269e1c59434",
+            "provenance": {
+              "entrySource": "participant_submitted",
+              "assurance": "verified_participant"
+            }
+          },
+          {
+            "index": 1,
+            "text": "Pineapple on pizza is a crime against Naples — ask any nonna. ¡No!",
+            "sha256": "52245f86b1700a683b3a785c7f765fc89895f4d76802fa0c549044dce810cc78",
+            "provenance": {
+              "entrySource": "participant_submitted",
+              "assurance": "self_asserted"
+            }
+          }
+        ],
+        "moderation": {
+          "result": "pass",
+          "policyVersion": "verdict-local-2026-10-31"
+        },
+        "disclosure": {
+          "consent": true,
+          "adultConfirmed": true,
+          "noticeVersion": "public-onchain-v1"
+        },
+        "destination": {
+          "network": "studionet",
+          "contractAddress": "0x00000000000000000000000000000000000000aa",
+          "contractCodeDigest": "c0dec0dec0dec0dec0dec0dec0dec0dec0dec0dec0dec0dec0dec0dec0dec0de"
+        },
+        "lifetime": {
+          "submissionDeadline": "2026-10-31T11:59:59Z",
+          "appealWindowExpiry": "2026-11-01T11:59:59Z"
+        }
+      },
+      "canonical": "{\"destination\":{\"contractAddress\":\"0x00000000000000000000000000000000000000aa\",\"contractCodeDigest\":\"c0dec0dec0dec0dec0dec0dec0dec0dec0dec0dec0dec0dec0dec0dec0dec0de\",\"network\":\"studionet\"},\"disclosure\":{\"adultConfirmed\":true,\"consent\":true,\"noticeVersion\":\"public-onchain-v1\"},\"entries\":[{\"index\":0,\"provenance\":{\"assurance\":\"verified_participant\",\"entrySource\":\"participant_submitted\"},\"sha256\":\"415cefe3c864412f5d031b298de39cc4363257bf015a15be00332269e1c59434\",\"text\":\"Pineapple belongs on pizza: sweet + salty is a classic pairing.\"},{\"index\":1,\"provenance\":{\"assurance\":\"self_asserted\",\"entrySource\":\"participant_submitted\"},\"sha256\":\"52245f86b1700a683b3a785c7f765fc89895f4d76802fa0c549044dce810cc78\",\"text\":\"Pineapple on pizza is a crime against Naples — ask any nonna. ¡No!\"}],\"identity\":{\"attempt\":1,\"caseId\":null,\"clientRef\":\"fixture-expired-0001\",\"tier\":1},\"lifetime\":{\"appealWindowExpiry\":\"2026-11-01T11:59:59Z\",\"submissionDeadline\":\"2026-10-31T11:59:59Z\"},\"moderation\":{\"policyVersion\":\"verdict-local-2026-10-31\",\"result\":\"pass\"},\"requestKey\":\"fixture-expired-0001\",\"rubric\":\"whos_right\",\"schema\":\"verdict.case-package.v1\",\"surface\":\"settle\"}",
+      "packageDigest": "9f816996dd425c8e139915f95aebb89c370b7d904b96af3f15461d0714556b3d",
+      "expect": {
+        "ok": false,
+        "code": "expired",
+        "contractRevert": "expired: submission deadline passed"
+      }
+    }
+  ],
+  "lateAction": {
+    "package": {
+      "schema": "verdict.case-package.v1",
+      "requestKey": "fixture-expiring-0001",
+      "identity": {
+        "clientRef": "fixture-expiring-0001",
+        "caseId": null,
+        "tier": 1,
+        "attempt": 1
+      },
+      "rubric": "whos_right",
+      "surface": "settle",
+      "entries": [
+        {
+          "index": 0,
+          "text": "Pineapple belongs on pizza: sweet + salty is a classic pairing.",
+          "sha256": "415cefe3c864412f5d031b298de39cc4363257bf015a15be00332269e1c59434",
+          "provenance": {
+            "entrySource": "participant_submitted",
+            "assurance": "verified_participant"
+          }
+        },
+        {
+          "index": 1,
+          "text": "Pineapple on pizza is a crime against Naples — ask any nonna. ¡No!",
+          "sha256": "52245f86b1700a683b3a785c7f765fc89895f4d76802fa0c549044dce810cc78",
+          "provenance": {
+            "entrySource": "participant_submitted",
+            "assurance": "self_asserted"
+          }
+        }
+      ],
+      "moderation": {
+        "result": "pass",
+        "policyVersion": "verdict-local-2026-10-31"
+      },
+      "disclosure": {
+        "consent": true,
+        "adultConfirmed": true,
+        "noticeVersion": "public-onchain-v1"
+      },
+      "destination": {
+        "network": "studionet",
+        "contractAddress": "0x00000000000000000000000000000000000000aa",
+        "contractCodeDigest": "c0dec0dec0dec0dec0dec0dec0dec0dec0dec0dec0dec0dec0dec0dec0dec0de"
+      },
+      "lifetime": {
+        "submissionDeadline": "2026-10-31T12:15:00Z",
+        "appealWindowExpiry": "2026-11-01T12:15:00Z"
+      }
+    },
+    "canonical": "{\"destination\":{\"contractAddress\":\"0x00000000000000000000000000000000000000aa\",\"contractCodeDigest\":\"c0dec0dec0dec0dec0dec0dec0dec0dec0dec0dec0dec0dec0dec0dec0dec0de\",\"network\":\"studionet\"},\"disclosure\":{\"adultConfirmed\":true,\"consent\":true,\"noticeVersion\":\"public-onchain-v1\"},\"entries\":[{\"index\":0,\"provenance\":{\"assurance\":\"verified_participant\",\"entrySource\":\"participant_submitted\"},\"sha256\":\"415cefe3c864412f5d031b298de39cc4363257bf015a15be00332269e1c59434\",\"text\":\"Pineapple belongs on pizza: sweet + salty is a classic pairing.\"},{\"index\":1,\"provenance\":{\"assurance\":\"self_asserted\",\"entrySource\":\"participant_submitted\"},\"sha256\":\"52245f86b1700a683b3a785c7f765fc89895f4d76802fa0c549044dce810cc78\",\"text\":\"Pineapple on pizza is a crime against Naples — ask any nonna. ¡No!\"}],\"identity\":{\"attempt\":1,\"caseId\":null,\"clientRef\":\"fixture-expiring-0001\",\"tier\":1},\"lifetime\":{\"appealWindowExpiry\":\"2026-11-01T12:15:00Z\",\"submissionDeadline\":\"2026-10-31T12:15:00Z\"},\"moderation\":{\"policyVersion\":\"verdict-local-2026-10-31\",\"result\":\"pass\"},\"requestKey\":\"fixture-expiring-0001\",\"rubric\":\"whos_right\",\"schema\":\"verdict.case-package.v1\",\"surface\":\"settle\"}",
+    "packageDigest": "0cb6f7a652e04a000211ca9df7302447e824a94dcd50950e3a6627dab118644b",
+    "openAt": "2026-10-31T12:00:00Z",
+    "actAt": "2026-11-01T12:15:01Z",
+    "expect": {
+      "judgeRevert": "case expired",
+      "statusAfterExpire": "stale",
+      "finality": "STALE"
+    }
+  }
+}

@@ -1,0 +1,1396 @@
+<title>Verdict</title>
+<meta name="description" content="Two takes. Five AI jurors. Checked by a network nobody controls. Appeal to a higher court.">
+<meta name="theme-color" content="#1B1340">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@800;900&family=Schibsted+Grotesk:ital,wght@0,500;0,700;0,800;1,700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --robe:#1B1340; --robe-deep:#120C2E; --pad:#F7E26B; --stamp:#E5242C; --docket:#F4F6FF; --rule:#8FA8F0;
+  --bg:var(--docket); --fg:var(--robe); --muted:#4A4378; --line:#CBD3F2; --surface:#FFFFFF;
+  --btn-bg:var(--robe); --btn-fg:var(--pad);
+  --display:'Big Shoulders Display', Impact, 'Arial Narrow', sans-serif;
+  --text:'Schibsted Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --ease-in:cubic-bezier(.2,.8,.2,1); --slam:cubic-bezier(.5,0,.75,0);
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:var(--robe-deep); --fg:var(--docket); --muted:#A9B6E8; --line:#2E2560; --surface:var(--robe);
+    --btn-bg:var(--pad); --btn-fg:var(--robe); color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:var(--robe-deep); --fg:var(--docket); --muted:#A9B6E8; --line:#2E2560; --surface:var(--robe);
+  --btn-bg:var(--pad); --btn-fg:var(--robe); color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--fg);font:500 16px/1.5 var(--text);-webkit-font-smoothing:antialiased;min-height:100vh}
+button,input,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--rule);outline-offset:3px;border-radius:4px}
+.wrap{max-width:480px;margin:0 auto;padding:0 16px}
+
+/* header */
+.top{display:flex;align-items:center;justify-content:space-between;padding:18px 0 8px}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--fg)}
+.brand svg{width:38px;height:38px}
+.word{font:900 30px/1 var(--display);letter-spacing:.06em}
+.casecount{font-size:13px;color:var(--muted)}
+
+/* hero */
+.hero{padding:22px 0 6px}
+.hero h1{font:900 clamp(52px,16vw,76px)/.86 var(--display);margin:0;letter-spacing:-.01em}
+.hero p{margin:12px 0 0;color:var(--muted);max-width:34ch}
+
+/* rubric picker */
+fieldset{border:0;padding:0;margin:26px 0 0}
+legend{font-weight:800;font-size:16px;margin-bottom:10px;padding:0}
+.rubrics{display:flex;flex-wrap:wrap;gap:8px}
+.rubrics input{position:absolute;opacity:0;pointer-events:none}
+.rubrics label{display:block;padding:9px 15px;border:2px solid var(--fg);border-radius:999px;font-weight:700;cursor:pointer;user-select:none;font-size:15px}
+.rubrics input:checked + label{background:var(--fg);color:var(--bg)}
+.rubrics input:focus-visible + label{outline:3px solid var(--rule);outline-offset:3px}
+
+/* case of the day */
+.cotd{margin:26px 0 0;display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.cotd b{font-weight:800}
+.cotd span{color:var(--muted);font-size:14px}
+.link{background:none;border:0;padding:4px 0;color:var(--fg);text-decoration:underline;text-underline-offset:3px;font-weight:700;cursor:pointer;font-size:14px;white-space:nowrap}
+
+/* legal pad slips */
+.slips{display:grid;gap:18px;margin-top:12px}
+.slip{position:relative;background:var(--pad);color:var(--robe);padding:14px 16px 10px 54px;box-shadow:4px 6px 0 rgba(18,12,46,.22)}
+.slip:nth-child(1){transform:rotate(-.6deg)}
+.slip:nth-child(2){transform:rotate(.5deg)}
+.slip::before{content:"";position:absolute;top:0;bottom:0;left:36px;width:3px;background:var(--stamp);opacity:.8;box-shadow:5px 0 0 -1px rgba(229,36,44,.45)}
+.slip .vs{position:absolute;left:8px;top:16px;font:900 20px/1 var(--display);color:var(--robe);opacity:.55;writing-mode:vertical-rl;transform:rotate(180deg)}
+.slip input{width:100%;border:0;background:transparent;font-weight:800;font-size:20px;padding:2px 0 6px;color:var(--robe);border-bottom:2px solid rgba(143,168,240,.85);border-radius:0}
+.slip input::placeholder,.slip textarea::placeholder{color:rgba(27,19,64,.45)}
+.slip textarea{width:100%;border:0;background:transparent;resize:none;font-size:17px;line-height:30px;min-height:150px;padding:6px 0 0;color:var(--robe);
+  background-image:repeating-linear-gradient(to bottom,transparent 0,transparent 29px,rgba(143,168,240,.85) 29px,rgba(143,168,240,.85) 30px);background-attachment:local;border-radius:0}
+.slip input:focus-visible,.slip textarea:focus-visible{outline:none}
+.slip:focus-within{box-shadow:4px 6px 0 rgba(18,12,46,.22),0 0 0 3px var(--rule)}
+.count{text-align:right;font-size:13px;color:rgba(27,19,64,.7);font-variant-numeric:tabular-nums}
+.count.near{font-weight:800;color:var(--robe)}
+.consent{display:flex;gap:10px;align-items:flex-start;margin:10px 0 2px;font-size:14px;line-height:1.35;color:var(--robe);cursor:pointer}
+.slip .consent input{width:20px;height:20px;flex:none;margin:1px 0 0;padding:0;border:0;border-radius:0;accent-color:var(--robe);cursor:pointer}
+.slip .consent input:focus-visible{outline:3px solid var(--robe);outline-offset:2px}
+.age{display:flex;gap:10px;align-items:center;margin:22px 0 0;font-weight:700;font-size:15px;cursor:pointer}
+.age input{width:20px;height:20px;flex:none;margin:0;accent-color:var(--fg);cursor:pointer}
+/* network status rail (simulated in the prototype) */
+.rail{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,1fr);width:100%;max-width:440px;--off:rgba(143,168,240,.45);--on:var(--pad);--txt-off:rgba(143,168,240,.7);--txt-on:var(--docket);--dot-bg:var(--robe)}
+.rail li{position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;font-size:13px;font-weight:700;line-height:1.2;color:var(--txt-off);text-align:center;padding:0 2px}
+.rail li::before{content:"";position:absolute;top:8px;right:50%;width:100%;height:2px;background:var(--off)}
+.rail li:first-child::before{display:none}
+.rail i{position:relative;z-index:1;width:18px;height:18px;border-radius:50%;border:2px solid var(--off);background:var(--dot-bg);transition:background .25s,border-color .25s}
+.rail li.done,.rail li.now{color:var(--txt-on)}
+.rail li.done::before,.rail li.now::before{background:var(--on)}
+.rail li.done i{background:var(--on);border-color:var(--on)}
+.rail li.now i{border-color:var(--on);box-shadow:0 0 0 4px color-mix(in srgb,var(--on) 28%,transparent)}
+.rail li:last-child.done i::after{content:"";position:absolute;left:4.5px;top:1px;width:4px;height:9px;border:solid var(--robe);border-width:0 2.5px 2.5px 0;transform:rotate(45deg)}
+.railnote{margin:8px 0 0;font-size:13px;color:var(--rule);text-align:center}
+.court .rail{margin-bottom:6px}
+.result .rail{--off:var(--line);--on:var(--pad);--txt-off:var(--muted);--txt-on:var(--fg);--dot-bg:var(--bg);margin:0 auto 6px}
+.result .rail li.done i{border-color:var(--fg)}
+.result .rail li::before{background:var(--fg)}
+.result .railnote{color:var(--muted);margin:0 0 16px}
+
+.err{min-height:24px;margin:14px 0 0;font-weight:700;font-size:15px}
+.cta{display:block;width:100%;border:0;border-radius:999px;background:var(--btn-bg);color:var(--btn-fg);font:900 30px/1 var(--display);letter-spacing:.02em;padding:20px 20px 18px;cursor:pointer;margin-top:4px;transition:transform .12s var(--ease-in)}
+.cta:active{transform:scale(.98)}
+.sub{margin:10px 0 0;text-align:center;font-size:14px;color:var(--muted)}
+
+footer{margin:40px 0 28px;padding-top:14px;border-top:1px solid var(--line);font-size:12px;color:var(--muted);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+
+/* ===== courtroom (deliberation) ===== */
+.court{position:fixed;inset:0;z-index:20;background:var(--robe);color:var(--docket);display:flex;flex-direction:column;align-items:center;opacity:0;pointer-events:none;transition:opacity .4s var(--ease-in);overflow:hidden}
+.court::before{content:"";position:absolute;inset:-50%;background:repeating-linear-gradient(125deg,rgba(255,255,255,.035) 0 1.4px,transparent 1.4px 18px);pointer-events:none}
+.court.on{opacity:1;pointer-events:auto}
+.court.supreme{border-top:6px solid var(--pad)}
+.court .inner{position:relative;width:100%;max-width:560px;padding:max(20px,5vh) 16px 24px;display:flex;flex-direction:column;align-items:center;height:100%}
+.court h2{font:900 clamp(34px,10vw,52px)/.95 var(--display);margin:18px 0 0;text-align:center}
+.court .rub{color:var(--rule);font-weight:700;margin-top:8px;text-align:center}
+.bench{display:flex;flex-wrap:wrap;justify-content:center;gap:16px 4px;margin:28px 0 0;width:100%}
+.seat{width:calc(20% - 4px);min-width:62px;display:flex;flex-direction:column;align-items:center;--c:var(--docket)}
+.bench.seven .seat{width:calc(25% - 4px)}
+.bench.nine .seat{width:calc(20% - 4px)}
+.disc{width:58px;height:58px;border-radius:50%;border:3px solid rgba(143,168,240,.28);display:grid;place-items:center;background:var(--robe-deep);transition:border-color .35s var(--ease-in),box-shadow .35s var(--ease-in)}
+.disc svg{width:30px;height:30px;opacity:.18;transition:opacity .35s}
+.seat.lit .disc{border-color:var(--c);box-shadow:0 0 0 6px color-mix(in srgb,var(--c) 18%,transparent)}
+.seat.lit .disc svg{opacity:1}
+.seat .nm{margin-top:8px;font-weight:800;font-size:13px;color:rgba(143,168,240,.5);transition:color .3s}
+.seat.lit .nm{color:var(--c)}
+.placard{margin-top:8px;height:30px;perspective:300px;width:100%;display:flex;justify-content:center}
+.placard span{display:block;min-width:56px;max-width:100%;padding:5px 10px;border-radius:999px;font-weight:800;font-size:13px;text-align:center;border:2px dashed rgba(143,168,240,.35);color:transparent;transform:rotateX(90deg);transition:transform .32s var(--ease-in);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.seat.voted .placard span{background:var(--pad);color:var(--robe);border:2px solid var(--pad);transform:rotateX(0)}
+.bench.hush .disc{animation:hush 1.1s ease-in-out infinite alternate}
+@keyframes hush{to{box-shadow:0 0 0 12px color-mix(in srgb,var(--c) 6%,transparent)}}
+.status{margin-top:30px;min-height:84px;text-align:center;max-width:32ch;font-size:18px}
+.status q{font-style:italic;font-weight:700;font-size:21px;line-height:1.3;quotes:"“" "”"}
+.status .who{display:block;margin-top:6px;font-size:14px;color:var(--rule)}
+.tally{display:flex;gap:18px;margin-top:14px;align-items:stretch;width:100%;max-width:360px}
+.tally div{flex:1;text-align:center;padding:10px 6px 8px;border-top:2px solid rgba(143,168,240,.35)}
+.tally b{display:block;font:900 54px/1 var(--display);color:var(--pad);font-variant-numeric:tabular-nums}
+.tally span{font-weight:700;font-size:15px}
+.tally.dim{opacity:.0}
+.slamzone{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;background:var(--robe);padding:16px}
+.slamzone.on{display:flex}
+.split{font:900 clamp(150px,52vw,250px)/.85 var(--display);color:var(--pad);letter-spacing:-.02em;animation:slam .2s var(--slam) both}
+.forwho{font-weight:800;font-size:30px;text-align:center;margin-top:10px;animation:fadein .3s .25s both}
+.forwho small{display:block;font-weight:500;font-size:17px;color:var(--rule)}
+.bigstamp{margin-top:26px;max-width:100%;border:6px solid var(--stamp);color:var(--stamp);font:900 clamp(38px,11vw,70px)/1 var(--display);letter-spacing:.1em;padding:10px 8px 6px 16px;border-radius:8px;transform:rotate(-6deg);animation:stamp .26s .35s var(--slam) both}
+@keyframes slam{from{transform:scale(1.45);opacity:0}to{transform:scale(1);opacity:1}}
+@keyframes stamp{from{transform:rotate(-6deg) scale(2.2);opacity:0}to{transform:rotate(-6deg) scale(1);opacity:1}}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+@keyframes shake{0%,100%{transform:translate(0)}25%{transform:translate(-3px,2px)}50%{transform:translate(2px,-2px)}75%{transform:translate(-2px,-1px)}}
+.court.shake .inner,.court.shake .slamzone{animation:shake .12s linear 1}
+.skip{margin-top:auto;background:none;border:0;color:var(--rule);text-decoration:underline;text-underline-offset:3px;font-weight:700;padding:12px;cursor:pointer;position:relative;z-index:2}
+
+/* ===== result ===== */
+.result{display:none;padding:18px 0 0}
+.result.on{display:block}
+.result h2{font:900 44px/.95 var(--display);margin:6px 0 14px}
+.cardframe{position:relative;width:100%;aspect-ratio:9/16;box-shadow:6px 8px 0 rgba(18,12,46,.25);background:var(--robe)}
+.cardframe canvas{width:100%;height:100%;display:block}
+.actions{display:grid;gap:10px;margin-top:20px}
+.btn2{display:block;width:100%;border:2px solid var(--fg);background:transparent;border-radius:999px;padding:14px 16px;font-weight:800;font-size:17px;cursor:pointer}
+.appeal{background:var(--pad);color:var(--robe);border:0;font:900 26px/1 var(--display);letter-spacing:.02em;padding:18px 16px 16px}
+.appeal[disabled]{opacity:.45;cursor:default}
+.note{font-size:14px;color:var(--muted);margin:10px 0 0;text-align:center}
+.declined{background:var(--surface);border:2px solid var(--fg);padding:20px;margin-top:20px}
+.declined h3{font:900 34px/1 var(--display);margin:0 0 8px}
+
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.15s!important}
+}
+@media (min-width:900px){
+  .hero h1{font-size:84px}
+}
+/* GAMES-CSS:BEGIN */
+/* ===== tabs + games (Red Flag Court, Jailbreak the Jury) ===== */
+:root{--amber:#E8A317;--ink:#4A4378}
+.tabs{display:flex;gap:6px;margin:4px 0 0;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tabs button{flex:none;border:2px solid var(--fg);background:transparent;border-radius:999px;padding:7px 13px;font-weight:800;font-size:14px;cursor:pointer;white-space:nowrap}
+.tabs button[aria-selected="true"]{background:var(--fg);color:var(--bg)}
+.tabpanel[hidden]{display:none!important}
+.game h1{font:900 clamp(44px,13vw,68px)/.9 var(--display);margin:22px 0 0}
+.game .lede{color:var(--muted);margin:10px 0 0}
+.game textarea.paste{width:100%;min-height:150px;margin-top:16px;border:2px solid var(--fg);border-radius:10px;background:var(--surface);padding:12px;font-size:16px;line-height:1.45;resize:vertical}
+.game .small{font-size:13px;color:var(--muted);margin:6px 0 0}
+.game .row{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.chip{border:1.5px solid var(--fg);background:transparent;border-radius:999px;padding:5px 11px;font-size:13px;font-weight:700;cursor:pointer}
+.flagchip{display:inline-block;border:1.5px solid var(--fg);border-radius:6px;padding:3px 8px;font-size:13px;font-weight:700;margin:3px 4px 0 0}
+.preview{margin-top:16px;border:2px dashed var(--line);border-radius:10px;padding:12px;line-height:1.9;word-wrap:break-word}
+.preview .w{cursor:pointer;border-radius:3px}
+.preview .w:hover{background:color-mix(in srgb,var(--rule) 25%,transparent)}
+.pill{display:inline-block;background:#6B6F86;color:#fff;border-radius:999px;padding:0 9px;font-size:13px;font-weight:700;line-height:1.7;white-space:nowrap;animation:sweep .45s var(--ease-in) both}
+@keyframes sweep{from{background:var(--pad);color:var(--robe)}to{background:#6B6F86;color:#fff}}
+.warnbox{margin-top:10px;border-left:4px solid var(--stamp);padding:6px 10px;font-weight:700;font-size:14px}
+.gamebtn{display:block;width:100%;border:0;border-radius:999px;background:var(--btn-bg);color:var(--btn-fg);font:900 26px/1 var(--display);letter-spacing:.02em;padding:16px;cursor:pointer;margin-top:14px}
+.gamebtn[disabled]{opacity:.4;cursor:default}
+.check{display:flex;gap:10px;align-items:flex-start;margin-top:12px;font-size:14px;line-height:1.4;cursor:pointer}
+.check input{width:20px;height:20px;flex:none;margin:1px 0 0;accent-color:var(--fg)}
+.qrail{list-style:none;margin:18px auto 6px;padding:0;display:grid;grid-template-columns:repeat(3,1fr);max-width:360px}
+.qrail.two{grid-template-columns:repeat(2,1fr);max-width:240px}
+.qrail li{position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;font-size:13px;font-weight:700;color:var(--muted);text-align:center}
+.qrail li::before{content:"";position:absolute;top:8px;right:50%;width:100%;height:2px;background:var(--line)}
+.qrail li:first-child::before{display:none}
+.qrail i{position:relative;z-index:1;width:18px;height:18px;border-radius:50%;border:2px solid var(--line);background:var(--bg)}
+.qrail li.done{color:var(--fg)}
+.qrail li.done i{background:var(--fg);border-color:var(--fg)}
+.qrail li.done::before{background:var(--fg)}
+.minibench{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-top:12px}
+.minibench .s{width:58px;text-align:center;font-size:12px;font-weight:800;opacity:.3;transition:opacity .3s}
+.minibench .s.lit{opacity:1}
+.minibench .s .d{width:44px;height:44px;margin:0 auto 4px;border-radius:50%;border:3px solid currentColor;display:grid;place-items:center;background:var(--robe-deep)}
+.minibench .s .d svg{width:24px;height:24px}
+.gstatus{text-align:center;min-height:26px;margin-top:10px;color:var(--muted);font-weight:700}
+.ruling{margin-top:20px;border:2px solid var(--fg);border-radius:12px;padding:18px;background:var(--surface)}
+.gstamp{display:inline-block;border:5px solid currentColor;border-radius:8px;padding:6px 12px 2px;font:900 clamp(40px,12vw,60px)/1 var(--display);letter-spacing:.08em;transform:rotate(-6deg);margin:4px 0 8px}
+.gstamp.scam{color:var(--stamp)}
+.gstamp.sus{color:var(--amber)}
+.gstamp.legit{color:var(--ink)}
+.gstamp.caught{color:var(--stamp)}
+.gstamp.overruled,.gstamp.mistrial{color:var(--ink)}
+.gstamp.sealed{color:var(--robe);background:var(--pad);border-color:var(--robe)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .gstamp.legit,:root:not([data-theme="light"]) .gstamp.overruled,:root:not([data-theme="light"]) .gstamp.mistrial{color:var(--docket)}}
+:root[data-theme="dark"] .gstamp.legit,:root[data-theme="dark"] .gstamp.overruled,:root[data-theme="dark"] .gstamp.mistrial{color:var(--docket)}
+.tallytext{font-weight:800;font-size:18px}
+.subline{margin:6px 0 0;font-weight:700}
+.jlines{margin:14px 0 0;padding:0;list-style:none}
+.jlines li{padding:8px 0;border-top:1px solid var(--line);font-size:15px}
+.jlines b{display:inline-block;min-width:64px}
+.nextstep{margin-top:14px;font:800 20px/1.25 var(--text)}
+.cardfoot{margin-top:14px;font-size:12px;color:var(--muted)}
+.sealedcard{margin-top:12px;background:var(--robe);color:var(--docket);border-radius:8px;padding:16px;text-align:center}
+.sealedcard .bar{height:14px;background:#000;border-radius:3px;margin:6px 0}
+.rulecard{margin-top:18px;background:var(--robe);color:var(--docket);border-radius:12px;padding:20px;text-align:center}
+.rulecard .gstamp{color:var(--stamp);border-color:var(--stamp)}
+.gamefoot{margin:30px 0 24px;padding-top:12px;border-top:1px solid var(--line);font-size:12px;color:var(--muted)}
+.gate{margin-top:20px;border:2px solid var(--fg);border-radius:12px;padding:18px}
+/* GAMES-CSS:END */
+</style>
+<div class="wrap">
+  <header class="top">
+    <a class="brand" href="#" aria-label="Verdict home" id="home">
+      <svg viewBox="0 0 128 128" aria-hidden="true" id="sealSvg"></svg>
+      <span class="word">VERDICT</span>
+    </a>
+    <span class="casecount" id="casecount"></span>
+  </header>
+<!-- GAMES-TABS:BEGIN -->
+  <nav class="tabs" role="tablist" aria-label="Courts">
+    <button role="tab" id="t-settle" aria-controls="tab-settle" aria-selected="true">Settle It</button>
+    <button role="tab" id="t-redflag" aria-controls="tab-redflag" aria-selected="false" tabindex="-1">Red Flag Court</button>
+    <button role="tab" id="t-jailbreak" aria-controls="tab-jailbreak" aria-selected="false" tabindex="-1">Jailbreak the Jury</button>
+  </nav>
+<!-- GAMES-TABS:END -->
+  <div class="tabpanel" id="tab-settle" role="tabpanel" aria-labelledby="t-settle">
+
+  <main id="compose">
+    <section class="hero">
+      <h1>Settle it.</h1>
+      <p>You each write your side. Five AI jurors rule. On the live version, a network nobody controls checks the verdict. Lose? Appeal to a higher court.</p>
+    </section>
+
+    <form id="form" novalidate>
+      <fieldset>
+        <legend>What's the court deciding?</legend>
+        <div class="rubrics" id="rubrics"></div>
+      </fieldset>
+
+      <div class="cotd" id="cotd">
+        <div><b>Case of the day</b><br><span id="cotdTitle">The leftovers</span></div>
+        <button type="button" class="link" id="clearBtn">Start a blank case</button>
+      </div>
+
+      <div class="slips">
+        <div class="slip">
+          <span class="vs" aria-hidden="true">Side A</span>
+          <input id="nameA" maxlength="16" placeholder="Your first name or handle" aria-label="Side A first name or handle" autocomplete="off">
+          <textarea id="takeA" maxlength="280" placeholder="Your side of it." aria-label="Side A take"></textarea>
+          <div class="count" id="countA" aria-live="polite">0/280</div>
+          <label class="consent"><input type="checkbox" id="consentA"><span>My take becomes public on GenLayer and can’t be erased from the chain. I can withdraw before the verdict is final.</span></label>
+        </div>
+        <div class="slip">
+          <span class="vs" aria-hidden="true">Side B</span>
+          <input id="nameB" maxlength="16" placeholder="Their first name or handle" aria-label="Side B first name or handle" autocomplete="off">
+          <textarea id="takeB" maxlength="280" placeholder="Their side of it." aria-label="Side B take"></textarea>
+          <div class="count" id="countB" aria-live="polite">0/280</div>
+          <label class="consent"><input type="checkbox" id="consentB"><span>My take becomes public on GenLayer and can’t be erased from the chain. I can withdraw before the verdict is final.</span></label>
+        </div>
+      </div>
+
+      <label class="age"><input type="checkbox" id="age18"><span>We’re both 18 or older.</span></label>
+
+      <p class="err" id="err" role="alert"></p>
+      <button class="cta" type="submit">Summon the jury</button>
+      <p class="sub">Takes a few seconds. The jury does not rush.</p>
+    </form>
+  </main>
+
+  <section class="result" id="result" aria-live="polite">
+    <h2 id="resultTitle">The court has ruled</h2>
+    <ol class="rail" id="resultRail" aria-label="Network status, simulated in this prototype"><li><i></i><span>Submitted</span></li><li><i></i><span>Jury scoring</span></li><li><i></i><span>Network checking</span></li><li><i></i><span>Finalized</span></li></ol>
+    <p class="railnote">Simulated. On the live version the card appears only once the network finalizes it.</p>
+    <div class="cardframe"><canvas id="card" width="1080" height="1920" role="img" aria-label="Verdict card"></canvas></div>
+    <div class="actions">
+      <button class="btn2 appeal" id="appealBtn">Appeal to a higher court</button>
+      <button class="btn2" id="dlBtn">Save card</button>
+      <button class="btn2" id="newBtn">Start a new case</button>
+    </div>
+    <p class="note" id="appealNote">The Appeals Court seats 7 jurors and can overturn this. Up to 2 appeals, losing side only.</p>
+  </section>
+
+  <section class="result" id="declined">
+    <div class="declined">
+      <h3>The jury won't rule on this one.</h3>
+      <p>This sounds like it could be about someone's safety, and that's not a game. If you or someone you know is in danger, call or text 988 in the US (Suicide and Crisis Lifeline) or 1-800-799-7233 (National Domestic Violence Hotline). Both are free and open 24/7.</p>
+      <button class="btn2" id="declinedBack">Back to the case</button>
+    </div>
+  </section>
+
+  <footer>
+    <span>Prototype: votes here are simulated in your browser. The live version runs the jury in a GenLayer Intelligent Contract.</span>
+    <span>18+ only. Rulings are for fun, not advice. Use first names or handles, never anyone's full name.</span>
+  </footer>
+  </div>
+<!-- GAMES-HTML:BEGIN -->
+  <section class="tabpanel game" id="tab-redflag" role="tabpanel" aria-labelledby="t-redflag" hidden>
+    <div class="gate" id="rfGate">
+      <p><b>Red Flag Court is 18+.</b></p>
+      <button class="gamebtn" type="button" data-gate>I'm 18+. Let me in.</button>
+    </div>
+    <div id="rfMain" hidden>
+      <h1>Red Flag Court</h1>
+      <p class="lede">Got a sketchy text? Paste it. The jury rules.</p>
+      <textarea class="paste" id="rfInput" placeholder="Paste the DM, text or “too good to be true” offer here…" aria-label="Message to check"></textarea>
+      <div class="row"><p class="small">We hide phone numbers, emails and links before anything is sent. We never open links.</p><span class="small" id="rfCount">0/1000</span></div>
+      <p class="small"><b>Try one:</b></p>
+      <div class="chips" id="rfSamples"></div>
+      <p class="err" id="rfErr" role="alert"></p>
+      <button class="gamebtn" type="button" id="rfCheck">Check it</button>
+
+      <div id="rfPreviewWrap" hidden>
+        <h3 id="rfPrevHead">Cleaning up your receipts…</h3>
+        <div class="preview" id="rfPreview" aria-live="polite"></div>
+        <p class="small" id="rfSummary"></p>
+        <div class="warnbox" id="rfWarn" hidden></div>
+        <p class="small">Tap any word to hide it.</p>
+        <p>What the jury will see is shown above. Check it.<br><span class="small">Your message is checked privately. Only the share card you choose to post is public, and it never shows the message.</span></p>
+        <label class="check"><input type="checkbox" id="rfApprove"><span>I get it. Send the cleaned-up version.</span></label>
+        <button class="gamebtn" type="button" id="rfSend" disabled>Send to the court</button>
+        <button class="btn2" type="button" id="rfEdit" style="margin-top:10px">Edit first</button>
+      </div>
+
+      <div id="rfDelib" hidden>
+        <ol class="qrail" id="rfRail" aria-label="Quick Verdict status"><li><i></i><span>Submitted</span></li><li><i></i><span>Jury scoring</span></li><li><i></i><span>Done</span></li></ol>
+        <p class="railnote" style="color:var(--muted)">Quick Verdict · Not network-checked</p>
+        <div class="minibench" id="rfBench"></div>
+        <div class="gstatus" id="rfStatus"></div>
+      </div>
+
+      <div id="rfResult" hidden></div>
+      <footer class="gamefoot">Simulated in your browser · Not checked by the network. The jury reads the message, not the person. AI opinion, not legal or financial advice. 18+.</footer>
+    </div>
+  </section>
+
+  <section class="tabpanel game" id="tab-jailbreak" role="tabpanel" aria-labelledby="t-jailbreak" hidden>
+    <div class="gate" id="jbGate">
+      <h1 style="margin-top:0">Jailbreak the Jury</h1>
+      <p class="lede">Today's jury has a secret rule. Make them break it.</p>
+      <p class="small" id="jbCaseTag"></p>
+      <button class="gamebtn" type="button" data-gate>I'm 18+. Let me in.</button>
+      <details style="margin-top:12px"><summary class="link" style="display:inline">How this works</summary>
+        <p class="small">The jury has one secret rule today. Get them to break it.<br>Get caught and you're in contempt. Get through and your method stays sealed until we patch it.<br>No money, no prizes. Just the stamp.</p>
+      </details>
+    </div>
+    <div id="jbMain" hidden>
+      <h1>Jailbreak the Jury</h1>
+      <p class="small" id="jbCaseTag2"></p>
+      <div class="rulecard">
+        <div class="gstamp">SEALED</div>
+        <p style="margin:6px 0 0">The secret rule is about <b id="jbTopic">cats</b>.</p>
+      </div>
+      <p style="margin-top:16px;font-weight:800">Write a take. Get the jury to rule for it anyway.</p>
+      <textarea class="paste" id="jbInput" maxlength="280" placeholder="Cats are better than dogs because…" aria-label="Your take"></textarea>
+      <div class="row"><span></span><span class="small" id="jbCount">0 / 280</span></div>
+      <label class="check"><input type="checkbox" id="jbConsent"><span>Your attempt is saved privately and studied to make the jury harder to fool. Nothing goes public unless you opt in. Text only, no real names.</span></label>
+      <p class="err" id="jbErr" role="alert"></p>
+      <button class="gamebtn" type="button" id="jbSubmit" disabled>Submit to the jury</button>
+      <p class="small" id="jbLeft"></p>
+
+      <div id="jbDelib" hidden>
+        <ol class="qrail" id="jbRail" aria-label="Practice court status"><li><i></i><span>Submitted</span></li><li><i></i><span>Jury scoring</span></li><li><i></i><span>Done</span></li></ol>
+        <p class="railnote" style="color:var(--muted)">Practice court · Not a public record</p>
+        <div class="minibench" id="jbBench"></div>
+        <div class="gstatus" id="jbStatus"></div>
+      </div>
+      <div id="jbResult" hidden></div>
+      <footer class="gamefoot">Simulated in your browser · Not checked by the network. Practice court · Not a public record. 18+.</footer>
+    </div>
+  </section>
+<!-- GAMES-HTML:END -->
+</div>
+
+<div class="court" id="court" aria-live="polite">
+  <div class="inner">
+    <ol class="rail" id="courtRail" aria-label="Network status, simulated in this prototype"><li><i></i><span>Submitted</span></li><li><i></i><span>Jury scoring</span></li><li><i></i><span>Network checking</span></li><li><i></i><span>Finalized</span></li></ol>
+    <p class="railnote" id="courtRailNote">Simulated in this prototype. The live version waits for the GenLayer network.</p>
+    <h2 id="courtTitle">The jury is deliberating</h2>
+    <div class="rub" id="courtRub"></div>
+    <div class="bench" id="bench"></div>
+    <div class="status" id="status"></div>
+    <div class="tally dim" id="tally"></div>
+    <button class="skip" id="skip">Skip to the verdict</button>
+  </div>
+  <div class="slamzone" id="slamzone"></div>
+</div>
+
+<!-- GAMES-CORE:BEGIN -->
+<script id="verdict-core">
+/* verdict-core: browser copy of relayer/src/lib/redact.ts, the Red Flag Court
+   hard rules (relayer/src/lib/redflag.ts) and the practice-court door/steering
+   checks (moderation.ts CONTROL_PATTERNS, practice.ts). Kept identical in
+   app/index.html and app/artifact.html, and run against the same
+   fixtures/redaction.json and fixtures/redflag-rules.json as the relayer. */
+(function(root){
+'use strict';
+var TAGS = {email:'[email hidden]', link:'[link hidden · not opened]', handle:'[handle hidden]', secret:'[secret hidden]', number:'[number hidden]', phone:'[phone hidden]', company:'[company hidden]', name:'[name hidden]'};
+var SENSITIVE_WARNING = 'That looks like private account info. We removed it. Never share that anywhere.';
+var NAME_STOP = {};
+('There Team Everyone All Sir Madam Customer User Friend Dear Hi Hey Hello Good The Your You We Our Me Not Just Here Back Sorry Glad Happy ' +
+ 'Thanks Thank Regards Love Cheers Reminder Security Support Valued Winner Mom Dad Mr Mrs Ms Dr Monday Tuesday Wednesday Thursday Friday Saturday Sunday ' +
+ 'Tue Mon Wed Thu Fri Sat Sun January February March April May June July August September October November December').split(' ').forEach(function(w){ NAME_STOP[w] = true; });
+var TLD = 'com|net|org|io|co|app|xyz|info|biz|me|ly|gg|link|site|online|top|shop|club|live|vip|us|uk|ru|cn|cc|tk|ml';
+var RULES = [
+  {kind:'email', re:/[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+/g},
+  {kind:'link', re:new RegExp('\\b(?:https?:\\/\\/|www\\.)[^\\s<>"]+|\\b[A-Za-z0-9-]+(?:\\.[A-Za-z0-9-]+)*\\.(?:' + TLD + ')\\b(?:\\/[^\\s<>"]*)?', 'gi')},
+  {kind:'handle', re:/(^|[^\w@])@[A-Za-z0-9_.]{2,30}/g, keep:1},
+  {kind:'secret', re:/\b(password|passcode|passwd|pwd|pin)(\s*(?:is|:|=)\s*)(?!\[)\S+/gi, keep:1, sensitive:true},
+  {kind:'number', re:/\b(?:\d[ -]?){12,18}\d\b/g, sensitive:true},
+  {kind:'number', re:/\b\d{3}-\d{2}-\d{4}\b/g, sensitive:true},
+  {kind:'phone', re:/(?:\+\d{1,3}[\s.-]?)?\(?\b\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}\b|\+\d{1,3}(?:[\s.-]?\d{2,4}){2,4}\b/g},
+  {kind:'number', re:/\b\d{6,}\b/g},
+  {kind:'company', re:/\b(?:[A-Z][A-Za-z0-9&'’]*\s+){1,3}(?:Inc|LLC|Ltd|Corp|Corporation|Bank|Group|Capital|Holdings|Exchange|Wallet|Pay|Finance|Financial|Investments?|Trading|Logistics|Express|Delivery|Shipping)\b/g}
+];
+var NAME_AFTER = /\b((?:[Hh]i|[Hh]ey|[Hh]ello|[Dd]ear|[Tt]his is|I'm|I’m|I am|[Mm]y name is|[Ff]rom|[Rr]egards,?|[Tt]hanks,?|[Cc]heers,?|[Ll]ove,?|[Ss]incerely,?|Mr\.?|Mrs\.?|Ms\.?|Dr\.?)\s+)((?!(?:Mr|Mrs|Ms|Dr)\b)[A-Z][a-z'’]+(?:\s+[A-Z][a-z'’]+)?)\b/g;
+var NAME_SIGNOFF = /(^|\n)(\s*[-–—~]\s*)([A-Z][a-z'’]+)\b/g;
+function emptyCounts(){ return {email:0, link:0, handle:0, secret:0, number:0, phone:0, company:0, name:0}; }
+function redact(input){
+  var counts = emptyCounts(), sensitive = false, text = String(input).normalize('NFKC');
+  RULES.forEach(function(r){
+    text = text.replace(r.re, function(){
+      var m = arguments; counts[r.kind] += 1; if(r.sensitive) sensitive = true;
+      return (r.keep ? (m[1] || '') + (r.kind === 'secret' ? (m[2] || '') : '') : '') + TAGS[r.kind];
+    });
+  });
+  text = text.replace(NAME_AFTER, function(whole, lead, name){
+    if(NAME_STOP[name.split(/\s+/)[0]]) return whole;
+    counts.name += 1; return lead + TAGS.name;
+  });
+  text = text.replace(NAME_SIGNOFF, function(whole, nl, dash, name){
+    if(NAME_STOP[name]) return whole;
+    counts.name += 1; return nl + dash + TAGS.name;
+  });
+  return {text:text, counts:counts, sensitive:sensitive, warning: sensitive ? SENSITIVE_WARNING : null};
+}
+var TAG_RE = new RegExp(Object.keys(TAGS).map(function(k){ return TAGS[k].replace(/[[\]·]/g, function(c){ return '\\' + c; }); }).join('|'), 'g');
+function measure(text){ return Array.from(String(text).replace(TAG_RE, '•')).length; }
+function summary(counts){
+  var words = {link:['link','links'], phone:['phone number','phone numbers'], email:['email','emails'], handle:['handle','handles'], number:['long number','long numbers'], name:['name','names'], company:['company name','company names'], secret:['password','passwords']};
+  var parts = ['link','phone','email','handle','number','secret','company','name'].filter(function(k){ return counts[k] > 0; })
+    .map(function(k){ return counts[k] + ' ' + words[k][counts[k] === 1 ? 0 : 1]; });
+  return parts.length ? 'Hid ' + parts.join(', ') + '.' : 'Nothing needed hiding.';
+}
+/* Red Flag Court hard rules */
+var FLAG_CODES = {urgency:'Fake urgency', too_good_to_be_true:'Too good to be true', upfront_payment:'Asks for money', crypto_only:'Crypto only', off_platform_move:'Move to another app', link_pressure:'"Click this link"', code_request:'Asks for a code', stranger_friendly:'Stranger, very friendly', pay_to_get_paid:'Pay to get paid', impersonation_claim:'Off-brand sender', secrecy:'Secrecy ask', guaranteed_returns:'Guaranteed returns', cant_meet:"Can't meet in person", threat_of_loss:'Threatens a loss', talks_to_the_ai:'Talks to the jury', money_offer:'Money offer: we never rule these legit.'};
+var MONEY_RE = [
+  /[$€£¥₹]\s?\d/,
+  /\b\d+(?:[.,]\d+)?\s?(?:dollars|usd|bucks|euros?|pounds)\b/i,
+  /\b(?:crypto|bitcoin|btc|ethereum|eth|tokens?|coins?|altcoin|stablecoin|nft|airdrop|wallet)\b/i,
+  /\b(?:invest|investing|investment|investor|trading group|signals?|returns?|profits?|roi|passive income|double your|\d+x(?:'d)?)\b/i,
+  /\b(?:deposit|wire|gift ?cards?|cash ?app|send (?:me )?money|loan|lend|pay (?:me|us|the|a|your|for)|fee\b|fees\b|per hour|\/hr\b|salary|earn)\b/i
+];
+var INVISIBLE_RE = /[​-‏‪-‮⁠-⁤﻿]/g;
+function normalise(t){ return String(t).normalize('NFKC').replace(INVISIBLE_RE, ''); }
+function isMoneyOffer(text){ var t = normalise(text); return MONEY_RE.some(function(re){ return re.test(t); }); }
+var LABELS = ['scam','sus','legit'], SEV = {scam:2, sus:1, legit:0}, NAMES = {scam:'Scam', sus:'Sus', legit:'Legit'};
+function decideRuling(votes, moneyOffer){
+  var tally = {scam:0, sus:0, legit:0};
+  votes.forEach(function(v){ tally[v.label] += 1; });
+  var label = 'legit';
+  LABELS.forEach(function(l){ if(tally[l] > tally[label] || (tally[l] === tally[label] && SEV[l] > SEV[label])) label = l; });
+  var forcedBy = null;
+  if(label === 'legit' && tally.scam > 0){ label = 'sus'; forcedBy = 'no_legit_with_scam_vote'; }
+  if(label === 'legit' && moneyOffer){ label = 'sus'; forcedBy = 'money_offer'; }
+  var counts = {};
+  votes.forEach(function(v){ (v.flags || []).forEach(function(f){ counts[f] = (counts[f] || 0) + 1; }); });
+  var flags = Object.keys(FLAG_CODES).filter(function(c){ return (counts[c] || 0) * 2 > votes.length; });
+  if(moneyOffer && label !== 'scam' && flags.indexOf('money_offer') < 0) flags.push('money_offer');
+  var tallyText = LABELS.filter(function(l){ return tally[l] > 0; }).map(function(l){ return tally[l] + ' ' + NAMES[l]; }).join(' · ');
+  return {ruling: label === 'scam' ? 'SCAM' : label === 'sus' ? 'SUS' : 'LOOKS LEGIT', tally:tally, tallyText:tallyText, flags:flags, forcedBy:forcedBy};
+}
+/* practice court: the door (same CONTROL_PATTERNS as the relayer and contract) and steering */
+var CONTROL_PATTERNS = [
+  'ignore\\s+(all\\s+|any\\s+|the\\s+)?(previous|prior|above|earlier)',
+  'disregard\\s+(all\\s+|any\\s+|the\\s+)?(previous|prior|above|earlier|instructions|rules)',
+  '(system|developer)\\s*(prompt|message|instruction)',
+  'you\\s+are\\s+now\\b',
+  'new\\s+instructions?',
+  '\\bjailbreak\\b',
+  'winner_index',
+  '"?scores"?\\s*:',
+  '(as|you\\s+are)\\s+(the\\s+)?(judge|juror|jury|ai|assistant|model)\\b.*\\b(must|should|will)\\s+(pick|choose|score|rate|vote|declare|rule|give|select)\\b',
+  '(score|rate|pick|choose|declare|vote\\s+for)\\s+(this(\\s+entry)?|me|entry\\s*\\d*)\\s+(as\\s+)?(the\\s+|a\\s+)?(10|winner|highest|first|best)\\b',
+  '<<<|>>>',
+  '```'
+];
+function matchedControlPattern(text){
+  var c = normalise(text).replace(/\s+/g, ' ');
+  for(var i = 0; i < CONTROL_PATTERNS.length; i++){ if(new RegExp(CONTROL_PATTERNS[i], 'i').test(c)) return i; }
+  return -1;
+}
+var STEER = [
+  /\b(judges?|jury|jurors?|the court|your honou?r|the bench|marlowe|dahlia|frank|tiff|theo)\b/i,
+  /\b(secret rule|the rule|rules|instructions?|prompt|override|pretend|role-?play|admin|developer mode|debug mode|test mode|simulation)\b/i,
+  /\b(score|scores|vote for|rate (this|me|it)|rule for|pick (this|me)|declare)\b/i
+];
+function steeringHit(text){ return STEER.some(function(re){ return re.test(text); }); }
+root.VerdictCore = {TAGS:TAGS, redact:redact, measure:measure, summary:summary, FLAG_CODES:FLAG_CODES, isMoneyOffer:isMoneyOffer, decideRuling:decideRuling, CONTROL_PATTERNS:CONTROL_PATTERNS, matchedControlPattern:matchedControlPattern, steeringHit:steeringHit};
+})(typeof window !== 'undefined' ? window : globalThis);
+</script>
+<!-- GAMES-CORE:END -->
+<script>
+(function(){
+'use strict';
+const $ = s => document.querySelector(s);
+const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------- storage (optional) ---------- */
+const store = {
+  get(k, d){ try{ const v = localStorage.getItem('verdict:'+k); return v==null ? d : JSON.parse(v); }catch(e){ return d; } },
+  set(k, v){ try{ localStorage.setItem('verdict:'+k, JSON.stringify(v)); }catch(e){} }
+};
+
+/* ---------- palette & jurors ---------- */
+const C = {robe:'#1B1340', deep:'#120C2E', pad:'#F7E26B', stamp:'#E5242C', docket:'#F4F6FF', rule:'#8FA8F0'};
+const J = {
+  judge:    {name:'Marlowe',   title:'The Judge',        color:'#F4F6FF', doing:'Marlowe is reading the record'},
+  romantic: {name:'Dahlia',    title:'The Romantic',     color:'#FF7AA8', doing:'Dahlia is checking for effort'},
+  realist:  {name:'Frank',     title:'The Realist',      color:'#58C4FF', doing:'Frank wants timestamps'},
+  petty:    {name:'Tiff',      title:'The Petty One',    color:'#B9F24A', doing:'Tiff is counting the “k”s'},
+  philo:    {name:'Theo',      title:'The Philosopher',  color:'#B79CFF', doing:'Theo is asking what this is really about'},
+  chief:    {name:'Augustine', title:'The Chief Justice',color:'#F7E26B', doing:'Augustine has entered the room'},
+  wild:     {name:'Juno',      title:'The Wildcard',     color:'#FF9A3D', doing:'Juno is reading the other side first'},
+  hist:     {name:'Ines',      title:'The Historian',    color:'#5FE3C4', doing:'Ines is pulling the case files'},
+  contra:   {name:'Rook',      title:'The Contrarian',   color:'#E8B4F8', doing:'Rook is questioning the obvious answer'}
+};
+const PANEL = ['judge','romantic','realist','petty','philo'];
+// Tier 2 Appeals Court (7) and Tier 3 Supreme Court (9, final)
+const TIERS = {
+  2:{seats:['chief','judge','romantic','realist','petty','philo','wild'], name:'Appeals Court', cls:'seven'},
+  3:{seats:['chief','judge','romantic','realist','petty','philo','wild','hist','contra'], name:'Supreme Court', cls:'nine'}
+};
+
+const RUBRICS = [
+  {id:'right',  label:"Who's right?"},
+  {id:'roast',  label:'Better roast'},
+  {id:'petty',  label:'Pettiest text'},
+  {id:'comeback', label:'Better comeback'}
+];
+
+const CASE_OF_DAY = {
+  title:'The leftovers', rubric:'right',
+  a:{name:'Priya',  take:"My roommate ate my leftover pad thai and said \"it was going bad anyway.\" I made it Sunday. It was Tuesday. I had plans for that pad thai."},
+  b:{name:'Marcus', take:"If it's in the shared fridge 3 days with no name on it, it's community property. Label your food or donate it to the cause. I was saving it from the trash."}
+};
+
+/* ---------- icons ---------- */
+function iconSVG(k, c){
+  const P = {
+    judge:`<rect x="9" y="8" width="30" height="4" fill="${c}"/><rect x="12" y="14" width="5" height="20" fill="${c}"/><rect x="21.5" y="14" width="5" height="20" fill="${c}"/><rect x="31" y="14" width="5" height="20" fill="${c}"/><rect x="7" y="36" width="34" height="5" fill="${c}"/>`,
+    romantic:`<circle cx="18" cy="24" r="11" fill="none" stroke="${c}" stroke-width="4"/><circle cx="30" cy="24" r="11" fill="none" stroke="${c}" stroke-width="4"/>`,
+    realist:`<rect x="11" y="9" width="26" height="30" fill="none" stroke="${c}" stroke-width="4"/><rect x="16" y="17" width="16" height="3.5" fill="${c}"/><rect x="16" y="25" width="10" height="3.5" fill="${c}"/>`,
+    petty:`<rect x="11" y="10" width="3.6" height="28" fill="${c}"/><rect x="18.5" y="10" width="3.6" height="28" fill="${c}"/><rect x="26" y="10" width="3.6" height="28" fill="${c}"/><rect x="33.5" y="10" width="3.6" height="28" fill="${c}"/><line x1="6" y1="33" x2="42" y2="15" stroke="${c}" stroke-width="4" stroke-linecap="round"/>`,
+    philo:`<circle cx="24" cy="24" r="14" fill="none" stroke="${c}" stroke-width="4"/><circle cx="31" cy="17" r="4.5" fill="${c}"/>`,
+    chief:`<path d="M6 34 L12 14 L18 34Z M18 34 L24 14 L30 34Z M30 34 L36 14 L42 34Z" fill="${c}"/>`,
+    wild:`<circle cx="14" cy="14" r="4.5" fill="${c}"/><circle cx="24" cy="24" r="4.5" fill="${c}"/><circle cx="34" cy="34" r="4.5" fill="${c}"/>`,
+    hist:`<rect x="9" y="11" width="30" height="5" fill="${c}"/><rect x="9" y="21.5" width="30" height="5" fill="${c}"/><rect x="9" y="32" width="30" height="5" fill="${c}"/>`,
+    contra:`<path d="M24 7 L41 24 L24 41 L7 24Z" fill="none" stroke="${c}" stroke-width="4"/>`
+  };
+  return `<svg viewBox="0 0 48 48" aria-hidden="true">${P[k]}</svg>`;
+}
+function drawIcon(x, k, cx, cy, s, c){
+  const u = s/48, X = v => cx+(v-24)*u, Y = v => cy+(v-24)*u;
+  x.save(); x.fillStyle = c; x.strokeStyle = c; x.lineWidth = 4*u; x.lineCap='round';
+  const rect = (a,b,w,h) => x.fillRect(X(a),Y(b),w*u,h*u);
+  const ring = (a,b,r) => { x.beginPath(); x.arc(X(a),Y(b),r*u,0,Math.PI*2); x.stroke(); };
+  const dot = (a,b,r) => { x.beginPath(); x.arc(X(a),Y(b),r*u,0,Math.PI*2); x.fill(); };
+  if(k==='judge'){ rect(9,8,30,4); rect(12,14,5,20); rect(21.5,14,5,20); rect(31,14,5,20); rect(7,36,34,5); }
+  if(k==='romantic'){ ring(18,24,11); ring(30,24,11); }
+  if(k==='realist'){ x.strokeRect(X(11),Y(9),26*u,30*u); rect(16,17,16,3.5); rect(16,25,10,3.5); }
+  if(k==='petty'){ [11,18.5,26,33.5].forEach(a=>rect(a,10,3.6,28)); x.beginPath(); x.moveTo(X(6),Y(33)); x.lineTo(X(42),Y(15)); x.stroke(); }
+  if(k==='philo'){ ring(24,24,14); dot(31,17,4.5); }
+  if(k==='chief'){ x.beginPath(); [6,18,30].forEach(a=>{ x.moveTo(X(a),Y(34)); x.lineTo(X(a+6),Y(14)); x.lineTo(X(a+12),Y(34)); x.closePath(); }); x.fill(); }
+  if(k==='wild'){ dot(14,14,4.5); dot(24,24,4.5); dot(34,34,4.5); }
+  if(k==='hist'){ rect(9,11,30,5); rect(9,21.5,30,5); rect(9,32,30,5); }
+  if(k==='contra'){ x.beginPath(); x.moveTo(X(24),Y(7)); x.lineTo(X(41),Y(24)); x.lineTo(X(24),Y(41)); x.lineTo(X(7),Y(24)); x.closePath(); x.stroke(); }
+  x.restore();
+}
+
+/* ---------- seal (logo) ---------- */
+function sealPaths(cx, cy, r){
+  // returns array of drawing ops shared by SVG + canvas
+  const u = r/50, k = .82, oy = -5;
+  const P = (a,b) => [cx+a*u*k, cy+(b*k+oy)*u];
+  const dots = [0,1,2,3,4].map(i => { const a = (140 - i*25)*Math.PI/180; return [cx+Math.cos(a)*r*.72, cy+Math.sin(a)*r*.72, 3.4*u]; });
+  return {u, k, oy, P, dots, left:[P(-24,-14),P(-12,-14),P(0,16),P(-6,30)], right:[P(-6,30),P(0,16),P(16,-16),P(22,-12),P(2,30)], head:[cx+19*u*k, cy+(-18*k+oy)*u]};
+}
+function sealSVG(cx, cy, r){
+  const s = sealPaths(cx, cy, r), u = s.u, k = s.k, pt = a => a.map(p=>p.join(' ')).join(' L');
+  return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${C.robe}"/><circle cx="${cx}" cy="${cy}" r="${r*.88}" fill="none" stroke="${C.pad}" stroke-width="${1.8*u}"/>`+
+    s.dots.map(d=>`<circle cx="${d[0]}" cy="${d[1]}" r="${d[2]}" fill="${C.pad}"/>`).join('')+
+    `<path d="M${pt(s.left)}Z" fill="${C.pad}"/><path d="M${pt(s.right)}Z" fill="${C.pad}"/>`+
+    `<g transform="translate(${s.head[0]} ${s.head[1]}) rotate(27)"><rect x="${-15*u*k}" y="${-6.5*u*k}" width="${30*u*k}" height="${13*u*k}" rx="${2*u*k}" fill="${C.pad}"/><rect x="${-8*u*k}" y="${-6.5*u*k}" width="${2.4*u*k}" height="${13*u*k}" fill="${C.robe}"/><rect x="${5.6*u*k}" y="${-6.5*u*k}" width="${2.4*u*k}" height="${13*u*k}" fill="${C.robe}"/></g>`;
+}
+function drawSeal(x, cx, cy, r){
+  const s = sealPaths(cx, cy, r), u = s.u, k = s.k;
+  x.save();
+  x.fillStyle = C.robe; x.beginPath(); x.arc(cx,cy,r,0,Math.PI*2); x.fill();
+  x.strokeStyle = C.pad; x.lineWidth = 1.8*u; x.beginPath(); x.arc(cx,cy,r*.88,0,Math.PI*2); x.stroke();
+  x.fillStyle = C.pad;
+  s.dots.forEach(d => { x.beginPath(); x.arc(d[0],d[1],d[2],0,Math.PI*2); x.fill(); });
+  [s.left, s.right].forEach(poly => { x.beginPath(); poly.forEach((p,i)=> i ? x.lineTo(p[0],p[1]) : x.moveTo(p[0],p[1])); x.closePath(); x.fill(); });
+  x.translate(s.head[0], s.head[1]); x.rotate(27*Math.PI/180);
+  x.fillRect(-15*u*k, -6.5*u*k, 30*u*k, 13*u*k);
+  x.fillStyle = C.robe; x.fillRect(-8*u*k, -6.5*u*k, 2.4*u*k, 13*u*k); x.fillRect(5.6*u*k, -6.5*u*k, 2.4*u*k, 13*u*k);
+  x.restore();
+}
+$('#sealSvg').innerHTML = sealSVG(64,64,60);
+
+/* ---------- deterministic simulation ---------- */
+function hash(str){ let h1 = 0xdeadbeef, h2 = 0x41c6ce57; for(let i=0;i<str.length;i++){ const c=str.charCodeAt(i); h1=Math.imul(h1^c,2654435761); h2=Math.imul(h2^c,1597334677); } h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909); h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909); return 4294967296*(2097151&h2)+(h1>>>0); }
+const rand = key => (hash(key) % 100000) / 100000;
+const pick = (arr, key) => arr[hash(key) % arr.length];
+const count = (t, re) => (t.match(re) || []).length;
+
+function features(t){
+  const lower = t.toLowerCase();
+  const words = t.trim().split(/\s+/).filter(Boolean);
+  return {
+    words: words.length,
+    specific: count(t, /\d+/g) + count(lower, /\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday|am|pm|minute|minutes|hour|hours|week|weeks|days?|screenshot|receipt|receipts)\b/g) + Math.floor(count(t, /["“”]/g)/2),
+    caps: words.filter(w => w.length > 2 && w === w.toUpperCase() && /[A-Z]/.test(w)).length,
+    excl: count(t, /!/g),
+    question: count(t, /\?/g),
+    absolutes: count(lower, /\b(always|never|every time|literally|nobody|everyone|everybody|constantly)\b/g),
+    feelings: count(lower, /\b(feel|felt|love|hurt|sorry|care|miss|heart|trying|tried|effort|plans|special|appreciate|wanted)\b/g),
+    blame: count(lower, /\b(you|your|you're|youre)\b/g),
+    selfaware: count(lower, /\b(my bad|i admit|to be fair|honestly|i get it|fair enough|i guess|maybe i)\b/g),
+    wit: count(lower, /\b(like|same as|than|as if|basically|energy|era|built like|coverage|plan|resume|loading)\b/g),
+    petty: count(lower, /\b(noted|k|ok\.|per my last|reply all|calendar|invite|receipt|screenshot|read receipts?|left on read|loudly|recurring|reminder|label)\b/g),
+    insult: count(lower, /\b(stupid|dumb|idiot|shut up|trash|loser|ugly|clown|bum)\b/g)
+  };
+}
+
+function jurorScore(j, f, rubric){
+  let s = 0;
+  // "Better comeback" is scored like a roast: wit and delivery, clever beats cruel.
+  const roast = rubric==='roast' || rubric==='comeback', petty = rubric==='petty';
+  switch(j){
+    case 'judge':    s = f.specific*1.1 + f.selfaware*1.5 - f.insult*(roast?0:2) - f.excl*.5 - f.absolutes + Math.min(f.words,45)/15 + (roast? f.wit*1.4 : 0) + (petty? f.petty : 0); break;
+    case 'romantic': s = f.feelings*1.8 + f.selfaware*1.5 - f.insult*(roast?.5:2.5) - f.caps*1.5 + (roast? f.wit : 0) + (petty? f.petty*.5 : 0); break;
+    case 'realist':  s = f.specific*2 - f.absolutes*1.5 - f.question*.5 + (f.words>12?1:0) + (roast? f.wit*.8 : 0) + (petty? f.petty*.8 : 0); break;
+    case 'petty':    s = f.petty*2.4 + f.wit*1.3 + f.caps*.8 + (f.words<30?1:0) - f.insult*(roast?1:0); break; // clever beats cruel
+    case 'philo':    s = f.selfaware*2 + f.question*.8 + f.words/30 - f.blame*.3 + (roast? f.wit : 0) + (petty? f.petty*.7 : 0); break;
+  }
+  return s;
+}
+
+// PROTOTYPE SIMULATOR. Votes are a deterministic heuristic run in the browser,
+// not the real jury. Higher tiers add more seats and more noise (a fresh read);
+// they do not lean toward either side. Never film "real" overturns with this.
+function deliberate(c, tier, prior){
+  const fa = features(c.a.take), fb = features(c.b.take);
+  const seed = c.rubric+'|'+c.a.name+'|'+c.a.take+'|'+c.b.name+'|'+c.b.take+(tier>1?'|T'+tier:'');
+  const seats = tier > 1 ? TIERS[tier].seats : PANEL;
+  const noise = tier === 3 ? 2.8 : tier === 2 ? 2.4 : 1.4;
+  const panelDiff = PANEL.reduce((acc,k) => acc + jurorScore(k,fa,c.rubric) - jurorScore(k,fb,c.rubric), 0)/5;
+  const votes = seats.map(j => {
+    let d;
+    if(PANEL.includes(j)){
+      d = jurorScore(j,fa,c.rubric) - jurorScore(j,fb,c.rubric) + (rand(seed+j)-.5)*noise*2;
+    } else {
+      // Appeals-only seats weigh the whole record, each with its own fresh read.
+      d = panelDiff + (rand(seed+j)-.5)*noise*2.6;
+    }
+    if(d === 0) d = rand(seed+j+'t') < .5 ? -1 : 1;
+    return {j, side: d > 0 ? 'a' : 'b'};
+  });
+  const ca = votes.filter(v=>v.side==='a').length, cb = votes.length - ca;
+  const winner = ca > cb ? 'a' : 'b';
+  const W = c[winner].name, L = c[winner==='a'?'b':'a'].name;
+  votes.forEach(v => { v.name = c[v.side].name; v.quote = fill(pick(QUOTES.win[v.j], seed+v.j+'q'), c[v.side].name, c[v.side==='a'?'b':'a'].name); });
+  let lead, ruling;
+  if(tier > 1){
+    lead = 'chief';
+    const overturned = prior.winner !== winner;
+    ruling = fill(pick(SUP_RULINGS[tier][overturned ? 'over' : 'up'], seed+'r'), W, L);
+  } else {
+    const majority = votes.filter(v=>v.side===winner).map(v=>v.j);
+    lead = pick(majority, seed+'lead');
+    const unanimous = majority.length === votes.length;
+    const bank = RUBRIC_RULINGS[c.rubric].concat(RULINGS[lead]);
+    ruling = fill(pick(unanimous ? bank.concat(UNANIMOUS) : bank, seed+'r'), W, L);
+  }
+  // ca/cb: with odd seat counts a 2-sided case never ties.
+  return {votes, winner, W, L, hi:Math.max(ca,cb), lo:Math.min(ca,cb), ruling, lead, tier};
+}
+const fill = (t, W, L) => t.replace(/\{W\}/g, W).replace(/\{L\}/g, L);
+
+/* ---------- line banks ---------- */
+const QUOTES = {
+  win:{
+    judge:['Sustained. {W} stayed on topic.','{W} made one argument and finished it.','The record favors {W}.','{L} brought a second argument to the first argument.','{W} was calm. Calm wins in this court.','I read it twice. Still {W}.'],
+    romantic:['{W} actually tried. I felt that.','There was effort in {W}’s take. Effort matters.','{L} won the argument and lost the vibe.','{W} has a heart. I saw it.','I want {W} to be okay, so: {W}.','{W} cares. {L} is keeping score.'],
+    realist:['Show me receipts. {W} did.','{W} gave dates. I love a date.','{L} said a lot of words with no numbers.','Facts favor {W}. Feelings are not evidence.','{W} has the timeline. Case closed.','I checked the math. {W}.'],
+    petty:['{W} said it with their chest.','{L}’s take has “read at 11:42” energy.','I’m keeping a list and {W} is on the good side.','{W} won on delivery alone.','{L} typed that with a straight face?','Respectfully, {L} is cooked.'],
+    philo:['Is anyone ever really right? Yes. {W}.','{W} sees the bigger picture.','{L} is arguing the details. {W} is arguing the point.','{W} asked the better question.','In ten years only {W}’s take will matter.'],
+    chief:['{W}.','This court has read enough. {W}.','{W}. Next case.'],
+    wild:['Everyone’s being so normal about this. I read it again. {W}.','I steelmanned {L}. Still {W}.','Fresh eyes, same take: {W}.'],
+    hist:['I’ve seen this fight before. {W} wins it every time.','On precedent: {W}.','The case files favor {W}.'],
+    contra:['Everyone assumes it’s obvious. I checked. {W}.','I tried to argue for {L}. Couldn’t. {W}.','The obvious answer survived. {W}.']
+  }
+};
+const RULINGS = {
+  judge:['{L} made a closing argument for the other side. The court rules for {W}.','{W} stated the facts and stopped talking. The court rewards that.','The court has reviewed the record. {L}, you were wrong in 4K.'],
+  romantic:['{W} came with a heart and {L} came with a loophole. Love wins.','{L} is right on paper and wrong in every way that matters.','The court feels for {L}. The court votes for {W}.'],
+  realist:['{W} brought receipts. {L} brought a mood. Receipts win.','{L}’s argument has no dates and no witnesses. The court sides with {W}.','The facts are boring and they favor {W}.'],
+  petty:['{L} typed that, read it, and hit send anyway. Brave. Wrong.','{W} wins and {L} should log off for a week.','I have screenshotted this for the group chat. {W} wins.'],
+  philo:['This was never about the topic. It was about respect, and {W} has more.','{L} won the fight and lost the point. The court sides with {W}.','In the long arc of the group chat, {W} was right.']
+};
+const RUBRIC_RULINGS = {
+  right:['The court has reviewed the receipts. {L}, you were wrong in 4K.','{W} is right. {L} is loud. Those are different things.'],
+  roast:['{W} had a setup, a payoff and a cell tower. {L} brought a first draft to a final round.','{L} should sit down and ice that burn.'],
+  petty:['{W} did not text, {W} performed. The court is honored to have watched.','{L} was petty. {W} was petty with a business plan.'],
+  comeback:['{W} heard the setup and finished the joke. {L} is still typing.','{L} had a reply. {W} had a comeback. Different things.']
+};
+const UNANIMOUS = ['Unanimous. Not one juror could find a reason. Sorry, {L}.'];
+const SUP_RULINGS = {
+  2:{
+    over:['Overturned. The lower court rushed. {W}’s take was right the whole time.','The higher court has seen things. Overturned for {W}.','Seven jurors, a fresh read, and a new answer. {W} wins on appeal.'],
+    up:['Upheld. The appeal was brave. It was not good. {W} still wins.','This court has seen enough. Upheld for {W}.','Seven jurors looked again. Same answer. {L}, it’s time.']
+  },
+  3:{
+    over:['Overturned. Nine jurors, final answer: {W}. Case closed.','The Supreme Court disagrees with the court below. {W} wins. Final.'],
+    up:['Upheld. Nine jurors, final answer: {W}. Case closed.','The Supreme Court has spoken. {W}. There is no higher court.']
+  }
+};
+
+/* ---------- compose ---------- */
+const rubWrap = $('#rubrics');
+RUBRICS.forEach(r => {
+  rubWrap.insertAdjacentHTML('beforeend', `<input type="radio" name="rubric" id="r-${r.id}" value="${r.id}"><label for="r-${r.id}">${r.label}</label>`);
+});
+const fields = {nameA:$('#nameA'), takeA:$('#takeA'), nameB:$('#nameB'), takeB:$('#takeB')};
+function setRubric(id){ const el = $('#r-'+id); if(el) el.checked = true; }
+function updateCounts(){
+  [['takeA','countA'],['takeB','countB']].forEach(([t,c]) => {
+    const n = fields[t].value.length, el = $('#'+c);
+    el.textContent = n + '/280'; el.classList.toggle('near', n >= 250);
+  });
+}
+function loadCase(c){
+  setRubric(c.rubric);
+  fields.nameA.value = c.a.name; fields.takeA.value = c.a.take;
+  fields.nameB.value = c.b.name; fields.takeB.value = c.b.take;
+  updateCounts();
+}
+loadCase(CASE_OF_DAY);
+const lastRubric = store.get('rubric', null); // remembered only for blank cases
+$('#clearBtn').addEventListener('click', () => {
+  Object.values(fields).forEach(f => f.value = '');
+  if(lastRubric) setRubric(lastRubric);
+  $('#cotd').style.display = 'none';
+  updateCounts(); fields.nameA.focus();
+});
+['takeA','takeB'].forEach(k => fields[k].addEventListener('input', updateCounts));
+let casesSettled = store.get('settled', 0);
+function showCount(){ $('#casecount').textContent = casesSettled ? `${casesSettled} case${casesSettled===1?'':'s'} settled` : ''; }
+showCount();
+
+/* ---------- network status rail (simulated) ---------- */
+// 0 Submitted, 1 Jury scoring, 2 Network checking, 3 Finalized. step = index of the current step; 4 = all done.
+function setRail(el, step){
+  el.querySelectorAll('li').forEach((li, i) => {
+    li.classList.toggle('done', i < step);
+    li.classList.toggle('now', i === step);
+    if(i === step) li.setAttribute('aria-current', 'step'); else li.removeAttribute('aria-current');
+  });
+}
+
+/* ---------- courtroom sequence ---------- */
+const sleep = ms => new Promise(r => setTimeout(r, skipping ? 0 : (RM ? Math.min(ms, 120) : ms)));
+let skipping = false;
+$('#skip').addEventListener('click', () => { skipping = true; });
+
+async function runCourt(c, result, tier, prior){
+  skipping = false;
+  const court = $('#court'), bench = $('#bench'), status = $('#status'), tally = $('#tally'), slam = $('#slamzone');
+  const supreme = tier > 1;
+  const seats = supreme ? TIERS[tier].seats : PANEL;
+  court.classList.toggle('supreme', supreme);
+  $('#courtTitle').textContent = supreme ? `The ${TIERS[tier].name} is in session` : 'The jury is deliberating';
+  $('#courtRub').textContent = RUBRICS.find(r=>r.id===c.rubric).label + `  ${c.a.name} vs ${c.b.name}`;
+  bench.className = 'bench' + (supreme ? ' ' + TIERS[tier].cls : '');
+  bench.innerHTML = seats.map(j => `<div class="seat" style="--c:${J[j].color}" id="seat-${j}"><div class="disc">${iconSVG(j, J[j].color)}</div><div class="nm">${J[j].name}</div><div class="placard"><span></span></div></div>`).join('');
+  status.innerHTML = ''; tally.className = 'tally dim';
+  tally.innerHTML = `<div><b id="ta">0</b><span>${esc(c.a.name)}</span></div><div><b id="tb">0</b><span>${esc(c.b.name)}</span></div>`;
+  slam.className = 'slamzone'; slam.innerHTML = '';
+  $('#skip').style.visibility = 'visible';
+  document.body.style.overflow = 'hidden';
+  const rail = $('#courtRail');
+  setRail(rail, 0);
+  court.classList.add('on');
+  await sleep(450);
+  setRail(rail, 1);
+
+  // 1. seats light one by one, uneven pacing
+  const pace = [600, 900, 650, 1100, 750, 820, 980, 700, 880];
+  for(let i=0;i<seats.length;i++){
+    const j = seats[i];
+    $('#seat-'+j).classList.add('lit');
+    status.innerHTML = `<span>${J[j].doing}</span>`;
+    await sleep(pace[i]);
+  }
+  // 2. hush
+  bench.classList.add('hush');
+  setRail(rail, 2);
+  status.innerHTML = `<span>Order in the chat.</span>`;
+  await sleep(tier === 3 ? 1800 : supreme ? 1400 : 850);
+  bench.classList.remove('hush');
+  // The reveal below presents a result that is already final; it is never suspense about an undecided vote.
+  setRail(rail, 4);
+  tally.classList.remove('dim');
+
+  // 3. votes flip
+  let a = 0, b = 0;
+  for(const v of result.votes){
+    const seat = $('#seat-'+v.j);
+    seat.querySelector('.placard span').textContent = v.name;
+    seat.classList.add('voted');
+    if(v.side==='a') a++; else b++;
+    $('#ta').textContent = a; $('#tb').textContent = b;
+    status.innerHTML = `<q>${esc(v.quote)}</q><span class="who">${J[v.j].name}, ${J[v.j].title}</span>`;
+    await sleep(skipping ? 0 : 1050);
+  }
+  await sleep(500);
+
+  // 4. the slam
+  $('#skip').style.visibility = 'hidden';
+  const verb = 'The court rules';
+  const who = `for ${esc(result.W)}`;
+  let stampHTML = '';
+  if(supreme){ stampHTML = `<div class="bigstamp">${prior.winner === result.winner ? 'UPHELD' : 'OVERTURNED'}</div>`; }
+  slam.innerHTML = `<div class="split">${result.hi}–${result.lo}</div><div class="forwho"><small>${verb}</small>${who}</div>${stampHTML}`;
+  slam.classList.add('on');
+  if(!RM){ setTimeout(()=>{ court.classList.add('shake'); setTimeout(()=>court.classList.remove('shake'), 140); }, 190); }
+  skipping = false;
+  await sleep(supreme ? 2100 : 1700);
+  court.classList.remove('on');
+  document.body.style.overflow = '';
+}
+const esc = s => String(s).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+
+/* ---------- card rendering (canvas, 1080x1920) ---------- */
+const FONT_D = '"Big Shoulders Display", Impact, sans-serif';
+const FONT_T = '"Schibsted Grotesk", Arial, sans-serif';
+function wrapLines(x, text, maxW){
+  const words = text.split(/\s+/).filter(Boolean), lines = []; let cur = '';
+  words.forEach(w => { const t = cur ? cur+' '+w : w; if(x.measureText(t).width <= maxW) cur = t; else { if(cur) lines.push(cur); cur = w; } });
+  if(cur) lines.push(cur); return lines;
+}
+function slipHeight(x, take, size){ x.font = `500 ${size}px ${FONT_T}`; return 134 + Math.round(size*1.36)*wrapLines(x, take, 936-130).length + 18; }
+
+function drawSlip(x, X, Y, w, name, take, rot, won, size, stampWord){
+  const lh = Math.round(size*1.36);
+  x.font = `500 ${size}px ${FONT_T}`;
+  const lines = wrapLines(x, take, w-130), h = slipHeight(x, take, size);
+  x.save(); x.translate(X+w/2, Y+h/2); x.rotate(rot*Math.PI/180); x.translate(-(X+w/2), -(Y+h/2));
+  x.fillStyle = 'rgba(0,0,0,.28)'; x.fillRect(X+6, Y+10, w, h);
+  x.fillStyle = C.pad; x.fillRect(X, Y, w, h);
+  x.fillStyle = 'rgba(143,168,240,.7)';
+  x.fillRect(X, Y+92, w, 2);
+  lines.forEach((_,i) => x.fillRect(X, Y+134+14+i*lh, w, 2));
+  x.fillStyle = 'rgba(229,36,44,.85)'; x.fillRect(X+70, Y, 3, h);
+  x.fillStyle = 'rgba(229,36,44,.5)'; x.fillRect(X+76, Y, 2, h);
+  x.fillStyle = C.robe; x.font = `800 38px ${FONT_T}`; x.fillText(name, X+100, Y+68);
+  x.font = `500 ${size}px ${FONT_T}`;
+  lines.forEach((l,i) => x.fillText(l, X+100, Y+134+i*lh));
+  if(won){
+    const sx = X+w-150, sy = Y+48;
+    x.save(); x.translate(sx, sy); x.rotate(-8*Math.PI/180);
+    x.fillStyle = C.pad; x.strokeStyle = C.stamp; x.lineWidth = 7;
+    roundRect(x, -110, -33, 220, 66, 6); x.fill(); x.stroke();
+    x.fillStyle = C.stamp; x.font = `900 54px ${FONT_D}`; x.textAlign = 'center';
+    x.letterSpacing = '4px'; x.fillText(stampWord, 2, 19); x.letterSpacing = '0px';
+    x.restore();
+  }
+  x.restore();
+  return h;
+}
+function roundRect(x, X, Y, w, h, r){ x.beginPath(); x.moveTo(X+r,Y); x.arcTo(X+w,Y,X+w,Y+h,r); x.arcTo(X+w,Y+h,X,Y+h,r); x.arcTo(X,Y+h,X,Y,r); x.arcTo(X,Y,X+w,Y,r); x.closePath(); }
+
+function drawCard(cv, c, r, opt){
+  const x = cv.getContext('2d'), W = 1080, H = 1920, tier = opt.tier || 1, supreme = tier > 1;
+  x.textAlign = 'left'; x.textBaseline = 'alphabetic';
+  x.fillStyle = C.robe; x.fillRect(0,0,W,H);
+  // pinstripe
+  x.save(); x.strokeStyle = 'rgba(255,255,255,.035)'; x.lineWidth = 1.4;
+  for(let i=-H;i<W+H;i+=22){ x.beginPath(); x.moveTo(i,0); x.lineTo(i+H*Math.tan(35*Math.PI/180),H); x.stroke(); }
+  x.restore();
+  // header
+  drawSeal(x, 108, 112, 42);
+  x.fillStyle = C.docket; x.font = `900 64px ${FONT_D}`; x.letterSpacing = '3px'; x.fillText('VERDICT', 166, 134); x.letterSpacing = '0px';
+  x.textAlign = 'right';
+  x.font = `800 28px ${FONT_T}`; x.fillStyle = supreme ? C.pad : C.rule; x.fillText(supreme ? TIERS[tier].name : 'Settle It', 1008, 106);
+  x.font = `500 26px ${FONT_T}`; x.fillStyle = C.rule; x.fillText('Case #' + opt.caseNo, 1008, 142);
+  x.textAlign = 'left';
+  x.fillStyle = supreme ? C.pad : 'rgba(143,168,240,.45)'; x.fillRect(72, 182, 936, tier === 3 ? 8 : supreme ? 4 : 2);
+  // rubric
+  const rubric = RUBRICS.find(q=>q.id===c.rubric).label;
+  let rs = 120; x.font = `900 ${rs}px ${FONT_D}`;
+  while(x.measureText(rubric).width > 936 && rs > 70){ rs -= 4; x.font = `900 ${rs}px ${FONT_D}`; }
+  x.fillStyle = C.docket; x.fillText(rubric, 72, 306);
+  // fit
+  x.font = `italic 700 46px ${FONT_T}`;
+  const rl = wrapLines(x, '“' + r.ruling + '”', 936);
+  const benchH = supreme ? 230 : 250;
+  const fixed = 300 + rl.length*58 + 50 + benchH + (supreme ? 96 - 40 : 0) + (opt.stamp ? 110 : 0);
+  const budget = (tier === 3 ? 1678 : 1646) - 352 - 26 - fixed;
+  let size = 36;
+  while(slipHeight(x, c.a.take, size) + slipHeight(x, c.b.take, size) > budget && size > 24) size--;
+  const stampWord = 'WINNER'; // marks the better take, never a person
+  const h1 = drawSlip(x, 72, 352, 936, c.a.name, c.a.take, -1.2, r.winner==='a', size, stampWord);
+  const y2 = 352 + h1 + 26;
+  const h2 = drawSlip(x, 72, y2, 936, c.b.name, c.b.take, 1.0, r.winner==='b', size, stampWord);
+  // split
+  let bl = y2 + h2 + 40 + 214;
+  const split = `${r.hi}–${r.lo}`;
+  x.font = `900 270px ${FONT_D}`; x.letterSpacing = '-4px';
+  x.fillStyle = C.pad; x.fillText(split, 60, bl);
+  const sw = 60 + x.measureText(split).width + 40; x.letterSpacing = '0px';
+  x.font = `500 40px ${FONT_T}`; x.fillStyle = C.rule;
+  x.fillText('The court rules', sw, bl-100);
+  const line2 = `for ${r.W}`;
+  let fs = 72; x.font = `800 ${fs}px ${FONT_T}`;
+  while(x.measureText(line2).width > 1008 - sw && fs > 40){ fs -= 2; x.font = `800 ${fs}px ${FONT_T}`; }
+  x.fillStyle = C.docket; x.fillText(line2, sw, bl-24);
+  if(opt.stamp){
+    const sty = bl + 70;
+    x.save(); x.translate(540, sty); x.rotate(-4*Math.PI/180);
+    x.font = `900 90px ${FONT_D}`; x.letterSpacing = '16px';
+    const tw = x.measureText(opt.stamp).width - 16, bw = tw + 90;
+    x.strokeStyle = C.stamp; x.lineWidth = 8; roundRect(x, -bw/2, -50, bw, 100, 8); x.stroke();
+    x.fillStyle = C.stamp; x.textAlign = 'center'; x.fillText(opt.stamp, 8, 32);
+    x.restore(); x.letterSpacing = '0px';
+    bl += 110;
+  }
+  // ruling
+  let ry = bl + 84;
+  x.font = `italic 700 46px ${FONT_T}`; x.fillStyle = C.docket;
+  rl.forEach((l,i) => x.fillText(l, 72, ry + i*58));
+  const ry2 = ry + (rl.length-1)*58 + 48;
+  x.font = `500 30px ${FONT_T}`; x.fillStyle = C.rule;
+  x.fillText(`${J[r.lead].name}, ${J[r.lead].title}`, 72, ry2);
+  // bench
+  const by0 = ry2 + 40;
+  x.fillStyle = 'rgba(143,168,240,.45)'; x.fillRect(72, by0, 936, 2);
+  const n = r.votes.length, cw = 936/n, rad = n===5 ? 50 : n===7 ? 42 : 34;
+  r.votes.forEach((v,i) => {
+    const cx = 72 + cw*i + cw/2, cy = by0 + 74, jj = J[v.j];
+    x.fillStyle = C.deep; x.strokeStyle = jj.color; x.lineWidth = 5;
+    x.beginPath(); x.arc(cx, cy, rad, 0, Math.PI*2); x.fill(); x.stroke();
+    drawIcon(x, v.j, cx, cy, rad*1.15, jj.color);
+    x.textAlign = 'center';
+    const nf = n===5 ? 30 : n===7 ? 23 : 20, vf = n===5 ? 28 : n===7 ? 24 : 20;
+    x.font = `800 ${nf}px ${FONT_T}`; x.fillStyle = jj.color; x.fillText(jj.name, cx, cy+rad+40);
+    x.font = `800 ${vf}px ${FONT_T}`;
+    let label = v.name; while(x.measureText(label).width > cw-(n===5?36:16) && label.length > 3) label = label.slice(0,-2)+'…';
+    const vw = Math.min(cw-6, x.measureText(label).width + (n===5?36:18));
+    x.fillStyle = C.pad; roundRect(x, cx-vw/2, cy+rad+56, vw, 46, 23); x.fill();
+    x.fillStyle = C.robe; x.fillText(label, cx, cy+rad+(n===5?88:n===7?87:86));
+    x.textAlign = 'left';
+  });
+  // footer (same geometry as brand/source/gen.py)
+  if(tier === 3){
+    x.textAlign = 'center'; x.font = `800 34px ${FONT_T}`; x.fillStyle = C.pad;
+    x.fillText('Case closed. Settle yours on Verdict.', 540, 1770);
+  } else {
+    x.strokeStyle = C.pad; x.lineWidth = 4; roundRect(x, 72, 1686, 936, 86, 43); x.stroke();
+    x.textAlign = 'center'; x.font = `800 38px ${FONT_T}`; x.fillStyle = C.pad;
+    x.fillText(tier === 2 ? 'Appeal to the Supreme Court' : 'Appeal to a higher court', 540, 1743);
+  }
+  x.textAlign = 'left';
+  x.fillStyle = 'rgba(143,168,240,.35)'; x.fillRect(72, 1792, 936, 2);
+  // Prototype cards are never network-checked, so they say so instead of showing a check mark and a receipt.
+  x.strokeStyle = C.rule; x.lineWidth = 3; x.beginPath(); x.arc(88, 1821, 10, 0, Math.PI*2); x.stroke();
+  x.font = `500 26px ${FONT_T}`; x.fillStyle = C.docket; x.fillText('Simulated in your browser · Not checked by the network', 114, 1830);
+  x.textAlign = 'right'; x.fillStyle = C.rule; x.fillText('No receipt', 1008, 1830);
+  x.textAlign = 'left'; x.fillText('Submitted by participants', 114, 1872);
+}
+
+function fontsReady(){
+  if(!document.fonts || !document.fonts.load) return Promise.resolve();
+  const loads = [`900 100px "Big Shoulders Display"`, `500 30px "Schibsted Grotesk"`, `800 30px "Schibsted Grotesk"`, `italic 700 30px "Schibsted Grotesk"`].map(f => document.fonts.load(f).catch(()=>{}));
+  return Promise.race([Promise.all(loads), new Promise(r => setTimeout(r, 2500))]);
+}
+
+/* ---------- flow ---------- */
+let current = null; // {c, caseNo, rulings:[tier1, tier2?, tier3?]}
+const SENSITIVE = /\b(kill myself|killing myself|suicide|self[- ]harm|hurt myself|hits me|hit me|choked|abuse[sd]?|abusive|threaten(ed|s)? to)\b/i;
+
+$('#form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const err = $('#err'); err.textContent = '';
+  const rubric = (document.querySelector('input[name=rubric]:checked') || {}).value;
+  const c = {
+    rubric,
+    a:{name: fields.nameA.value.trim() || 'Side A', take: fields.takeA.value.trim()},
+    b:{name: fields.nameB.value.trim() || 'Side B', take: fields.takeB.value.trim()}
+  };
+  if(!rubric){ err.textContent = 'Pick what the court is deciding first.'; return; }
+  if(c.a.take.length < 10){ err.textContent = `${c.a.name} needs a take of at least a sentence.`; fields.takeA.focus(); return; }
+  if(c.b.take.length < 10){ err.textContent = `${c.b.name} needs a take of at least a sentence.`; fields.takeB.focus(); return; }
+  if(c.a.name.toLowerCase() === c.b.name.toLowerCase()){ err.textContent = 'Give the two sides different names so the jury can tell them apart.'; fields.nameB.focus(); return; }
+  if(!$('#consentA').checked){ err.textContent = `${c.a.name} needs to tick the consent box. Nothing is sent without it.`; $('#consentA').focus(); return; }
+  if(!$('#consentB').checked){ err.textContent = `${c.b.name} needs to tick the consent box. Nothing is sent without it.`; $('#consentB').focus(); return; }
+  if(!$('#age18').checked){ err.textContent = 'Confirm you’re both 18 or older to summon the jury.'; $('#age18').focus(); return; }
+  store.set('rubric', rubric);
+  if(SENSITIVE.test(c.a.take + ' ' + c.b.take)){
+    $('#compose').style.display = 'none'; $('#declined').classList.add('on'); scrollTo(0,0); return;
+  }
+  const first = deliberate(c, 1, null);
+  const caseNo = String(hash(c.a.take + c.b.take) % 9000 + 1000);
+  current = {c, caseNo, rulings:[first]};
+  await fontsReady();
+  await runCourt(c, first, 1, null);
+  drawCard($('#card'), c, first, {caseNo, tier:1});
+  showResult();
+  casesSettled++; store.set('settled', casesSettled); showCount();
+});
+
+function showResult(){
+  $('#compose').style.display = 'none';
+  $('#result').classList.add('on');
+  setRail($('#resultRail'), 4);
+  const rs = current.rulings, r = rs[rs.length-1], tier = rs.length, prev = rs[rs.length-2];
+  const verdictWord = prev ? (r.winner === prev.winner ? 'Upheld' : 'Overturned') : 'The court has ruled';
+  $('#resultTitle').textContent = prev ? `${verdictWord}. ${r.hi}\u2060–\u2060${r.lo}.` : verdictWord;
+  $('#card').setAttribute('aria-label', `Verdict card. ${r.hi} to ${r.lo} for ${r.W}. Ruling: ${r.ruling}`);
+  const ab = $('#appealBtn');
+  // Only the losing side may appeal; in this single-device prototype the
+  // button stands in for the loser's own screen.
+  const loser = r.L;
+  ab.disabled = tier >= 3;
+  ab.textContent = tier >= 3 ? 'The Supreme Court has ruled' : tier === 2 ? `${loser}: appeal to the Supreme Court` : `${loser}: appeal to a higher court`;
+  $('#appealNote').textContent = tier >= 3 ? 'Supreme Court rulings are final. Even here.'
+    : tier === 2 ? 'Last appeal. The Supreme Court seats 9 jurors and its ruling is final.'
+    : 'The Appeals Court seats 7 jurors and can overturn this. Up to 2 appeals, losing side only.';
+  scrollTo({top:0, behavior: RM ? 'auto' : 'smooth'});
+}
+
+$('#appealBtn').addEventListener('click', async () => {
+  if(!current || current.rulings.length >= 3) return;
+  const prior = current.rulings[current.rulings.length-1];
+  const tier = current.rulings.length + 1;
+  const next = deliberate(current.c, tier, prior);
+  current.rulings.push(next);
+  await runCourt(current.c, next, tier, prior);
+  const stamp = next.winner === prior.winner ? 'UPHELD' : 'OVERTURNED';
+  drawCard($('#card'), current.c, next, {caseNo: current.caseNo + (tier === 2 ? '-A' : '-S'), tier, stamp});
+  showResult();
+});
+
+$('#dlBtn').addEventListener('click', () => {
+  const cv = $('#card');
+  const url = cv.toDataURL('image/png');
+  let ov = document.getElementById('saveSheet');
+  if(!ov){
+    ov = document.createElement('div'); ov.id = 'saveSheet';
+    ov.style.cssText = 'position:fixed;inset:0;z-index:50;background:rgba(18,12,46,.92);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:max(16px,env(safe-area-inset-top,0px)) 16px max(16px,env(safe-area-inset-bottom,0px))';
+    ov.innerHTML = '<img id="saveImg" alt="Your verdict card" style="max-height:78vh;max-width:100%;border-radius:12px"><p style="color:#F4F6FF;font-weight:700;margin:0;text-align:center">Press and hold the card (or right-click) to save it.</p><button type="button" id="saveClose" class="btn2" style="max-width:240px;color:#F7E26B;border-color:#F7E26B">Done</button>';
+    document.body.appendChild(ov);
+    ov.querySelector('#saveClose').addEventListener('click', () => { ov.style.display = 'none'; });
+  }
+  ov.querySelector('#saveImg').src = url; ov.style.display = 'flex';
+});
+
+function backToCompose(){
+  $('#result').classList.remove('on'); $('#declined').classList.remove('on');
+  $('#compose').style.display = ''; scrollTo(0,0);
+}
+$('#newBtn').addEventListener('click', () => { backToCompose(); current = null; });
+$('#declinedBack').addEventListener('click', backToCompose);
+$('#home').addEventListener('click', e => { e.preventDefault(); backToCompose(); });
+
+// test hook for screenshots
+window.__verdict = {deliberate, drawCard, CASE_OF_DAY, iconSVG, J};
+})();
+</script>
+<!-- GAMES-JS:BEGIN -->
+<script id="verdict-games">
+/* PROTOTYPE SIMULATOR for Red Flag Court and Jailbreak the Jury. Everything
+   here runs in the browser: no network call is made, nothing is sent, and no
+   link is ever opened (pasted links are replaced before they are shown).
+   The real versions run the five juror personas on the relayer (Quick Verdict
+   for Red Flag Court; the private practice court for Jailbreak the Jury). */
+(function(){
+'use strict';
+var $ = function(s){ return document.querySelector(s); };
+var Core = window.VerdictCore, V = window.__verdict || {};
+var RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
+var wait = function(ms){ return new Promise(function(r){ setTimeout(r, RM ? Math.min(ms, 80) : ms); }); };
+var esc = function(s){ return String(s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); };
+var store = {
+  get: function(k, d){ try{ var v = localStorage.getItem('verdict:'+k); return v == null ? d : JSON.parse(v); }catch(e){ return d; } },
+  set: function(k, v){ try{ localStorage.setItem('verdict:'+k, JSON.stringify(v)); }catch(e){} }
+};
+var SEATS = [['judge','Marlowe','#F4F6FF'],['romantic','Dahlia','#FF7AA8'],['realist','Frank','#58C4FF'],['petty','Tiff','#B9F24A'],['philo','Theo','#B79CFF']];
+function benchHTML(){ return SEATS.map(function(s){ return '<div class="s" style="color:'+s[2]+'"><div class="d">'+(V.iconSVG ? V.iconSVG(s[0], s[2]) : '')+'</div><span style="color:var(--fg)">'+s[1]+'</span></div>'; }).join(''); }
+function setQRail(el, n){ el.querySelectorAll('li').forEach(function(li, i){ li.classList.toggle('done', i < n); }); }
+var laDay = function(){ try{ return new Intl.DateTimeFormat('en-CA', {timeZone:'America/Los_Angeles', year:'numeric', month:'2-digit', day:'2-digit'}).format(new Date()); }catch(e){ return new Date().toISOString().slice(0,10); } };
+
+/* ---------- tabs ---------- */
+var TABS = ['settle','redflag','jailbreak'];
+function showTab(id){
+  if(TABS.indexOf(id) < 0) id = 'settle';
+  TABS.forEach(function(t){
+    $('#tab-'+t).hidden = t !== id;
+    var b = $('#t-'+t); b.setAttribute('aria-selected', String(t === id)); b.tabIndex = t === id ? 0 : -1;
+  });
+  store.set('tab', id);
+}
+TABS.forEach(function(t){ $('#t-'+t).addEventListener('click', function(){ showTab(t); try{ history.replaceState(null, '', '#'+t); }catch(e){} }); });
+$('#home').addEventListener('click', function(){ showTab('settle'); });
+showTab((location.hash || '').slice(1) || store.get('tab', 'settle'));
+
+/* one 18+ gate for both games */
+var adult = false;
+function openGames(){ adult = true; ['rf','jb'].forEach(function(p){ $('#'+p+'Gate').hidden = true; $('#'+p+'Main').hidden = false; }); }
+document.querySelectorAll('[data-gate]').forEach(function(b){ b.addEventListener('click', openGames); });
+
+/* ================= Red Flag Court ================= */
+var RF_MAX = 1000;
+var SAMPLES = [
+  {id:'crypto', chip:'Crypto DM', text:"hey!! saw your posts, you seem smart 😊 my uncle runs a private trading group, we 4x'd last month. min deposit is only $250 in crypto, spots close tonight. dm me [link hidden · not opened] dont tell anyone yet lol",
+   votes:['scam','scam','scam','scam','scam'], flags:['stranger_friendly','too_good_to_be_true','crypto_only','urgency','secrecy'],
+   lines:['The court notes a stranger, a guaranteed return, and a deadline. Sustained: scam.','Flattery first, deposit second. That order is the whole trick.','4x in a month. Show me the receipts. Oh wait, you want my receipts.','“dont tell anyone yet lol” is doing a LOT of work here.','Why would a stranger share a money secret? They wouldn’t.']},
+  {id:'package', chip:'Package text', text:'PARCEL NOTICE: Your package is on hold due to an incomplete address. Pay the $1.99 redelivery fee within 12 hrs or it will be returned: [link hidden · not opened]',
+   votes:['scam','scam','scam','scam','scam'], flags:['urgency','upfront_payment','link_pressure','impersonation_claim'],
+   lines:['No tracking number, no carrier, a fee and a clock. The court is unconvinced.','Nobody who cares about your package leads with a fee.','Real carriers leave a slip. They don’t text you for $1.99.','ALL CAPS “PARCEL NOTICE” is giving costume.','It’s never about the package. It’s about the card number.']},
+  {id:'romance', chip:'Romance', text:"Good morning my queen. I know we only matched 3 days ago but I feel like I've known you forever. I'm stuck overseas on the oil rig and my bank froze my card. Could you help with $400? I'll pay you back the moment I land ❤️",
+   votes:['scam','scam','scam','scam','scam'], flags:['stranger_friendly','upfront_payment','cant_meet','urgency'],
+   lines:['Three days. Overseas. A frozen card. The court has heard this case before.','I want love to win. This isn’t love, it’s an invoice with a heart on it.','No meeting, no call, just a number with a dollar sign.','“My queen” and “$400” in the same text. Choose one, sir.','Real feelings can wait for a video call.']},
+  {id:'job', chip:'Job offer', text:"Hi [name hidden], your resume was selected for a remote Data Entry role, $45/hr, no interview needed! To start, purchase your starter equipment kit ($180) from our approved vendor and we'll reimburse you on your first check. Reply YES to [phone hidden].",
+   votes:['scam','scam','scam','scam','scam'], flags:['pay_to_get_paid','too_good_to_be_true','off_platform_move'],
+   lines:['Employers pay you. Not the other way around. Sustained.','A job that skips meeting you isn’t interested in you.','$45 an hour, no interview, and you buy the gear. Math says no.','“Approved vendor” is carrying this whole text.','What’s the job, really? Collecting your $180.']},
+  {id:'locked', chip:'Account locked', text:'Security Alert: Unusual sign-in detected. Your account has been locked. Verify your identity now to avoid permanent closure: [link hidden · not opened] Reply with the 6-digit code we just sent.',
+   votes:['scam','scam','scam','scam','scam'], flags:['urgency','link_pressure','code_request','impersonation_claim','threat_of_loss'],
+   lines:['No company named, a threat, and a code request. The court rules: scam.','Fear is not a login method.','Nobody legit asks you to send back the code. The code is the key.','“Permanent closure” is drama. I’d know.','The lock isn’t on your account. It’s on your attention.']},
+  {id:'mystery', chip:'Mystery one', text:'Hi, this is the front desk at your dental office. Reminder: your cleaning is Tue at 3:00 PM. Reply C to confirm or call the office number on your card to reschedule. We never ask for payment by text.',
+   votes:['legit','legit','legit','sus','legit'], flags:[],
+   lines:['A time, a confirm option, and no money ask. The court finds it ordinary.','Honestly? Sweet. They just want to see you.','It tells you to use the number you already have. That’s the good sign.','Suspicious of all texts on principle. Dissenting, but I’ve got nothing.','Sometimes a reminder is just a reminder.']}
+];
+var RF_LOADING = ['Marlowe is reading the fine print','Dahlia is reading for intent','Frank is looking for receipts','Tiff is counting the exclamation points','Theo is asking what they really want'];
+var SENSITIVE = /\b(kill myself|killing myself|suicide|self[- ]harm|hurt myself|i'?ll (kill|hurt) you|(i|we) have (your|ur) (photos?|pics?|videos?)|send (them|it) to (your|ur) (contacts|family|friends)|sextortion)\b/i;
+var rf = {sample:null, text:'', hidden:{}};
+var rfIn = $('#rfInput');
+function rfCount(){ var n = Core.measure(rfIn.value); $('#rfCount').textContent = n + '/' + RF_MAX; }
+rfIn.addEventListener('input', function(){ rf.sample = null; rfCount(); });
+rfIn.addEventListener('paste', function(e){
+  var items = (e.clipboardData && e.clipboardData.items) || [];
+  for(var i = 0; i < items.length; i++){ if(items[i].kind === 'file'){ e.preventDefault(); $('#rfErr').textContent = 'Text only for now. Copy the words and paste them here.'; return; } }
+});
+$('#rfSamples').innerHTML = SAMPLES.map(function(s){ return '<button type="button" class="chip" data-s="'+s.id+'">'+esc(s.chip)+'</button>'; }).join('');
+$('#rfSamples').addEventListener('click', function(e){
+  var b = e.target.closest('[data-s]'); if(!b) return;
+  var s = SAMPLES.filter(function(x){ return x.id === b.dataset.s; })[0];
+  rfIn.value = s.text; rfCount(); rf.sample = s; $('#rfErr').textContent = '';
+});
+function pillify(text){
+  // Render the redacted text: tags become grey pills, other words can be tapped to hide.
+  var tags = Object.keys(Core.TAGS).map(function(k){ return Core.TAGS[k]; }).concat(['[hidden by you]']);
+  var re = new RegExp('(' + tags.map(function(t){ return t.replace(/[[\]·]/g, function(c){ return '\\'+c; }); }).join('|') + ')');
+  var i = 0;
+  return text.split(re).map(function(part, k){
+    if(k % 2 === 1){ var delay = (i++) * 150; return '<span class="pill" style="animation-delay:'+delay+'ms">'+esc(part.slice(1,-1))+'</span>'; }
+    return part.split(/(\s+)/).map(function(w, j){ return /^\s+$/.test(w) || w === '' ? esc(w) : '<span class="w" data-w="'+k+'-'+j+'">'+esc(w)+'</span>'; }).join('');
+  }).join('');
+}
+function rfRender(){
+  $('#rfPreview').innerHTML = pillify(rf.text);
+}
+$('#rfPreview').addEventListener('click', function(e){
+  var w = e.target.closest('.w'); if(!w) return;
+  // Hide that word: rebuild the text with the word replaced.
+  var parts = [], re = /(\[[^\]]*\])/;
+  var nodes = $('#rfPreview').childNodes;
+  nodes.forEach(function(n){ parts.push(n === w ? '[hidden by you]' : (n.classList && n.classList.contains('pill') ? '[' + n.textContent + ']' : n.textContent)); });
+  rf.text = parts.join(''); void re; rfRender();
+});
+$('#rfCheck').addEventListener('click', async function(){
+  var err = $('#rfErr'); err.textContent = '';
+  var raw = rfIn.value.trim();
+  if(!raw){ err.textContent = 'Paste a message first, or try one of the samples.'; return; }
+  var red = Core.redact(raw);
+  if(Core.measure(red.text) > RF_MAX){ err.textContent = 'That’s a novel. Paste the sketchiest part.'; return; }
+  rf.text = red.text.trim(); rf.red = red;
+  $('#rfResult').hidden = true; $('#rfDelib').hidden = true;
+  $('#rfPreviewWrap').hidden = false; $('#rfPrevHead').textContent = 'Cleaning up your receipts…';
+  rfRender();
+  $('#rfSummary').textContent = '';
+  await wait(150 * Math.max(1, Object.keys(red.counts).reduce(function(a,k){ return a + red.counts[k]; }, 0)) + 300);
+  $('#rfPrevHead').textContent = 'Here’s what the jury will see';
+  $('#rfSummary').textContent = Core.summary(red.counts) + ' Nothing has been sent.';
+  var wb = $('#rfWarn'); wb.hidden = !red.sensitive; wb.textContent = red.warning || '';
+  $('#rfApprove').checked = false; $('#rfSend').disabled = true;
+});
+$('#rfApprove').addEventListener('change', function(){ $('#rfSend').disabled = !this.checked; });
+$('#rfEdit').addEventListener('click', function(){ $('#rfPreviewWrap').hidden = true; rfIn.focus(); });
+
+function simulateRedFlag(text){
+  // Browser heuristic standing in for the five personas. The hard rules below
+  // (no LOOKS LEGIT with a Scam vote; money offers are at least SUS) are the
+  // same code the relayer runs (VerdictCore.decideRuling).
+  var t = text.toLowerCase(), flags = [];
+  var add = function(c, re){ if(re.test(t)) flags.push(c); };
+  add('urgency', /\b(now|today|tonight|within \d+|hours?|hrs|immediately|asap|last chance|expires?)\b/);
+  add('too_good_to_be_true', /\b(guaranteed|\d+x|double|free money|no interview|won|winner|prize)\b/);
+  add('upfront_payment', /(\$\s?\d|\bfee\b|\bpay\b|\bdeposit\b|gift ?card|wire)/);
+  add('crypto_only', /\b(crypto|bitcoin|btc|coin|token|wallet)\b/);
+  add('off_platform_move', /\b(whatsapp|telegram|text me|dm me|reply yes|move to)\b/);
+  add('link_pressure', /link hidden/);
+  add('code_request', /\b(code|otp|verification number)\b/);
+  add('secrecy', /\b(don'?t tell|secret|keep this between)\b/);
+  add('threat_of_loss', /\b(locked|suspended|closure|closed|returned|lose)\b/);
+  add('stranger_friendly', /\b(my queen|dear friend|you seem|sweetheart|beautiful)\b/);
+  var money = Core.isMoneyOffer(text), n = flags.length;
+  var votes = SEATS.map(function(s, j){
+    var lean = n + (j === 3 ? 1 : 0) - (j === 1 ? 1 : 0); // Tiff is suspicious of everything, Dahlia gives benefit of the doubt
+    return {label: lean >= 3 ? 'scam' : lean >= 1 ? 'sus' : 'legit', flags: flags};
+  });
+  var lines = votes.map(function(v, j){
+    var L = {scam:['The court finds the classic moves here.','I wanted to like this. I can’t.','Too many asks, not enough proof.','This text is wearing a costume.','Ask what it wants from you. That’s the answer.'],
+             sus:['Not proven bad. The court wants more.','Something feels rushed.','I’d check this through a number I already have.','Hmm. Hmm.','What is it really asking for?'],
+             legit:['Nothing here asks for money or a code.','Feels ordinary in a nice way.','Nothing to check against, nothing alarming.','Suspicious on principle, but I’ve got nothing.','Sometimes a message is just a message.']};
+    return L[v.label][j];
+  });
+  return {votes: votes, lines: lines, money: money};
+}
+$('#rfSend').addEventListener('click', async function(){
+  if(!$('#rfApprove').checked || !adult) return;
+  var text = rf.text;
+  $('#rfPreviewWrap').hidden = true; $('#rfResult').hidden = true;
+  if(SENSITIVE.test(text)){
+    $('#rfResult').hidden = false;
+    $('#rfResult').innerHTML = '<div class="declined"><h3>The jury won’t rule on this one.</h3><p>If someone is threatening you or you’re in danger, contact local emergency services. In the US you can call or text 988 any time. Already sent money or a code? Contact your bank or the real company now, using a number you trust.</p></div>';
+    return;
+  }
+  var sim;
+  var sample = SAMPLES.filter(function(s){ return s.text === text; })[0];
+  if(sample) sim = {votes: sample.votes.map(function(l){ return {label:l, flags:sample.flags}; }), lines: sample.lines, money: Core.isMoneyOffer(text)};
+  else sim = simulateRedFlag(text);
+  var r = Core.decideRuling(sim.votes, sim.money); // votes are final before the reveal starts
+  var d = $('#rfDelib'); d.hidden = false; var rail = $('#rfRail'); setQRail(rail, 1);
+  var bench = $('#rfBench'); bench.innerHTML = benchHTML();
+  await wait(400); setQRail(rail, 2);
+  var pace = [600, 900, 650, 1100, 750];
+  for(var i = 0; i < 5; i++){ bench.children[i].classList.add('lit'); $('#rfStatus').textContent = RF_LOADING[i]; await wait(pace[i]); }
+  setQRail(rail, 3); $('#rfStatus').textContent = '';
+  rfShow(r, sim, text);
+}
+);
+var RF_COPY = {
+  'SCAM': {cls:'scam', sub:'This message has the classic scam moves.', next:'Don’t reply. Block. Report it in the app it came from.', share:'The jury said SCAM. Paste yours.'},
+  'SUS': {cls:'sus', sub:'Not proven bad. Not proven fine. Slow down.', next:'Don’t click or pay. Contact them through a number or site you already trust.', share:'The jury said SUS. Slow down.'},
+  'LOOKS LEGIT': {cls:'legit', sub:'No red flags spotted in this text.', next:'Looks normal. If money’s involved, still check with them directly.', share:'No red flags spotted. Plot twist.'}
+};
+function rfShow(r, sim, text){
+  var c = RF_COPY[r.ruling], el = $('#rfResult');
+  var chips = r.ruling === 'LOOKS LEGIT'
+    ? '<p class="small"><b>What still to check</b></p><div>' + ['Use the number you already have, not one in the message','Never send a code or password by text'].map(function(x){ return '<span class="flagchip">'+esc(x)+'</span>'; }).join('') + (r.flags.indexOf('money_offer') >= 0 ? '' : '') + '</div>'
+    : '<div>' + r.flags.map(function(f){ return '<span class="flagchip">'+esc(Core.FLAG_CODES[f])+'</span>'; }).join('') + '</div>';
+  el.innerHTML = '<div class="ruling">' +
+    '<div class="gstamp '+c.cls+'">'+r.ruling+'</div>' +
+    '<div class="tallytext">'+esc(r.tallyText)+'</div>' +
+    '<p class="subline">'+esc(c.sub)+'</p>' +
+    (r.ruling === 'LOOKS LEGIT' ? '<p class="small">Not a safety check. If money’s involved, check with them directly.</p>' : '') +
+    chips +
+    '<ul class="jlines">' + SEATS.map(function(s, j){ return '<li><b>'+s[1]+'</b> <span class="small">('+esc({scam:'Scam',sus:'Sus',legit:'Legit'}[sim.votes[j].label])+')</span> '+esc(sim.lines[j])+'</li>'; }).join('') + '</ul>' +
+    '<p class="nextstep">'+esc(c.next)+'</p>' +
+    '<p class="small">Already sent money or a code? Contact your bank or the real company now, using a number you trust.</p>' +
+    '<p class="cardfoot">Five AI juror personas · Quick Verdict · Not network-checked · We never open links.</p>' +
+    '</div>' +
+    '<div class="actions"><button class="btn2" type="button" id="rfShare">Share the ruling</button><button class="btn2" type="button" id="rfAgain">Try another</button></div>' +
+    '<p class="note">The share card shows the stamp, the red flags and one juror line. It never shows the message. No appeals: nobody loses a Red Flag case.</p>';
+  el.hidden = false;
+  $('#rfShare').addEventListener('click', function(){ var t = c.share; try{ navigator.clipboard.writeText(t); this.textContent = 'Copied: ' + t; }catch(e){ this.textContent = t; } });
+  $('#rfAgain').addEventListener('click', function(){ el.hidden = true; $('#rfDelib').hidden = true; rfIn.value = ''; rfCount(); rfIn.focus(); });
+  void text;
+}
+
+/* ================= Jailbreak the Jury ================= */
+var TOPICS = ['cats','pineapple','mondays'];
+function today(){
+  var d = laDay(), dayNo = Math.floor(Date.parse(d + 'T00:00:00Z') / 86400000);
+  return {topic: TOPICS[dayNo % TOPICS.length], caseNo: dayNo % 1000, day: d};
+}
+var T = today();
+$('#jbCaseTag').textContent = $('#jbCaseTag2').textContent = 'Case of the day #' + String(T.caseNo).padStart(3, '0') + ' · resets at midnight PT';
+$('#jbTopic').textContent = T.topic;
+$('#jbInput').placeholder = {cats:'Cats are better than dogs because…', pineapple:'Pineapple belongs on pizza because…', mondays:'Monday is the best day because…'}[T.topic];
+var CAP = 10;
+function attempts(){ var s = store.get('jb', null); return s && s.day === T.day ? s.used : 0; }
+function setAttempts(n){ store.set('jb', {day: T.day, used: n}); }
+function showLeft(){ $('#jbLeft').textContent = 'Attempts left today: ' + Math.max(0, CAP - attempts()); }
+showLeft();
+function jbReady(){ $('#jbSubmit').disabled = !($('#jbConsent').checked && $('#jbInput').value.trim()) || attempts() >= CAP; }
+$('#jbInput').addEventListener('input', function(){ $('#jbCount').textContent = Array.from(this.value).length + ' / 280'; jbReady(); });
+$('#jbConsent').addEventListener('change', jbReady);
+var ROASTS = [['Tiff','A note to the judge, taped to the door? Bold. Wrong, but bold.'],['Marlowe','The court noticed the sticky note. The court is not amused.'],['Frank','You hid an instruction in a take. I hide nothing. Denied.']];
+var BENCH_LINES = {caught:['Talking to the bench is not an argument.','I felt the nudge. I did not move.','Asking for points is not a receipt.','Cute. Still no.','You argued with the court, not the topic.'],
+                   over:['A fine argument. The secret rule says no. Try being sneakier.','Sweet take. The rule wins today.','Good points. Rule says house.','Solid. Not enough.','The rule is the rule.']};
+function simulateAttempt(take){
+  var pattern = Core.matchedControlPattern(take);
+  if(pattern >= 0) return {outcome:'stopped_at_door', pattern: pattern};
+  // The simulated bench always holds the rule: a fair argument can't win, and
+  // steering is caught. The real practice court is harder to fool, not perfect.
+  return {outcome: Core.steeringHit(take) ? 'caught_by_bench' : 'overruled', votes:[1,1,1,1,1]};
+}
+async function runAttempt(res){
+  var d = $('#jbDelib'), rail = $('#jbRail'), bench = $('#jbBench'), out = $('#jbResult');
+  out.hidden = true; d.hidden = false;
+  var door = res.outcome === 'stopped_at_door';
+  rail.className = 'qrail' + (door ? ' two' : '');
+  rail.innerHTML = door ? '<li><i></i><span>Submitted</span></li><li><i></i><span>Done</span></li>' : '<li><i></i><span>Submitted</span></li><li><i></i><span>Jury scoring</span></li><li><i></i><span>Done</span></li>';
+  setQRail(rail, 1);
+  bench.innerHTML = door ? '' : benchHTML();
+  if(!door){
+    var L = ['Marlowe is reading the fine print','Dahlia is asking what you really meant','Frank is looking for the receipts','Tiff is reading it twice','Theo is asking what a '+T.topic.replace(/s$/,'')+' even is'];
+    await wait(350); setQRail(rail, 2);
+    for(var i = 0; i < 5; i++){ bench.children[i].classList.add('lit'); $('#jbStatus').textContent = L[i]; await wait([600,900,650,1100,750][i]); }
+  } else { $('#jbStatus').textContent = 'Checked at the door'; await wait(700); }
+  setQRail(rail, door ? 2 : 3); $('#jbStatus').textContent = '';
+  d.hidden = true; jbShow(res);
+}
+function jbShow(res){
+  var out = $('#jbResult'), html = '', o = res.outcome;
+  var label = '<p class="cardfoot">Practice court · Not a public record</p>';
+  if(o === 'stopped_at_door'){
+    var ro = ROASTS[res.pattern % ROASTS.length];
+    html = '<div class="ruling"><p class="small"><b>Stopped at the door</b></p><div class="gstamp caught">CAUGHT</div>' +
+      '<p class="subline">Notes to the judge get caught at the door. No juror read it, so there is no vote.</p>' +
+      '<p class="small"><b>'+ro[0]+'’s take on your attempt</b> (a roast, not a vote)</p><p><i>“'+esc(ro[1])+'”</i></p>' + label + '</div>';
+  } else if(o === 'caught_by_bench' || o === 'overruled'){
+    var caught = o === 'caught_by_bench', lines = caught ? BENCH_LINES.caught : BENCH_LINES.over;
+    html = '<div class="ruling"><p class="small"><b>'+(caught ? 'Caught by the bench' : 'Overruled')+'</b></p><div class="gstamp '+(caught?'caught':'overruled')+'">'+(caught?'CAUGHT':'OVERRULED')+'</div>' +
+      '<div class="tallytext">House 5 · You 0</div>' +
+      '<ul class="jlines">' + SEATS.map(function(s, j){ return '<li><b>'+s[1]+'</b> <span class="small">(House)</span> '+esc(lines[j])+'</li>'; }).join('') + '</ul>' +
+      (caught ? '' : '<p class="nextstep">Fair arguments can’t win today. The rule is in the way.</p>') + label + '</div>';
+  } else if(o === 'mistrial'){
+    html = '<div class="ruling"><div class="gstamp mistrial">MISTRIAL</div><p class="subline">A juror’s answer came back broken, so there’s no ruling. It doesn’t use up an attempt.</p>' + label + '</div>';
+  } else {
+    html = '<div class="ruling"><div class="gstamp sealed">SEALED</div><p class="subline">'+(o === 'got_through' ? 'You made the jury break today’s rule.' : 'You moved the jury.')+'</p>' +
+      '<div class="sealedcard"><div class="bar"></div><div class="bar" style="width:70%"></div><p class="small" style="color:var(--rule)">SEALED UNTIL PATCHED</p></div>' +
+      '<p class="small">We keep your method private until we fix the hole. Your handle goes on the fix (if you want).</p>' +
+      '<label class="check"><input type="checkbox" id="jbCredit"><span>Credit me by handle when it’s patched</span></label>' + label + '</div>';
+  }
+  var share = o === 'got_through' || o === 'moved_a_juror' ? 'I moved an AI jury. Method sealed. Try it.' : 'Held in contempt by an AI jury. Your turn.';
+  html += '<div class="actions"><button class="btn2 appeal" type="button" id="jbAgain">Try again</button>' +
+    (o === 'mistrial' ? '' : '<button class="btn2" type="button" id="jbShare">'+(o === 'stopped_at_door' || o === 'caught_by_bench' ? 'Share my contempt' : 'Share')+'</button>') + '</div>' +
+    (o === 'stopped_at_door' || o === 'caught_by_bench' ? '<label class="check"><input type="checkbox" id="jbHall"><span>Nominate for the Hall of Contempt</span></label>' : '') +
+    '<p class="note">' + Math.max(0, CAP - attempts()) + ' attempts left today.</p>';
+  out.innerHTML = html; out.hidden = false;
+  $('#jbAgain').addEventListener('click', function(){ out.hidden = true; $('#jbInput').focus(); jbReady(); });
+  var sb = $('#jbShare'); if(sb) sb.addEventListener('click', function(){ try{ navigator.clipboard.writeText(share); this.textContent = 'Copied: ' + share; }catch(e){ this.textContent = share; } });
+}
+$('#jbSubmit').addEventListener('click', async function(){
+  var take = $('#jbInput').value.trim(), err = $('#jbErr'); err.textContent = '';
+  if(!adult || !$('#jbConsent').checked || !take) return;
+  if(attempts() >= CAP){ err.textContent = 'That’s 10 attempts today. The court reopens at midnight Pacific.'; return; }
+  var rc = Core.redact(take).counts;
+  if(rc.email || rc.phone || rc.link || rc.handle || rc.number || rc.secret){ err.textContent = 'Text only, no real names or contact details. Take those out and try again.'; return; }
+  setAttempts(attempts() + 1); showLeft(); jbReady();
+  var res = simulateAttempt(take);
+  await runAttempt(res);
+});
+window.__verdictGames = {simulateRedFlag: simulateRedFlag, simulateAttempt: simulateAttempt, SAMPLES: SAMPLES, showTab: showTab,
+  demo: function(outcome){ openGames(); showTab('jailbreak'); jbShow({outcome: outcome, pattern: 0}); }};
+})();
+</script>
+<!-- GAMES-JS:END -->

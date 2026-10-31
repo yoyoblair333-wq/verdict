@@ -1,0 +1,33 @@
+# VERDICT root .gitignore (audit P2-6, P1-6)
+
+# Python
+.venv/
+**/.venv/
+__pycache__/
+.pytest_cache/
+contracts/artifacts/
+
+# Node
+node_modules/
+**/node_modules/
+relayer/dist/
+relayer/dist-test/
+relayer/dist-deploy/
+
+# Secrets and local env: never commit a key
+.env
+*.env
+.env.*
+*.env.local
+relayer/.env.local
+!.env.example
+!relayer/.env.example
+
+# Relayer runtime data (journals, state, credits, Quick Verdict and red-team stores)
+relayer/data/
+
+# Private planning material: not part of the public engineering repo
+ENRICHMENT-BACKLOG.md
+business/
+marketing/
+AUDIT-*.md

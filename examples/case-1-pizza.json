@@ -1,0 +1,39 @@
+{
+  "title": "Who's right? (Settle It)",
+  "rubric": "whos_right",
+  "entries": [
+    "Pineapple belongs on pizza: sweet + salty is a classic pairing.",
+    "Pineapple on pizza is a crime against Naples."
+  ],
+  "surface": "settle",
+  "studio": {
+    "open_case": {
+      "rubric": "whos_right",
+      "entries": [
+        "Pineapple belongs on pizza: sweet + salty is a classic pairing.",
+        "Pineapple on pizza is a crime against Naples."
+      ],
+      "surface": "settle",
+      "client_ref": "demo-case-1"
+    },
+    "then": [
+      "judge(case_id, \"\")",
+      "get_verdict(case_id)",
+      "appeal(case_id, \"\", 1)",
+      "appeal(case_id, \"\", 2)  # optional: Supreme Court",
+      "finalize(case_id, \"\")  # only if you stop before tier 3"
+    ]
+  },
+  "relayer": {
+    "rubric": "whos_right",
+    "entries": [
+      "Pineapple belongs on pizza: sweet + salty is a classic pairing.",
+      "Pineapple on pizza is a crime against Naples."
+    ],
+    "surface": "settle",
+    "disclosure": {
+      "consent": true,
+      "adult_confirmed": true
+    }
+  }
+}

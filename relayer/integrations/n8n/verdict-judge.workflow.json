@@ -1,0 +1,35 @@
+{
+  "name": "VERDICT - judge(rubric, entries)",
+  "nodes": [
+    {
+      "parameters": {},
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.VERDICT_API_URL }}/judge",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-api-key", "value": "={{ $env.VERDICT_API_KEY }}" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ rubric: $json.rubric ?? 'whos_right', entries: $json.entries ?? ['Tabs are better.', 'Spaces are better.'], disclosure: { consent: $json.consent_public === true, adult_confirmed: $json.adult_confirmed === true } }) }}",
+        "options": { "timeout": 600000 }
+      },
+      "name": "VERDICT judge",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [240, 0]
+    }
+  ],
+  "connections": {
+    "Manual Trigger": { "main": [[{ "node": "VERDICT judge", "type": "main", "index": 0 }]] }
+  }
+}

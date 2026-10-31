@@ -1,0 +1,5 @@
+{
+  "private": true,
+  "type": "module",
+  "description": "Marks deploy/*.ts as ESM for the TypeScript build in relayer/tsconfig.deploy.json. No dependencies of its own."
+}

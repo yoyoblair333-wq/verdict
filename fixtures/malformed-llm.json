@@ -1,0 +1,199 @@
+{
+  "description": "Juror output that is not valid JSON or has out-of-range / wrong-shape fields. Contract: every jurorOutput makes judge() revert with [LLM_ERROR] and the case stays pending. Both runtimes: every leaderPayload (a 2-entry, 5-juror panel verdict) must be rejected - by the contract's validator, and by the relayer before it imports a verdict, renders a card or resolves Twitch.",
+  "now": "2026-10-31T12:00:00Z",
+  "contractAddress": "0x00000000000000000000000000000000000000aa",
+  "contractCodeDigest": "c0dec0dec0dec0dec0dec0dec0dec0dec0dec0dec0dec0dec0dec0dec0dec0de",
+  "entriesCount": 2,
+  "jurors": 5,
+  "jurorOutputs": [
+    {
+      "name": "prose, not JSON",
+      "raw": "I think entry 0 wins."
+    },
+    {
+      "name": "truncated JSON",
+      "raw": "{\"winner_index\": 0, \"scores\": [7,"
+    },
+    {
+      "name": "winner out of range",
+      "raw": "{\"winner_index\": 5, \"scores\": [1, 2], \"reason\": \"x\"}"
+    },
+    {
+      "name": "too few scores",
+      "raw": "{\"winner_index\": 0, \"scores\": [1], \"reason\": \"x\"}"
+    },
+    {
+      "name": "non-numeric score",
+      "raw": "{\"winner_index\": 0, \"scores\": [\"a\", 2], \"reason\": \"x\"}"
+    },
+    {
+      "name": "boolean winner",
+      "raw": "{\"winner_index\": true, \"scores\": [1, 2], \"reason\": \"x\"}"
+    },
+    {
+      "name": "score above 10",
+      "raw": "{\"winner_index\": 1, \"scores\": [3, 14], \"reason\": \"x\"}"
+    },
+    {
+      "name": "negative score",
+      "raw": "{\"winner_index\": 1, \"scores\": [-1, 5], \"reason\": \"x\"}"
+    },
+    {
+      "name": "JSON array",
+      "raw": "[0, [7, 3]]"
+    }
+  ],
+  "validLeaderPayload": {
+    "winner_index": 0,
+    "scores": [
+      80,
+      40
+    ],
+    "votes": [
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "split": "5-0",
+    "reason": "Sharper."
+  },
+  "leaderPayloads": [
+    {
+      "name": "mean score above 100",
+      "payload": {
+        "winner_index": 0,
+        "scores": [
+          140,
+          40
+        ],
+        "votes": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "split": "5-0",
+        "reason": "x"
+      }
+    },
+    {
+      "name": "winner index out of range",
+      "payload": {
+        "winner_index": 7,
+        "scores": [
+          80,
+          40
+        ],
+        "votes": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "split": "5-0",
+        "reason": "x"
+      }
+    },
+    {
+      "name": "wrong juror count",
+      "payload": {
+        "winner_index": 0,
+        "scores": [
+          80,
+          40
+        ],
+        "votes": [
+          0,
+          0,
+          0
+        ],
+        "split": "3-0",
+        "reason": "x"
+      }
+    },
+    {
+      "name": "forged split",
+      "payload": {
+        "winner_index": 0,
+        "scores": [
+          80,
+          40
+        ],
+        "votes": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "split": "3-2",
+        "reason": "x"
+      }
+    },
+    {
+      "name": "winner not supported by votes",
+      "payload": {
+        "winner_index": 1,
+        "scores": [
+          70,
+          60
+        ],
+        "votes": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "split": "5-0",
+        "reason": "x"
+      }
+    },
+    {
+      "name": "float score",
+      "payload": {
+        "winner_index": 0,
+        "scores": [
+          80.5,
+          40
+        ],
+        "votes": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "split": "5-0",
+        "reason": "x"
+      }
+    },
+    {
+      "name": "reason over 120 chars",
+      "payload": {
+        "winner_index": 0,
+        "scores": [
+          80,
+          40
+        ],
+        "votes": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "split": "5-0",
+        "reason": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      }
+    },
+    {
+      "name": "not an object",
+      "payload": "{\"winner_index\": 0}"
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "name": "verdict-relayer",
+  "version": "0.2.0",
+  "private": true,
+  "description": "VERDICT relayer: gasless REST/webhook front door to the JudgeRouter GenLayer Intelligent Contract, plus a Twitch Prediction resolver.",
+  "type": "module",
+  "main": "dist/index.js",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.test.json && tsc --noEmit -p tsconfig.deploy.json",
+    "start": "node dist/index.js",
+    "dev": "tsc -p tsconfig.json --watch",
+    "test": "tsc -p tsconfig.test.json && node --test --test-concurrency=1 \"dist-test/test/unit/*.test.js\" \"dist-test/test/standin/*.test.js\" \"dist-test/test/live/*.test.js\"",
+    "test:unit": "tsc -p tsconfig.test.json && node --test \"dist-test/test/unit/*.test.js\"",
+    "test:standin": "tsc -p tsconfig.test.json && node --test --test-concurrency=1 \"dist-test/test/standin/*.test.js\"",
+    "test:live": "tsc -p tsconfig.test.json && node --test \"dist-test/test/live/*.test.js\"",
+    "demo": "tsc -p tsconfig.test.json && node dist-test/test/standin/demo.js",
+    "deploy": "tsc -p tsconfig.deploy.json && node dist-deploy/deploy/deploy.js",
+    "contract-digest": "node scripts/contract-digest.mjs",
+    "mcp": "node dist/mcp.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.32.2",
+    "express": "5.1.0",
+    "genlayer-js": "1.1.8",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@types/express": "5.0.3",
+    "@types/node": "22.15.30",
+    "typescript": "5.9.3"
+  },
+  "bin": {
+    "verdict-mcp": "dist/mcp.js"
+  }
+}

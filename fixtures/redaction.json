@@ -1,0 +1,176 @@
+{
+ "_about": "Shared redaction fixtures. Run against relayer/src/lib/redact.ts AND the browser copy (<script id=\"redact-core\"> in app/index.html and app/artifact.html). expect = exact redacted text; counts lists only non-zero kinds; every case must also be idempotent.",
+ "cases": [
+  {
+   "name": "phone (NANP and international)",
+   "input": "Call me at (555) 123-4567 or +44 20 7946 0958",
+   "expect": "Call me at [phone hidden] or [phone hidden]",
+   "counts": {
+    "phone": 2
+   },
+   "sensitive": false
+  },
+  {
+   "name": "email",
+   "input": "email support.team@example-mail.com now",
+   "expect": "email [email hidden] now",
+   "counts": {
+    "email": 1
+   },
+   "sensitive": false
+  },
+  {
+   "name": "links removed whole, never shortened to a domain",
+   "input": "go to https://claim-prize.example.xyz/win?id=99 or www.fastcash.example.com",
+   "expect": "go to [link hidden · not opened] or [link hidden · not opened]",
+   "counts": {
+    "link": 2
+   },
+   "sensitive": false
+  },
+  {
+   "name": "bare short link",
+   "input": "visit bit.ly/abc123 today",
+   "expect": "visit [link hidden · not opened] today",
+   "counts": {
+    "link": 1
+   },
+   "sensitive": false
+  },
+  {
+   "name": "@handle",
+   "input": "follow @deal_hunter_22 for more",
+   "expect": "follow [handle hidden] for more",
+   "counts": {
+    "handle": 1
+   },
+   "sensitive": false
+  },
+  {
+   "name": "long number (one-time code)",
+   "input": "Your code is 834921. Do not share.",
+   "expect": "Your code is [number hidden]. Do not share.",
+   "counts": {
+    "number": 1
+   },
+   "sensitive": false
+  },
+  {
+   "name": "card number is sensitive",
+   "input": "card 4111 1111 1111 1111 exp 09/29",
+   "expect": "card [number hidden] exp 09/29",
+   "counts": {
+    "number": 1
+   },
+   "sensitive": true
+  },
+  {
+   "name": "SSN-shaped number is sensitive",
+   "input": "ssn 123-45-6789 needed",
+   "expect": "ssn [number hidden] needed",
+   "counts": {
+    "number": 1
+   },
+   "sensitive": true
+  },
+  {
+   "name": "password is sensitive",
+   "input": "my password: hunter2 thanks",
+   "expect": "my password: [secret hidden] thanks",
+   "counts": {
+    "secret": 1
+   },
+   "sensitive": true
+  },
+  {
+   "name": "names after greeting and intro; company",
+   "input": "Hi Jordan, this is Casey from Northwind Bank.",
+   "expect": "Hi [name hidden], this is [name hidden] from [company hidden].",
+   "counts": {
+    "name": 2,
+    "company": 1
+   },
+   "sensitive": false
+  },
+  {
+   "name": "title + name; company",
+   "input": "Dear Ms. Rivera, your parcel from Speedy Logistics is waiting",
+   "expect": "Dear Ms. [name hidden], your parcel from [company hidden] is waiting",
+   "counts": {
+    "name": 1,
+    "company": 1
+   },
+   "sensitive": false
+  },
+  {
+   "name": "dash sign-off name",
+   "input": "Thanks,\n- Morgan",
+   "expect": "Thanks,\n- [name hidden]",
+   "counts": {
+    "name": 1
+   },
+   "sensitive": false
+  },
+  {
+   "name": "intro with full name",
+   "input": "I'm Taylor Brooks and I can double your money",
+   "expect": "I'm [name hidden] and I can double your money",
+   "counts": {
+    "name": 1
+   },
+   "sensitive": false
+  },
+  {
+   "name": "already redacted text is unchanged (idempotent)",
+   "input": "Hi [name hidden], reply YES to [phone hidden].",
+   "expect": "Hi [name hidden], reply YES to [phone hidden].",
+   "counts": {},
+   "sensitive": false
+  },
+  {
+   "name": "browser missed a link and a phone: second pass catches them",
+   "input": "Hi [name hidden], pay at secure-pay.example.top or call 555.987.6543",
+   "expect": "Hi [name hidden], pay at [link hidden · not opened] or call [phone hidden]",
+   "counts": {
+    "link": 1,
+    "phone": 1
+   },
+   "sensitive": false
+  },
+  {
+   "name": "stop words are not names",
+   "input": "Good morning my queen. Hi there!",
+   "expect": "Good morning my queen. Hi there!",
+   "counts": {},
+   "sensitive": false
+  },
+  {
+   "name": "days and times are kept",
+   "input": "Reminder: your cleaning is Tue at 3:00 PM. Reply C to confirm.",
+   "expect": "Reminder: your cleaning is Tue at 3:00 PM. Reply C to confirm.",
+   "counts": {},
+   "sensitive": false
+  },
+  {
+   "name": "day after 'From' is not a name",
+   "input": "Meet me Friday. From Monday on I'm free.",
+   "expect": "Meet me Friday. From Monday on I'm free.",
+   "counts": {},
+   "sensitive": false
+  }
+ ],
+ "measure": [
+  {
+   "text": "[link hidden · not opened]",
+   "length": 1
+  },
+  {
+   "text": "call [phone hidden] now",
+   "length": 10
+  },
+  {
+   "text": "abc",
+   "length": 3
+  }
+ ]
+}

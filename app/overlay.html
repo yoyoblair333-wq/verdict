@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1920, height=1080">
+<title>Verdict Live Court</title>
+<meta name="description" content="OBS browser-source overlay for Verdict Live Court. 1920x1080, transparent background.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@800;900&family=Schibsted+Grotesk:ital,wght@0,500;0,700;0,800;1,700&display=swap" rel="stylesheet">
+<style>
+/* OBS: add as Browser Source, 1920x1080. Background is transparent; every panel is solid so it reads over any stream.
+   Add ?preview to the URL to see it over a mock stream background.
+   Add ?supreme to start directly in the Supreme Court state (after a scripted 3–2 and a 4–3 Appeals Court).
+   Ladder: Verdict 5 jurors -> Appeals Court 7 -> Supreme Court 9 (final). Max 2 appeals, losing side only.
+   The Channel Points Prediction stays LOCKED until the appeal window closes or the case is final. */
+:root{
+  --robe:#1B1340; --deep:#120C2E; --pad:#F7E26B; --stamp:#E5242C; --docket:#F4F6FF; --rule:#8FA8F0;
+  --display:'Big Shoulders Display', Impact, sans-serif;
+  --text:'Schibsted Grotesk', Arial, sans-serif;
+  --ease:cubic-bezier(.2,.8,.2,1);
+}
+*{box-sizing:border-box}
+html,body{margin:0;width:1920px;height:1080px;overflow:hidden;background:transparent}
+body{font:500 22px/1.4 var(--text);color:var(--docket);-webkit-font-smoothing:antialiased;position:relative}
+body.preview{background:
+  radial-gradient(ellipse 520px 420px at 960px 380px,#5a4a6a 0,#2e2a3a 60%,#1c1a22 100%)}
+body.preview::after{content:"Streamer camera";position:absolute;left:960px;top:330px;transform:translateX(-50%);font:700 28px var(--text);color:rgba(255,255,255,.25)}
+
+/* ---- top-right: case header + timer ---- */
+.head{position:absolute;right:40px;top:36px;width:520px;background:var(--deep);border:3px solid var(--robe);padding:22px 26px 20px;box-shadow:8px 10px 0 rgba(0,0,0,.35)}
+.head .row{display:flex;align-items:center;gap:14px}
+.head svg{width:54px;height:54px;flex:none}
+.head .word{font:900 44px/1 var(--display);letter-spacing:.06em}
+.head .court{margin-left:auto;text-align:right;font-weight:800;color:var(--rule);font-size:20px;line-height:1.2}
+.head .court small{display:block;font-weight:500;font-size:17px}
+.head h1{font:900 64px/.95 var(--display);margin:16px 0 0}
+.timer{display:flex;align-items:baseline;gap:12px;margin-top:14px;padding-top:14px;border-top:2px solid rgba(143,168,240,.35)}
+.timer b{font:900 72px/1 var(--display);color:var(--pad);font-variant-numeric:tabular-nums;min-width:150px}
+.timer span{color:var(--rule);font-size:20px}
+.timer .bar{flex:1;height:10px;background:rgba(143,168,240,.2);align-self:center;position:relative;overflow:hidden}
+.timer .bar i{position:absolute;inset:0 auto 0 0;background:var(--pad);transition:width 1s linear}
+.timer.low b{color:var(--stamp)}
+/* network status rail: simulated in this prototype, driven by the relayer's finality watcher when live */
+.rail{list-style:none;margin:16px 0 0;padding:14px 0 0;border-top:2px solid rgba(143,168,240,.35);display:grid;grid-template-columns:repeat(4,1fr)}
+.rail li{position:relative;display:flex;flex-direction:column;align-items:center;gap:7px;font-size:17px;font-weight:800;line-height:1.15;color:rgba(143,168,240,.6);text-align:center}
+.rail li::before{content:"";position:absolute;top:10px;right:50%;width:100%;height:3px;background:rgba(143,168,240,.3)}
+.rail li:first-child::before{display:none}
+.rail i{position:relative;z-index:1;width:22px;height:22px;border-radius:50%;border:3px solid rgba(143,168,240,.45);background:var(--deep)}
+.rail li.done,.rail li.now{color:var(--docket)}
+.rail li.done::before,.rail li.now::before{background:var(--pad)}
+.rail li.done i{background:var(--pad);border-color:var(--pad)}
+.rail li.now i{border-color:var(--pad);box-shadow:0 0 0 5px rgba(247,226,107,.25)}
+.rail li:last-child.done i::after{content:"";position:absolute;left:5px;top:1px;width:5px;height:11px;border:solid var(--robe);border-width:0 3px 3px 0;transform:rotate(45deg)}
+.prov{margin-top:10px;font-size:15px;color:var(--rule);text-align:center}
+.timer.low .bar i{background:var(--stamp)}
+
+/* ---- supreme state ---- */
+body.supreme .head{border-color:var(--pad);border-top-width:10px}
+body.supreme .head .court{color:var(--pad)}
+.sbanner{position:absolute;left:50%;top:40px;transform:translate(-50%,-160%);background:var(--pad);color:var(--robe);font:900 54px/1 var(--display);letter-spacing:.04em;padding:18px 40px 14px;box-shadow:8px 10px 0 rgba(0,0,0,.35);transition:transform .5s var(--ease)}
+body.supreme .sbanner{transform:translate(-50%,0)}
+
+/* ---- bottom third ---- */
+.stage{position:absolute;left:40px;right:40px;bottom:40px;height:330px;display:grid;grid-template-columns:520px 1fr 520px;gap:28px;align-items:end}
+.slip{position:relative;background:var(--pad);color:var(--robe);padding:20px 26px 22px 84px;box-shadow:8px 10px 0 rgba(0,0,0,.35);
+  background-image:repeating-linear-gradient(to bottom,transparent 0,transparent 41px,rgba(143,168,240,.8) 41px,rgba(143,168,240,.8) 43px);background-position:0 70px}
+.slip::before{content:"";position:absolute;top:0;bottom:0;left:56px;width:3px;background:var(--stamp);opacity:.85;box-shadow:6px 0 0 -1px rgba(229,36,44,.45)}
+.slip.a{transform:rotate(-1.2deg)}
+.slip.b{transform:rotate(1deg)}
+.slip .who{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.slip h2{margin:0;font:800 34px/1.1 var(--text)}
+.slip .handle{font-size:18px;opacity:.7}
+.slip p{margin:12px 0 0;font-size:24px;line-height:43px}
+.slip .chip{position:absolute;left:-10px;top:18px;background:var(--robe);color:var(--pad);font:900 26px/1 var(--display);padding:8px 12px 6px;transform:rotate(-90deg) translate(-100%,0);transform-origin:0 0;display:none}
+.winstamp{position:absolute;right:24px;top:-44px;border:6px solid var(--stamp);color:var(--stamp);background:var(--pad);font:900 50px/1 var(--display);letter-spacing:.12em;padding:6px 10px 2px 18px;border-radius:6px;transform:rotate(-8deg) scale(2);opacity:0;transition:transform .22s cubic-bezier(.5,0,.75,0),opacity .15s}
+.slip.won .winstamp{transform:rotate(-8deg) scale(1);opacity:1}
+
+.mid{background:var(--deep);border:3px solid var(--robe);padding:20px 22px 18px;box-shadow:8px 10px 0 rgba(0,0,0,.35);height:100%;display:flex;flex-direction:column}
+body.supreme .mid{border-color:var(--pad)}
+.tally{display:grid;grid-template-columns:1fr auto 1fr;align-items:center}
+.tally .n{font:900 120px/.85 var(--display);color:var(--pad);font-variant-numeric:tabular-nums;text-align:center}
+.tally .n.bump{animation:bump .25s var(--ease)}
+.tally .dash{font:900 80px/1 var(--display);color:var(--rule);opacity:.6}
+@keyframes bump{from{transform:scale(1.25)}to{transform:scale(1)}}
+.names{display:grid;grid-template-columns:1fr 1fr;text-align:center;font-weight:800;font-size:20px;color:var(--rule);margin-top:4px}
+.bench{display:flex;justify-content:space-between;margin-top:auto;gap:6px}
+.seat{flex:1;display:flex;flex-direction:column;align-items:center;--c:var(--docket)}
+.disc{width:58px;height:58px;border-radius:50%;border:3px solid rgba(143,168,240,.25);background:var(--robe);display:grid;place-items:center;transition:border-color .3s,box-shadow .3s}
+.disc svg{width:30px;height:30px;opacity:.2;transition:opacity .3s}
+.seat.lit .disc{border-color:var(--c);box-shadow:0 0 0 6px color-mix(in srgb,var(--c) 20%,transparent)}
+.seat.lit .disc svg{opacity:1}
+.seat .nm{font-weight:800;font-size:15px;margin-top:6px;color:rgba(143,168,240,.5)}
+body.nine .disc{width:48px;height:48px}
+body.nine .disc svg{width:26px;height:26px}
+body.nine .seat .nm{font-size:13px}
+body.nine .seat .v{min-width:44px;font-size:12px;padding:3px 5px}
+.seat.lit .nm{color:var(--c)}
+.seat .v{margin-top:5px;height:26px;min-width:52px;padding:3px 8px;border-radius:999px;font-weight:800;font-size:14px;text-align:center;border:2px dashed rgba(143,168,240,.3);color:transparent;transform:rotateX(90deg);transition:transform .3s var(--ease)}
+.seat.voted .v{background:var(--pad);border:2px solid var(--pad);color:var(--robe);transform:none}
+.status{text-align:center;font-style:italic;font-weight:700;font-size:21px;min-height:30px;margin:10px 0 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.status small{font-style:normal;font-weight:500;color:var(--rule);font-size:17px;margin-left:8px}
+
+/* chat appeal meter */
+.appeal{position:absolute;left:40px;top:36px;width:420px;background:var(--deep);border:3px solid var(--robe);padding:18px 22px;box-shadow:8px 10px 0 rgba(0,0,0,.35);opacity:0;transform:translateX(-30px);transition:opacity .4s,transform .4s var(--ease)}
+.appeal.on{opacity:1;transform:none}
+.appeal b{font:900 36px/1 var(--display);color:var(--pad)}
+.appeal p{margin:6px 0 12px;font-size:19px;color:var(--rule)}
+.appeal .meter{height:16px;background:rgba(143,168,240,.2);position:relative}
+.appeal .meter i{position:absolute;inset:0 auto 0 0;width:0;background:var(--pad);transition:width .25s linear}
+.appeal .cnt{display:flex;justify-content:space-between;margin-top:8px;font-size:18px;font-weight:700}
+.appeal code{font:800 19px var(--text);background:var(--robe);padding:2px 8px;color:var(--pad)}
+.final{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) rotate(-6deg) scale(2.2);border:12px solid var(--stamp);color:var(--stamp);font:900 150px/1 var(--display);letter-spacing:.14em;padding:18px 20px 6px 44px;border-radius:14px;opacity:0;background:rgba(18,12,46,.86);transition:transform .26s cubic-bezier(.5,0,.75,0),opacity .15s}
+.final.on{opacity:1;transform:translate(-50%,-50%) rotate(-6deg) scale(1)}
+.proto{position:absolute;left:50%;transform:translateX(-50%);bottom:6px;font-size:14px;color:rgba(244,246,255,.55);white-space:nowrap}
+.pred{position:absolute;right:40px;top:500px;width:520px;background:var(--deep);border:3px solid var(--robe);padding:12px 20px;font-weight:700;font-size:19px;color:var(--rule);box-shadow:8px 10px 0 rgba(0,0,0,.35)}
+.pred b{color:var(--pad)}
+@media (prefers-reduced-motion: reduce){*{transition-duration:.01ms!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="head">
+  <div class="row">
+    <svg viewBox="0 0 128 128" aria-hidden="true" id="seal"></svg>
+    <span class="word">VERDICT</span>
+    <span class="court" id="court">Live Court<small>Case #2291</small></span>
+  </div>
+  <h1 id="rubric">Who's right?</h1>
+  <div class="timer" id="timer"><b id="clock">0:45</b><div class="bar"><i id="bar" style="width:100%"></i></div><span id="tlabel">Jury out</span></div>
+  <ol class="rail" id="rail" aria-label="Network status, simulated in this prototype"><li><i></i><span>Submitted</span></li><li><i></i><span>Jury scoring</span></li><li><i></i><span>Network checking</span></li><li><i></i><span>Finalized</span></li></ol>
+  <div class="prov">Submitted by host. Network status simulated here.</div>
+</div>
+
+<div class="sbanner" id="sbanner">Appeals Court in session</div>
+<div class="pred" id="pred">Chat is <b>backing a side</b> with Channel Points (no cash value).</div>
+
+<div class="appeal" id="appeal">
+  <b>Chat wants an appeal</b>
+  <p id="appealHint">Losing side's chat: type <code>!appeal</code> to send it to a higher court.</p>
+  <div class="meter"><i id="meter"></i></div>
+  <div class="cnt"><span id="appealCount">0</span><span>500 needed</span></div>
+</div>
+
+<div class="stage">
+  <div class="slip a" id="slipA">
+    <span class="winstamp">WINNER</span>
+    <div class="who"><h2>Jaylen</h2><span class="handle">streamer</span></div>
+    <p>If you invite me to dinner and then split the check down to the appetizer, that's not a date, that's a group project.</p>
+  </div>
+  <div class="mid">
+    <div class="tally"><div class="n" id="na">0</div><div class="dash">–</div><div class="n" id="nb">0</div></div>
+    <div class="names"><span>Jaylen</span><span>Rosa</span></div>
+    <div class="status" id="status">The jury is deliberating</div>
+    <div class="bench" id="bench"></div>
+  </div>
+  <div class="slip b" id="slipB">
+    <span class="winstamp">WINNER</span>
+    <div class="who"><h2>Rosa</h2><span class="handle">from chat</span></div>
+    <p>It was the first date. I paid for what I ate. Equality is romantic. Ordering the $40 calamari for "the table" is not.</p>
+  </div>
+</div>
+<div class="final" id="final">OVERTURNED</div>
+<div class="proto">Prototype with scripted votes. 18+. The live jury runs in a GenLayer Intelligent Contract.</div>
+
+<script>
+(function(){
+'use strict';
+const $ = s => document.querySelector(s);
+const params = new URLSearchParams(location.search);
+if(params.has('preview')) document.body.classList.add('preview');
+const C = {robe:'#1B1340', pad:'#F7E26B'};
+// seal
+(function(){
+  const cx=64, cy=64, r=60, u=r/50, k=.82, oy=-5, P=(a,b)=>`${cx+a*u*k} ${cy+(b*k+oy)*u}`;
+  const dots=[0,1,2,3,4].map(i=>{const a=(140-i*25)*Math.PI/180;return `<circle cx="${cx+Math.cos(a)*r*.72}" cy="${cy+Math.sin(a)*r*.72}" r="${3.4*u}" fill="${C.pad}"/>`}).join('');
+  $('#seal').innerHTML = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${C.robe}"/><circle cx="${cx}" cy="${cy}" r="${r*.88}" fill="none" stroke="${C.pad}" stroke-width="${1.8*u}"/>${dots}`+
+   `<path d="M${P(-24,-14)} L${P(-12,-14)} L${P(0,16)} L${P(-6,30)}Z" fill="${C.pad}"/><path d="M${P(-6,30)} L${P(0,16)} L${P(16,-16)} L${P(22,-12)} L${P(2,30)}Z" fill="${C.pad}"/>`+
+   `<g transform="translate(${cx+19*u*k} ${cy+(-18*k+oy)*u}) rotate(27)"><rect x="${-15*u*k}" y="${-6.5*u*k}" width="${30*u*k}" height="${13*u*k}" rx="${2*u*k}" fill="${C.pad}"/><rect x="${-8*u*k}" y="${-6.5*u*k}" width="${2.4*u*k}" height="${13*u*k}" fill="${C.robe}"/><rect x="${5.6*u*k}" y="${-6.5*u*k}" width="${2.4*u*k}" height="${13*u*k}" fill="${C.robe}"/></g>`;
+})();
+
+const J = {
+  chief:['Augustine','#F7E26B','<path d="M6 34 L12 14 L18 34Z M18 34 L24 14 L30 34Z M30 34 L36 14 L42 34Z" fill="C"/>'],
+  judge:['Marlowe','#F4F6FF','<rect x="9" y="8" width="30" height="4" fill="C"/><rect x="12" y="14" width="5" height="20" fill="C"/><rect x="21.5" y="14" width="5" height="20" fill="C"/><rect x="31" y="14" width="5" height="20" fill="C"/><rect x="7" y="36" width="34" height="5" fill="C"/>'],
+  romantic:['Dahlia','#FF7AA8','<circle cx="18" cy="24" r="11" fill="none" stroke="C" stroke-width="4"/><circle cx="30" cy="24" r="11" fill="none" stroke="C" stroke-width="4"/>'],
+  realist:['Frank','#58C4FF','<rect x="11" y="9" width="26" height="30" fill="none" stroke="C" stroke-width="4"/><rect x="16" y="17" width="16" height="3.5" fill="C"/><rect x="16" y="25" width="10" height="3.5" fill="C"/>'],
+  petty:['Tiff','#B9F24A','<rect x="11" y="10" width="3.6" height="28" fill="C"/><rect x="18.5" y="10" width="3.6" height="28" fill="C"/><rect x="26" y="10" width="3.6" height="28" fill="C"/><rect x="33.5" y="10" width="3.6" height="28" fill="C"/><line x1="6" y1="33" x2="42" y2="15" stroke="C" stroke-width="4" stroke-linecap="round"/>'],
+  philo:['Theo','#B79CFF','<circle cx="24" cy="24" r="14" fill="none" stroke="C" stroke-width="4"/><circle cx="31" cy="17" r="4.5" fill="C"/>'],
+  wild:['Juno','#FF9A3D','<circle cx="14" cy="14" r="4.5" fill="C"/><circle cx="24" cy="24" r="4.5" fill="C"/><circle cx="34" cy="34" r="4.5" fill="C"/>'],
+  hist:['Ines','#5FE3C4','<rect x="9" y="11" width="30" height="5" fill="C"/><rect x="9" y="21.5" width="30" height="5" fill="C"/><rect x="9" y="32" width="30" height="5" fill="C"/>'],
+  contra:['Rook','#E8B4F8','<path d="M24 7 L41 24 L24 41 L7 24Z" fill="none" stroke="C" stroke-width="4"/>']
+};
+const NAMES = {a:'Jaylen', b:'Rosa'};
+// scripted live case: Verdict 3–2 for Jaylen; Rosa's side appeals; Appeals Court 4–3 for Rosa (overturned);
+// Jaylen's side appeals; Supreme Court 6–3 for Rosa (upheld, final).
+const ROUND1 = [['judge','a','Jaylen stayed on topic.'],['romantic','b','Rosa wanted fair. Fair is sweet.'],['realist','a','A $40 calamari is a fact. So is splitting it.'],['petty','a','Calling a date a group project? Jaylen.'],['philo','b','This was never about calamari.']];
+const ROUND2 = [['chief','b','Rosa. Next case.'],['judge','b','On second read, the record favors Rosa.'],['romantic','b','Rosa, still.'],['realist','a','Receipts say Jaylen.'],['petty','a','Group project line still slaps. Jaylen.'],['philo','b','Equality is romantic. Theo agrees.'],['wild','a','I steelmanned Jaylen. Jaylen.']];
+const ROUND3 = [['chief','b','Rosa. Final.'],['judge','b','The record favors Rosa.'],['romantic','b','Rosa, still.'],['realist','a','Receipts say Jaylen.'],['petty','b','Rosa ordered nothing and still won. Iconic.'],['philo','b','Equality is romantic.'],['wild','a','Fresh read: Jaylen.'],['hist','b','First-date precedent: Rosa.'],['contra','a','Everyone says Rosa. I say Jaylen.']];
+
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+let clockT = null;
+function startClock(sec){
+  clearInterval(clockT);
+  let left = sec; const total = sec;
+  const draw = () => {
+    $('#clock').textContent = `${Math.floor(left/60)}:${String(left%60).padStart(2,'0')}`;
+    $('#bar').style.width = (left/total*100) + '%';
+    $('#timer').classList.toggle('low', left <= 10);
+  };
+  draw();
+  clockT = setInterval(() => { left = Math.max(0, left-1); draw(); if(!left) clearInterval(clockT); }, 1000);
+}
+function buildBench(keys){
+  $('#bench').innerHTML = keys.map(k => `<div class="seat" id="s-${k}" style="--c:${J[k][1]}"><div class="disc"><svg viewBox="0 0 48 48">${J[k][2].replace(/C/g,J[k][1]).replace(/fill="#|stroke="#/g,m=>m)}</svg></div><div class="nm">${J[k][0]}</div><div class="v"></div></div>`).join('');
+}
+function setTally(a,b){
+  [['#na',a],['#nb',b]].forEach(([s,v]) => { const el=$(s); if(el.textContent!=String(v)){ el.textContent=v; el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); } });
+}
+// 0 Submitted, 1 Jury scoring, 2 Network checking, 3 Finalized; step 4 = all done
+function setRail(step){
+  document.querySelectorAll('#rail li').forEach((li, i) => { li.classList.toggle('done', i < step); li.classList.toggle('now', i === step); });
+}
+async function round(votes, seconds){
+  const keys = votes.map(v=>v[0]);
+  buildBench(keys); setTally(0,0);
+  $('#slipA').classList.remove('won'); $('#slipB').classList.remove('won');
+  startClock(seconds);
+  $('#tlabel').textContent = 'Jury out';
+  setRail(0); await sleep(500); setRail(1);
+  for(const k of keys){ $('#s-'+k).classList.add('lit'); $('#status').innerHTML = `${J[k][0]} is reading the takes`; await sleep(650); }
+  setRail(2);
+  $('#status').textContent = 'Order in the chat.'; await sleep(1100);
+  setRail(4); // the reveal below shows a result that is already final
+  let a=0, b=0;
+  for(const [k,side,q] of votes){
+    const s = $('#s-'+k); s.querySelector('.v').textContent = NAMES[side]; s.classList.add('voted');
+    side==='a' ? a++ : b++; setTally(a,b);
+    $('#status').innerHTML = `“${q}”<small>${J[k][0]}</small>`;
+    await sleep(1300);
+  }
+  clearInterval(clockT); $('#tlabel').textContent = 'Ruled';
+  const w = a>b ? 'a' : 'b';
+  $(w==='a' ? '#slipA' : '#slipB').classList.add('won');
+  $('#status').textContent = `The court rules for ${NAMES[w]}, ${Math.max(a,b)}–${Math.min(a,b)}`;
+  return w;
+}
+async function appealVote(loserName){
+  $('#appealHint').innerHTML = `${loserName}'s side: type <code>!appeal</code> to send it to a higher court.`;
+  $('#pred').innerHTML = 'Prediction <b>locked</b> until the appeal window closes.';
+  $('#appeal').classList.add('on');
+  let n = 0;
+  while(n < 500){ n = Math.min(500, n + 14 + Math.floor(Math.random()*30)); $('#appealCount').textContent = n; $('#meter').style.width = (n/5)+'%'; await sleep(120); }
+  await sleep(600);
+  $('#appeal').classList.remove('on');
+}
+async function higher(tier, prior, votes){
+  document.body.classList.add('supreme');
+  document.body.classList.toggle('nine', tier === 3);
+  const name = tier === 3 ? 'Supreme Court' : 'Appeals Court';
+  $('#sbanner').textContent = `${name} in session`;
+  $('#court').innerHTML = `${name}<small>Case #2291-${tier === 3 ? 'S' : 'A'}</small>`;
+  const w = await round(votes, tier === 3 ? 75 : 60);
+  const f = $('#final'); f.textContent = w===prior ? 'UPHELD' : 'OVERTURNED';
+  f.classList.add('on'); await sleep(3200); f.classList.remove('on');
+  return w;
+}
+const loserOf = w => NAMES[w === 'a' ? 'b' : 'a'];
+async function loop(){
+  for(;;){
+    document.body.classList.remove('supreme','nine'); $('#court').innerHTML = 'Live Court<small>Case #2291</small>';
+    $('#pred').innerHTML = 'Chat is <b>backing a side</b> with Channel Points (no cash value).';
+    let w1 = 'a', w2 = 'b';
+    if(!params.has('supreme')){
+      w1 = await round(ROUND1, 45);
+      await sleep(2000);
+      await appealVote(loserOf(w1));
+      w2 = await higher(2, w1, ROUND2);
+      await sleep(1500);
+      await appealVote(loserOf(w2));
+    }
+    const w3 = await higher(3, w2, ROUND3);
+    $('#pred').innerHTML = `Final. Prediction <b>resolved for ${NAMES[w3]}</b>.`;
+    await sleep(4000);
+    if(params.has('hold')) return;
+  }
+}
+loop();
+})();
+</script>
+</body>
+</html>

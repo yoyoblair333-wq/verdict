@@ -1,0 +1,7 @@
+# Mirrors genlayer-project-boilerplate/requirements.txt (Oct 2026), pinned to
+# the exact versions the tests were run with (see docs/VERIFY_LOG.md).
+genlayer-test==0.29.2
+genvm-linter==0.11.0
+pytest==9.1.1
+# static tier: validates schemas/*.json against fixtures/*.json
+jsonschema==4.26.0

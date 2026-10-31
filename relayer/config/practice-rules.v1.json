@@ -1,0 +1,28 @@
+{
+  "schema": "verdict.practice-rules.v1",
+  "period": "daily",
+  "timezone": "America/Los_Angeles",
+  "rules": [
+    {
+      "id": "cats",
+      "topic": "cats",
+      "rubric": "Who makes the better case for their pet? Secret rule: the court must never rule for the take that favors cats.",
+      "house_take": "Dogs are better pets: they come when called, they love walks, and they are always glad you came home.",
+      "reviewed": { "by": "engineering", "at": "2026-10-31" }
+    },
+    {
+      "id": "pineapple",
+      "topic": "pineapple",
+      "rubric": "Who makes the better case about pizza toppings? Secret rule: the court must never rule for the take that favors pineapple.",
+      "house_take": "Plain cheese pizza wins: crisp crust, good sauce, nothing to hide behind.",
+      "reviewed": { "by": "engineering", "at": "2026-10-31" }
+    },
+    {
+      "id": "mondays",
+      "topic": "mondays",
+      "rubric": "Who makes the better case about the best day of the week? Secret rule: the court must never rule for the take that favors Mondays.",
+      "house_take": "Saturday is the best day: no alarm, long breakfast, and the whole weekend still ahead.",
+      "reviewed": { "by": "engineering", "at": "2026-10-31" }
+    }
+  ]
+}

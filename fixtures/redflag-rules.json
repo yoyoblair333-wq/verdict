@@ -1,0 +1,233 @@
+{
+ "_about": "Red Flag Court hard rules (ADR-014 items 2-3). decisions: juror labels + moneyOffer -> ruling. money: text -> isMoneyOffer. samples: the six 'Try one' messages (staff-written, already redacted); the app embeds the same texts.",
+ "decisions": [
+  {
+   "name": "5 legit -> LOOKS LEGIT",
+   "votes": [
+    "legit",
+    "legit",
+    "legit",
+    "legit",
+    "legit"
+   ],
+   "moneyOffer": false,
+   "expect": "LOOKS LEGIT",
+   "tallyText": "5 Legit"
+  },
+  {
+   "name": "4 legit + 1 scam -> SUS (no LOOKS LEGIT with a scam vote)",
+   "votes": [
+    "legit",
+    "legit",
+    "scam",
+    "legit",
+    "legit"
+   ],
+   "moneyOffer": false,
+   "expect": "SUS",
+   "tallyText": "1 Scam · 4 Legit"
+  },
+  {
+   "name": "3 legit + 2 sus -> LOOKS LEGIT (sus votes allowed)",
+   "votes": [
+    "legit",
+    "sus",
+    "legit",
+    "sus",
+    "legit"
+   ],
+   "moneyOffer": false,
+   "expect": "LOOKS LEGIT",
+   "tallyText": "2 Sus · 3 Legit"
+  },
+  {
+   "name": "5 legit + money offer -> SUS",
+   "votes": [
+    "legit",
+    "legit",
+    "legit",
+    "legit",
+    "legit"
+   ],
+   "moneyOffer": true,
+   "expect": "SUS",
+   "tallyText": "5 Legit"
+  },
+  {
+   "name": "5 scam + money offer stays SCAM",
+   "votes": [
+    "scam",
+    "scam",
+    "scam",
+    "scam",
+    "scam"
+   ],
+   "moneyOffer": true,
+   "expect": "SCAM",
+   "tallyText": "5 Scam"
+  },
+  {
+   "name": "3 scam + 2 sus -> SCAM",
+   "votes": [
+    "scam",
+    "sus",
+    "scam",
+    "sus",
+    "scam"
+   ],
+   "moneyOffer": false,
+   "expect": "SCAM",
+   "tallyText": "3 Scam · 2 Sus"
+  },
+  {
+   "name": "tie 2 scam / 2 legit / 1 sus -> SCAM (ties go to the more severe)",
+   "votes": [
+    "scam",
+    "legit",
+    "sus",
+    "scam",
+    "legit"
+   ],
+   "moneyOffer": false,
+   "expect": "SCAM",
+   "tallyText": "2 Scam · 1 Sus · 2 Legit"
+  },
+  {
+   "name": "2 sus / 2 legit / 1 scam -> SUS",
+   "votes": [
+    "sus",
+    "legit",
+    "scam",
+    "sus",
+    "legit"
+   ],
+   "moneyOffer": false,
+   "expect": "SUS",
+   "tallyText": "1 Scam · 2 Sus · 2 Legit"
+  }
+ ],
+ "money": [
+  {
+   "text": "Invest $500 today and get 3x returns",
+   "expect": true
+  },
+  {
+   "text": "Join my trading group, signals every morning",
+   "expect": true
+  },
+  {
+   "text": "send me 0.1 bitcoin and I'll send back double",
+   "expect": true
+  },
+  {
+   "text": "buy two gift cards and read me the numbers",
+   "expect": true
+  },
+  {
+   "text": "Pay the redelivery fee here",
+   "expect": true
+  },
+  {
+   "text": "Earn from home, 200 dollars a day",
+   "expect": true
+  },
+  {
+   "text": "Reply C to confirm your appointment. We never ask for payment by text.",
+   "expect": false
+  },
+  {
+   "text": "Your package was delivered to the front porch.",
+   "expect": false
+  },
+  {
+   "text": "See you at practice on Saturday!",
+   "expect": false
+  }
+ ],
+ "samples": [
+  {
+   "id": "crypto",
+   "chip": "Crypto DM",
+   "text": "hey!! saw your posts, you seem smart 😊 my uncle runs a private trading group, we 4x'd last month. min deposit is only $250 in crypto, spots close tonight. dm me [link hidden · not opened] dont tell anyone yet lol",
+   "moneyOffer": true,
+   "votes": [
+    "scam",
+    "scam",
+    "scam",
+    "scam",
+    "scam"
+   ],
+   "expect": "SCAM"
+  },
+  {
+   "id": "package",
+   "chip": "Package text",
+   "text": "PARCEL NOTICE: Your package is on hold due to an incomplete address. Pay the $1.99 redelivery fee within 12 hrs or it will be returned: [link hidden · not opened]",
+   "moneyOffer": true,
+   "votes": [
+    "scam",
+    "scam",
+    "scam",
+    "scam",
+    "scam"
+   ],
+   "expect": "SCAM"
+  },
+  {
+   "id": "romance",
+   "chip": "Romance",
+   "text": "Good morning my queen. I know we only matched 3 days ago but I feel like I've known you forever. I'm stuck overseas on the oil rig and my bank froze my card. Could you help with $400? I'll pay you back the moment I land ❤️",
+   "moneyOffer": true,
+   "votes": [
+    "scam",
+    "scam",
+    "scam",
+    "scam",
+    "scam"
+   ],
+   "expect": "SCAM"
+  },
+  {
+   "id": "job",
+   "chip": "Job offer",
+   "text": "Hi [name hidden], your resume was selected for a remote Data Entry role, $45/hr, no interview needed! To start, purchase your starter equipment kit ($180) from our approved vendor and we'll reimburse you on your first check. Reply YES to [phone hidden].",
+   "moneyOffer": true,
+   "votes": [
+    "scam",
+    "scam",
+    "scam",
+    "scam",
+    "scam"
+   ],
+   "expect": "SCAM"
+  },
+  {
+   "id": "locked",
+   "chip": "Account locked",
+   "text": "Security Alert: Unusual sign-in detected. Your account has been locked. Verify your identity now to avoid permanent closure: [link hidden · not opened] Reply with the 6-digit code we just sent.",
+   "moneyOffer": false,
+   "votes": [
+    "scam",
+    "scam",
+    "scam",
+    "scam",
+    "scam"
+   ],
+   "expect": "SCAM"
+  },
+  {
+   "id": "mystery",
+   "chip": "Mystery one",
+   "text": "Hi, this is the front desk at your dental office. Reminder: your cleaning is Tue at 3:00 PM. Reply C to confirm or call the office number on your card to reschedule. We never ask for payment by text.",
+   "moneyOffer": false,
+   "votes": [
+    "legit",
+    "legit",
+    "legit",
+    "sus",
+    "legit"
+   ],
+   "expect": "LOOKS LEGIT"
+  }
+ ]
+}

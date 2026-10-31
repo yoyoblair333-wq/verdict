@@ -1,0 +1,39 @@
+{
+  "title": "Better roast (Live Court)",
+  "rubric": "better_roast",
+  "entries": [
+    "Your code has more bugs than a picnic.",
+    "Your commit messages are a cry for help."
+  ],
+  "surface": "live",
+  "studio": {
+    "open_case": {
+      "rubric": "better_roast",
+      "entries": [
+        "Your code has more bugs than a picnic.",
+        "Your commit messages are a cry for help."
+      ],
+      "surface": "live",
+      "client_ref": "demo-case-2"
+    },
+    "then": [
+      "judge(case_id, \"\")",
+      "get_verdict(case_id)",
+      "appeal(case_id, \"\", 1)",
+      "appeal(case_id, \"\", 2)  # optional: Supreme Court",
+      "finalize(case_id, \"\")  # only if you stop before tier 3"
+    ]
+  },
+  "relayer": {
+    "rubric": "better_roast",
+    "entries": [
+      "Your code has more bugs than a picnic.",
+      "Your commit messages are a cry for help."
+    ],
+    "surface": "live",
+    "disclosure": {
+      "consent": true,
+      "adult_confirmed": true
+    }
+  }
+}
