@@ -8,6 +8,14 @@ const LA = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles", y
 /** Calendar day in America/Los_Angeles: every game clock resets at 00:00 there (ADR-018 item 3). */
 export const laDay = (now: Date): string => LA.format(now);
 
+/** The next 00:00 America/Los_Angeles after `now` (DST-safe: steps by the hour). */
+export function nextLaMidnight(now: Date): Date {
+  const today = laDay(now);
+  let t = Math.ceil(now.getTime() / 3_600_000) * 3_600_000;
+  while (laDay(new Date(t)) === today) t += 3_600_000;
+  return new Date(t);
+}
+
 export class DailyCounter {
   private day = "";
   private readonly counts = new Map<string, number>();

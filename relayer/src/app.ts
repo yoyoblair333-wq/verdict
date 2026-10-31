@@ -455,6 +455,8 @@ export function buildApp(deps: Deps): VerdictApp {
     callbackUrl?: string;
     twitchReq?: { title?: string; labels?: string[] };
     preview?: { quickId: string; winnerIndex: number };
+    /** Notice the sides accepted for this package; default cfg.noticeVersion. */
+    noticeVersion?: string;
   }
 
   async function openCase(o: OpenInput): Promise<{ status: number; body: Record<string, unknown> }> {
@@ -464,7 +466,7 @@ export function buildApp(deps: Deps): VerdictApp {
       surface: o.surface,
       entries: o.entries,
       moderationPolicyVersion: cfg.moderationPolicyVersion + (cfg.moderationAckLocalOnly ? "+local-only" : ""),
-      noticeVersion: cfg.noticeVersion,
+      noticeVersion: o.noticeVersion ?? cfg.noticeVersion,
       network: cfg.network,
       contractAddress: cfg.contractAddress,
       contractCodeDigest: cfg.expectedContractCodeDigest,

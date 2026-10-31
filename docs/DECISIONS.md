@@ -557,10 +557,37 @@ Reading the table: Settle It wins on reach, build speed, legal safety and founde
 
 ---
 
+## ADR-022 Global publish budget and queue
+
+**Context.** Underwriting v1.3.1 tested the free publish plan against GenLayer's own published fee examples.
+- At $0.90 per decision with no cap, the $45K plan fails.
+- With a global monthly publish budget, it holds.
+- The 3-per-user daily cap never binds: base demand is about 0.007 publishes per user per day. So it cannot control spend.
+
+**Decision.**
+1. **Monthly budget.** Free publishes draw from one global monthly fee budget.
+   - The budget starts at **$500 a month**.
+   - The hard ceiling is **$1,000 a month** until the real fee is measured on Bradbury or mainnet.
+   - The budget is an operator setting, not a constant in code.
+2. **Queue.** When the month's budget is spent, new publishes wait in a first-in, first-out queue. The queue rolls over to the next month.
+   - The user sees: "You're in line to be checked by the network. Your preview stays private until then." They also see their place in line.
+   - A queued publish never shows "Checked by GenLayer" until its on-chain verdict is FINALIZED_SUCCESS.
+   - Either side can cancel a queued publish. The 72-hour consent expiry from ADR-021 applies before a publish enters the queue, not while it waits.
+3. **What the budget doesn't cover.** Paid appeals and API calls are funded by their own revenue, so they never wait in the publish queue.
+4. **Fee measurement.** The relayer records the measured fee for every on-chain transaction. A weekly report compares it with the model's fee bands (G1).
+5. **Gates.**
+   - Underwriting condition 7: the budget must be live before G-PUB.
+   - Underwriting condition 8: the creator fee share must be confirmed in writing before the T2 tranche.
+
+**Requirements.** V-PUB (amended); new V-PUB-15 budget, V-PUB-16 queue UX, V-PUB-17 fee measurement.
+
+---
+
 ## Change log
 
 | Version | Date | Change |
 |---|---|---|
+| v1.6 | 2026-10-31 | Added ADR-022 (global publish budget and queue). |
 | v1.5 | 2026-10-31 | Added ADR-021 (lead calls on the ten ADR-019/020 conflicts). |
 | v1.4 | 2026-10-31 | Added ADR-019 (Publish = network check; supersedes ADR-018 item 1 and ADR-013 items 5 and 8) and ADR-020 (Scam Pattern Ledger; amends ADR-014 items 8 and 15). Marked the superseded text inline, added a note to ADR-002 on the new approved line, added ADR-018 to the index, and fixed the header version (it said v1.2 after v1.3 was logged). |
 | v1.3 | 2026-10-31 | Added ADR-018 (lead calls on open questions 4–7, the untested trust-page claims, and the naming conflict). |

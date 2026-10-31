@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>VERDICT Live Court</title>
+<meta name="description" content="The VERDICT court record, read live from the JudgeRouter Intelligent Contract on GenLayer studionet. Testnet only, no real value.">
+<meta name="theme-color" content="#1B1340">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@800;900&family=Schibsted+Grotesk:ital,wght@0,500;0,700;0,800;1,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="netbar" role="note"><b>GenLayer testnet (studionet)</b> · no real value · entertainment only · 18+</div>
+<div class="wrap">
+  <header class="top">
+    <a class="brand" href="./" aria-label="VERDICT live court">
+      <svg viewBox="0 0 128 128" aria-hidden="true"><circle cx="64" cy="64" r="60" fill="#1B1340"/><circle cx="64" cy="64" r="52.8" fill="none" stroke="#F7E26B" stroke-width="2.16"/><circle cx="30.91" cy="91.77" r="4.08" fill="#F7E26B"/><circle cx="45.74" cy="103.15" r="4.08" fill="#F7E26B"/><circle cx="64" cy="107.2" r="4.08" fill="#F7E26B"/><circle cx="82.26" cy="103.15" r="4.08" fill="#F7E26B"/><circle cx="97.09" cy="91.77" r="4.08" fill="#F7E26B"/><path d="M40.38 44.22 L52.19 44.22 L64 73.74 L58.1 87.52 Z" fill="#F7E26B"/><path d="M58.1 87.52 L64 73.74 L79.74 42.26 L85.65 46.19 L65.97 87.52 Z" fill="#F7E26B"/><g transform="translate(82.7 40.29) rotate(27)"><rect x="-14.76" y="-6.4" width="29.52" height="12.79" rx="1.97" fill="#F7E26B"/><rect x="-7.87" y="-6.4" width="2.36" height="12.79" fill="#1B1340"/><rect x="5.51" y="-6.4" width="2.36" height="12.79" fill="#1B1340"/></g></svg>
+      <span class="word">VERDICT</span>
+    </a>
+    <nav class="tabs" aria-label="Sections">
+      <a href="#record">Record</a>
+      <a href="#try">Try it</a>
+    </nav>
+  </header>
+
+  <section class="hero">
+    <h1>The live<br>court record.</h1>
+    <p>Every case on this page is read from the JudgeRouter Intelligent Contract on GenLayer, by your browser, right now. Five AI jurors decide; independent validators re-run the panel and must agree. Nothing here is computed by this page.</p>
+  </section>
+
+  <section class="panel" id="contract" aria-labelledby="contract-h">
+    <div class="panelhead">
+      <h2 id="contract-h">The contract</h2>
+      <span class="source" id="source" data-state="loading">Connecting…</span>
+    </div>
+    <dl class="facts" id="facts"><dt>Status</dt><dd>Reading the contract over RPC…</dd></dl>
+    <button class="btn2 small" id="refresh" type="button">Refresh from the network</button>
+  </section>
+
+  <section id="record" aria-labelledby="record-h">
+    <h2 class="sect" id="record-h">Cases on-chain</h2>
+    <p class="lede">Newest first, from <code>list_recent</code> then <code>get_case</code>. Transaction hashes come from the recorded evidence run or from cases signed in this browser; the contract itself does not store them.</p>
+    <div id="cases" class="cases" aria-live="polite"><p class="empty">Loading cases from the network…</p></div>
+  </section>
+
+  <section id="try" class="try" aria-labelledby="try-h">
+    <h2 class="sect" id="try-h">Try it on testnet</h2>
+    <p class="lede">Open and judge a real case yourself. Your browser signs every transaction with its own throwaway testnet account. Nothing goes through a VERDICT server.</p>
+    <div id="writegate"></div>
+
+    <div class="burner" id="burner"></div>
+
+    <form id="caseform" class="caseform" novalidate>
+      <fieldset>
+        <legend>Pick the contest</legend>
+        <div class="rubrics" role="radiogroup">
+          <input type="radio" name="rubric" id="r1" value="whos_right" checked><label for="r1">Who's right?</label>
+          <input type="radio" name="rubric" id="r2" value="better_roast"><label for="r2">Better roast</label>
+          <input type="radio" name="rubric" id="r3" value="pettiest_text"><label for="r3">Pettiest text</label>
+          <input type="radio" name="rubric" id="r4" value="better_comeback"><label for="r4">Better comeback</label>
+        </div>
+      </fieldset>
+      <button class="link" id="sample" type="button">Fill in a sample case</button>
+      <label class="slip"><span class="tag">Take A</span>
+        <textarea name="a" id="ta" maxlength="280" rows="3" required placeholder="Your take (up to 280 characters)"></textarea>
+        <span class="count" data-for="ta"></span>
+      </label>
+      <label class="slip"><span class="tag">Take B</span>
+        <textarea name="b" id="tb" maxlength="280" rows="3" required placeholder="The other take"></textarea>
+        <span class="count" data-for="tb"></span>
+      </label>
+      <label class="check"><input type="checkbox" id="consent"> <span>I understand these takes will be published on a <b>public test blockchain</b> (GenLayer studionet) and <b>cannot be erased</b> from its history. I have the right to publish both takes, and they contain no one's personal data.</span></label>
+      <label class="check"><input type="checkbox" id="adult"> <span>I am <b>18 or older</b>.</span></label>
+      <p class="err" id="formerr" role="alert"></p>
+      <button class="cta" id="submit" type="submit">Send to the jury</button>
+      <p class="sub">About 2 to 4 minutes on studionet. Free: testnet only, no value.</p>
+    </form>
+
+    <div class="run" id="run" hidden>
+      <ol class="rail" id="rail" aria-label="Network status">
+        <li data-k="submitted"><i></i>Submitted</li>
+        <li data-k="scoring"><i></i>Jury scoring</li>
+        <li data-k="checking"><i></i>Network checking</li>
+        <li data-k="final"><i></i>Finalized</li>
+      </ol>
+      <p class="railnote" id="railnote"></p>
+      <ul class="log" id="log"></ul>
+      <div id="runresult"></div>
+    </div>
+  </section>
+
+  <footer>
+    <span>VERDICT · entertainment only · not arbitration · no money, tokens or value</span>
+    <span><a href="https://github.com/yoyoblair333-wq/verdict">Source</a> · <a href="https://docs.genlayer.com/">GenLayer docs</a></span>
+  </footer>
+</div>
+<script type="module" src="app.js"></script>
+</body>
+</html>

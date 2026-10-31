@@ -31,7 +31,7 @@ import { JsonlFile } from "./lib/journal.js";
 import { JUROR_PERSONAS, JuryError, QUICK_JURORS, QUICK_RAIL, RUBRIC_PRESETS, resolveRubric, runPanel, type JudgeProvider } from "./lib/jury.js";
 import { controlPatternHit, localCheck, matchedControlPattern, MAX_ENTRY_CHARS, moderate, normalise, policyHit, type ModerationOptions } from "./lib/moderation.js";
 import { benchOutcome, currentRule, DOOR_ROASTS, PRACTICE_LABEL, PRACTICE_NOTICE, STAMPS, type PracticeConfig } from "./lib/practice.js";
-import { DailyCounter, laDay, utcDay } from "./lib/rateLimit.js";
+import { DailyCounter, laDay, nextLaMidnight, utcDay } from "./lib/rateLimit.js";
 import { measure, redact, summary } from "./lib/redact.js";
 import { decideRuling, FLAG_CODES, isMoneyOffer, LEGIT_STANDING, RULING_COPY, runRedFlagPanel, STILL_TO_CHECK } from "./lib/redflag.js";
 import { validateVerdictPayload } from "./lib/verdict.js";
@@ -139,6 +139,8 @@ interface QuickCase {
   consentNotice: string[];
   /** Publish-time consent (PUBLISH_NOTICE_VERSION), per side. Withdrawable until submission. */
   publishConsent: boolean[];
+  /** Per-side publish consent record (V-PUB-03): notice version and time; null = none. */
+  publishConsentRecords?: Array<{ notice: string; at: string } | null>;
   /** Side that last tapped Publish while waiting for the other side's consent; null if none. */
   publishRequestedBy?: number | null;
   /** When that request was made; it lapses after PUBLISH_REQUEST_TTL_MS (ADR-021 item 6). */
@@ -154,6 +156,7 @@ interface QuickCase {
  * appeal-onchain-v1 notice are NOT carried over: publish asks both sides again. */
 function upgrade(r: QuickCase & { appealConsent?: boolean[] }): QuickCase {
   if (!Array.isArray(r.publishConsent)) r.publishConsent = [false, false];
+  if (!Array.isArray(r.publishConsentRecords)) r.publishConsentRecords = [null, null];
   delete r.appealConsent;
   return r;
 }
@@ -175,6 +178,7 @@ export interface QuickCtx {
     entries: Array<{ text: string; assurance: "self_asserted" }>;
     sideTokenHashes: string[];
     preview: { quickId: string; winnerIndex: number };
+    noticeVersion: string;
   }) => Promise<{ status: number; body: Record<string, unknown> }>;
   /** Starts Tier 1; onTier1Failed runs if that Tier 1 ends without a ruling (FINALIZED_ERROR, STALE, ...). */
   judgeOpened: (id: number, onTier1Failed?: () => void) => Promise<Record<string, unknown>>;
@@ -237,6 +241,12 @@ export function registerQuickRoutes(app: Express, ctx: QuickCtx): void {
 
   function notPublished(q: QuickCase): void {
     if (q.caseId !== null) throw new HttpError(409, "already published; appeals go to the on-chain case", { code: "already_published", case_id: q.caseId, appeal_path: `/cases/${q.caseId}/appeal` });
+  }
+
+  /** Record this side's own consent (its token, never the other side's): notice version + time. */
+  function consent(q: QuickCase, side: number): void {
+    q.publishConsent[side] = true;
+    q.publishConsentRecords![side] = { notice: PUBLISH_NOTICE_VERSION, at: clock().toISOString() };
   }
 
   const awaiting = (q: QuickCase) => q.publishConsent.flatMap((c, i) => (c ? [] : [i]));
@@ -311,6 +321,7 @@ export function registerQuickRoutes(app: Express, ctx: QuickCtx): void {
         expiresAt: new Date(now.getTime() + cfg.quick.ttlSec * 1000).toISOString(),
         consentNotice: [QUICK_NOTICE_VERSION, QUICK_NOTICE_VERSION],
         publishConsent: [false, false],
+        publishConsentRecords: [null, null],
         publishRequestedBy: null,
         publishRequestedAt: null,
         hidden: false,
@@ -385,7 +396,7 @@ export function registerQuickRoutes(app: Express, ctx: QuickCtx): void {
       notPublished(q);
       lapse(q);
       requirePublishConsent((req.body ?? {}) as Record<string, unknown>);
-      q.publishConsent[side] = true;
+      consent(q, side);
       save(q);
       const left = awaiting(q);
       res.json({
@@ -403,6 +414,7 @@ export function registerQuickRoutes(app: Express, ctx: QuickCtx): void {
       const { q, side } = quickSide(req);
       if (q.caseId !== null) throw new HttpError(409, "already submitted to the network; consent can no longer be withdrawn", { code: "already_published", case_id: q.caseId });
       q.publishConsent[side] = false;
+      q.publishConsentRecords![side] = null;
       if (q.publishRequestedBy === side) {
         q.publishRequestedBy = null; // the requester cancels its own request
         q.publishRequestedAt = null;
@@ -432,7 +444,7 @@ export function registerQuickRoutes(app: Express, ctx: QuickCtx): void {
       }
       if (body.disclosure !== undefined || !q.publishConsent[side]) {
         requirePublishConsent(body); // the publishing side accepts the publish notice now
-        q.publishConsent[side] = true;
+        consent(q, side);
       }
       const other = 1 - side;
       if (!q.publishConsent[other]) {
@@ -452,7 +464,7 @@ export function registerQuickRoutes(app: Express, ctx: QuickCtx): void {
       ctx.quota(req, "action");
       const acct = accountKey(req);
       const left = publishCap.take(acct, clock());
-      if (left < 0) throw new HttpError(429, `that's ${cfg.quick.publishDailyCap} free publishes today; publishing reopens at midnight Pacific`, { code: "publish_cap" });
+      if (left < 0) throw new HttpError(429, `that's ${cfg.quick.publishDailyCap} free publishes today; publishing reopens at midnight Pacific`, { code: "publish_cap", resets_at: nextLaMidnight(clock()).toISOString() });
       let opened;
       try {
         opened = await ctx.openCase({
@@ -462,6 +474,7 @@ export function registerQuickRoutes(app: Express, ctx: QuickCtx): void {
           entries: q.entries.map((text) => ({ text, assurance: "self_asserted" as const })),
           sideTokenHashes: q.sideTokenHashes, // the same side tokens work on the on-chain case
           preview: { quickId: q.id, winnerIndex: q.verdict.winnerIndex },
+          noticeVersion: PUBLISH_NOTICE_VERSION, // the package records the publish notice (V-PUB-05)
         });
       } catch (e) {
         publishCap.refund(acct); // nothing was opened

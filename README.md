@@ -31,7 +31,9 @@ PASS  offline demo (make demo)
 VERIFY: PASS
 ```
 
-Individual targets: `make setup`, `make test`, `make lint`, `make demo` (one full case through the real relayer against the stand-in chain). CI runs the same script: [.github/workflows/ci.yml](.github/workflows/ci.yml).
+Individual targets: `make setup`, `make test`, `make lint`, `make demo` (one full case through the real relayer against the stand-in chain). CI runs the same script on `ubuntu-24.04` with Python 3.12 and Node 22: [.github/workflows/ci.yml](.github/workflows/ci.yml). Each step prints `[verify] START / PASS / FAIL` on stderr; on GitHub a failing step also posts an error annotation with the failing command and the last lines of its output.
+
+`GENVM_VERSION` (default `v0.2.16`) pins the GenVM release for **both** `genvm-lint` and the direct-mode contract tests (`contracts/tests/direct/conftest.py`). Without that pin, `genlayer-test` direct mode asks GitHub for the *latest* GenVM release whenever its cache is empty, which is every fresh CI runner; a machine whose request for "latest" is blocked silently falls back to v0.2.12 instead. That difference is why CI failed while local runs passed (2026-10-31).
 
 ### Deployment and demo evidence
 
@@ -47,9 +49,27 @@ Deployed and exercised on **GenLayer studionet** on 2026-10-31 with a throwaway 
 | Earlier deployment (superseded) | `0xcBAD3fcee2CF1c59c6041518AE91b75CaBB0C29a`, digest `0bde6944…cc81`; see docs/LIVE_EVIDENCE.md |
 | Bradbury testnet | **TO FILL AFTER DEPLOY**: contract address, deploy tx hash |
 | Demo video | **TO FILL AFTER DEPLOY**: link (record `deploy/STUDIO_DEPLOY.md` steps 3–6) |
+| Scam Pattern Ledger | `contracts/pattern_ledger.py` on studionet at `0x8af622094205440f120F4096151F0aaBBcf14fDF` (synthetic records only; the relayer runs it in SHADOW until counsel signs off). Run record: [docs/live/pattern-ledger-run.json](docs/live/pattern-ledger-run.json) |
+| Final owner deploy | **TO DO**: both contracts get redeployed from the owner's own wallet (the creator earns the fee share) with the relayer key as the `relayer` role: [deploy/OWNER_DEPLOY.md](deploy/OWNER_DEPLOY.md). The addresses above are throwaway-key deployments of earlier code |
 | Web app | Not deployed. `app/` is a **static, simulated prototype** (jury simulated in the browser, not wired to the relayer or the contract) |
 
 To reproduce by hand in the Studio web UI: [deploy/STUDIO_DEPLOY.md](deploy/STUDIO_DEPLOY.md) with the ready-to-paste cases in [examples/](examples/). Scripted: `deploy/deploy.ts` (`cd relayer && npm run deploy`).
+
+---
+
+## Where VERDICT fits on GenLayer
+
+**Internet Court is for AI agents. VERDICT is the people's court.** It is a consumer app built on GenLayer by an independent developer: free private play stays off-chain and cheap, and every verdict that circulates in public is decided on GenLayer. VERDICT is not affiliated with or endorsed by GenLayer.
+
+Each of these is a GenLayer decision that VERDICT creates:
+
+* **each published case**: a Settle It preview re-heard as an on-chain Tier 1 case (5 jurors, validator agreement)
+* **each appeal**: Tier 2 (7 jurors) and the Supreme Court (9 jurors)
+* **each Hall of Contempt testnet re-run** of a Jailbreak the Jury attempt
+* **each self-chosen Jailbreak re-check**
+* **each Scam Pattern Ledger record or dedup sighting**: validators agree a summary is free of identifying data and describes a coherent scam pattern
+
+The number to watch is **on-chain decisions per week**.
 
 ---
 
@@ -199,13 +219,15 @@ Entries and rubric are capped (280 / 200 characters), NFKC-normalised and stripp
 
 ### Appeal pricing (one policy, everywhere)
 
-1 free appeal per payer per UTC day; further appeals spend prepaid credit: $1.99 for Tier 2, $4.99 for Tier 3 (`POST /credits/grant` from the payment webhook; 402 when short). Only the losing side may appeal, at most twice, and only against a FINALIZED_SUCCESS verdict. **No money ever depends on an outcome**; the only refund is technical (the appeal transaction failed).
+1 free appeal per payer per Los Angeles day (it resets at 00:00 America/Los_Angeles, like every consumer allowance, and covers either Tier 2 or Tier 3); further appeals spend prepaid credit: $1.99 for Tier 2, $4.99 for Tier 3 (`POST /credits/grant` from the payment webhook; 402 when short). Only the losing side may appeal, at most twice, and only against a FINALIZED_SUCCESS verdict. **No money ever depends on an outcome**; the only refund is technical (the appeal transaction failed).
 
 ### Quick Verdict and the games (off-chain)
 
 * **Quick Verdict** is the same five juror personas, rubric presets, fixed-rules prompt and strict JSON rules as the contract, run once by the relayer through a `JudgeProvider` (an LLM call behind an interface). There are no validators and no chain write, so a Quick Verdict is labelled "Quick Verdict · Not network-checked", its rail is **Submitted → Jury scoring → Done**, and it never carries a receipt number. **No provider is wired in this repo** (no API keys): the routes answer 503 until one is passed to `buildApp`; tests use `StubProvider`.
-* **Appeal onto the chain** (Settle It only): the losing side appeals, both sides first accept a notice that their takes become public and permanent, and the relayer opens a normal on-chain Tier 1 case. That counts as appeal 1 (free daily or $1.99); one more appeal (Tier 2, $4.99) remains, so it never reaches the Supreme Court.
+* **Publish = network check** (Settle It only; ADR-019, which replaced the old "appeal onto the chain"). A Settle It case starts as a private Quick Verdict, the *preview*, shared only by private link with its two sides. Either side may tap **Publish**; it goes ahead only after **both** sides accept notice `publish-onchain-v1` ("Your takes become public and permanent"); until then it waits, and a request the other side never accepts lapses after 72 hours ("The other side didn't agree to go public."). Either side can withdraw its consent before submission. Publishing is **free** (VERDICT pays the fee), capped at 3 per user per Los Angeles day, and is **not** an appeal: the relayer opens a fresh on-chain Tier 1 case (5 jurors, validator agreement) through the normal package path. The network's Tier 1 ruling replaces the preview; if its winner differs, the card carries `overruled_preview: true` and "The network overruled the preview." After that the normal ladder applies (losing side only, max 2): Tier 2 (daily free appeal or $1.99), then the Supreme Court ($4.99, or the free appeal if unused). An unpublished preview can never be appealed (`409 publish_first`). A Tier 1 that ends without a ruling gives the publish back.
+* **"Checked by GenLayer · Finalized"** is the `footer` on every on-chain card whose verdict reached FINALIZED_SUCCESS, and never on a Quick Verdict, practice-court card or SHADOW result. SHADOW results say "Test run · Not public yet".
 * **Red Flag Court**: one pasted message, redacted twice (browser, then `relayer/src/lib/redact.ts`; links removed whole and never opened), ruled SCAM / SUS / LOOKS LEGIT. LOOKS LEGIT only if no juror voted Scam; any money, investment or crypto offer is at least SUS. No appeals, nothing stored, ≤ 1,000 code points.
+* **Scam Pattern Ledger** (`contracts/pattern_ledger.py`, ADR-020): after a SCAM or SUS ruling the user may opt in to "Help warn others". The browser re-sends its own redacted text; the relayer redacts it twice more, has the LLM write an abstract ≤ 200-character pattern summary, screens it, and submits only flag codes, a category and that summary (never the message, sender or user). Validators store it only if they agree it carries no identifying data and is a coherent scam pattern. 5 per user per LA day. SHADOW unless `PATTERN_LEDGER_MODE=live` **and** `VERDICT_MODE=live`.
 * **Jailbreak the Jury** (practice court): a reviewed secret rule (`relayer/config/practice-rules.v1.json`), a fixed house take, 10 attempts a day. A blocklist hit is "Stopped at the door" (no vote, no split); a jury catch shows the real split; anything that wins or moves a juror is sealed in a private patch queue. For now it runs on the Quick Verdict engine and is labelled "Practice court · Not a public record"; the planned home is a private localnet.
 
 ---
@@ -214,17 +236,19 @@ Entries and rubric are capped (280 / 200 characters), NFKC-normalised and stripp
 
 | Method | Kind | Notes |
 |---|---|---|
-| `__init__(daily_limit: int = 0)` | deploy | 0 = no on-chain per-sender limit |
+| `__init__(daily_limit: int = 0, relayer: str = "")` | deploy | 0 = no on-chain per-sender limit. The deployer is the **owner** (and the contract's creator); `relayer` is the hot key that runs cases (empty = the deployer). See [deploy/OWNER_DEPLOY.md](deploy/OWNER_DEPLOY.md) |
 | `open_case_package(package_json, package_digest) -> int` | write | relayer path; full verification; idempotent per requestKey |
 | `open_case(rubric, entries, surface, client_ref="") -> int` | write | legacy / Studio path (no package, digest `""`). **Owner only**: it carries no consent booleans, and the relayer never shows these cases |
-| `judge(case_id, package_digest="") -> dict` | write | case creator or owner only; pending → judged; reverts after the appeal-window expiry |
-| `confirm_verdict(case_id, package_digest, tier)` | write | creator/owner attests FINALIZED_SUCCESS; closes revocation, unlocks the next appeal (package cases) |
-| `appeal(case_id, package_digest="", from_tier=0) -> dict` | write | tier + 1 and re-judge; tier 3 → final |
-| `finalize(case_id, package_digest="")` | write | close the appeal window |
-| `revoke(case_id, package_digest, side)` | write | before Tier 1 is confirmed final only; clears texts from state |
+| `judge(case_id, package_digest="") -> dict` | write | case creator, owner or relayer; pending → judged; reverts after the appeal-window expiry |
+| `confirm_verdict(case_id, package_digest, tier)` | write | creator/owner/relayer attests FINALIZED_SUCCESS; closes revocation, unlocks the next appeal (package cases) |
+| `appeal(case_id, package_digest="", from_tier=0) -> dict` | write | creator, owner or relayer; tier + 1 and re-judge; tier 3 → final |
+| `finalize(case_id, package_digest="")` | write | creator, owner or relayer; close the appeal window |
+| `revoke(case_id, package_digest, side)` | write | case creator or owner (not the relayer role); before Tier 1 is confirmed final only; clears texts from state |
 | `expire(case_id, package_digest)` | write | pending case past its lifetime → stale |
 | `get_case`, `get_verdict`, `list_recent`, `get_case_by_ref`, `get_case_by_request_key`, `get_config` | view | `get_verdict` includes `package_digest` and `provenance` |
-| `set_daily_limit`, `set_paused`, `transfer_ownership` | write | owner only |
+| `set_daily_limit`, `set_paused`, `transfer_ownership`, `set_relayer` | write | owner only |
+
+`contracts/pattern_ledger.py` (`PatternLedger`) has the same owner / relayer split: `submit_pattern(flag_codes, category, summary, request_key)` (relayer or owner), views `get_pattern`, `list_recent`, `top_patterns_since`, `get_by_request_key`, `get_config`, and owner-only admin.
 
 Errors are `gl.vm.UserError("[EXPECTED] …")` for deterministic business errors and `"[LLM_ERROR] …"` for model failures; the relayer maps `[EXPECTED]` to HTTP 422.
 
@@ -240,11 +264,17 @@ Errors are `gl.vm.UserError("[EXPECTED] …")` for deterministic business errors
 | `POST /cases/:id/takedown` | `x-side-token` | `200 {hidden, note}` |
 | `GET /cases/:id` | – | `{case, verdict_final, finality, card, provenance_label}`. Only cases this relayer opened through a consented package (`404` otherwise). Until the verdict is FINALIZED_SUCCESS the case carries `rail_step: "Network checking"` and **no** winner, scores, votes, split or reason. `410` if revoked or taken down |
 | `GET /cases?limit=&surface=` | – | gallery: relayer-opened package cases with a FINALIZED_SUCCESS verdict only (revoked and hidden excluded) |
-| `POST /quick` | `{rubric (preset), entries[2], disclosure: {consent: true, adult_confirmed: true}}` | Quick Verdict (off-chain). `201 {mode: "quick_verdict", label, network_checked: false, rail, quick_id, side_tokens, verdict, bench, footer}`. Never a receipt number |
-| `POST /quick/:id/consent` | `x-side-token`; `{disclosure: {consent, adult_confirmed, notice_version: "appeal-onchain-v1"}}` | records that side's consent to publication on appeal |
-| `POST /quick/:id/appeal` | `x-side-token` (losing side); same disclosure | appeal onto the chain: opens a normal on-chain Tier 1 case. Counts as appeal 1 (daily free appeal, else $1.99); one more appeal (Tier 2, $4.99) is left, so it never reaches Tier 3. `403` winner, `409` other side not consented or consent on an old notice |
-| `POST /quick/:id/revoke`, `/takedown` | `x-side-token` | revoke after Done → `409`; takedown hides the card and never blocks the appeal |
+| `POST /quick` | `{rubric (preset), entries[2], disclosure: {consent: true, adult_confirmed: true}}` | Quick Verdict preview (off-chain). `201 {mode: "quick_verdict", label, network_checked: false, rail, quick_id, side_tokens, verdict, bench, footer, appealable: false, share: "Publish to share", publish}`. Never a receipt number |
+| `GET /quick/:id` | `x-side-token` | the preview's private link: its two sides only (`404` otherwise). After Publish it returns `published: true, case_id` and no preview verdict |
+| `POST /quick/:id/consent` | `x-side-token`; `{disclosure: {consent, adult_confirmed, notice_version: "publish-onchain-v1"}}` | that side accepts publishing; `{status: "waiting" \| "ready", awaiting_sides, publish_requested}`. Nothing is published |
+| `POST /quick/:id/consent/withdraw` | `x-side-token` | withdraws that side's own consent (any time before submission; `409` after) |
+| `POST /quick/:id/publish` | `x-side-token` (either side); optional same disclosure | `202 {published: true, id, tx, package_digest, tier: 1, appeals_used: 0, appeals_left: 2, price_cents: 0, publishes_left_today, judge}`. `409 waiting_for_other_side` until both consent; `409 publish_request_expired` after 72 h; `409 already_published`; `410` expired preview; `429 publish_cap` (3 per LA day). SHADOW: `202 {mode: "shadow", label: "Test run · Not public yet"}` |
+| `GET /quick/:id/publish` | `x-side-token` | publish state for that side: `private` / `waiting` / `ready` / `expired` / `published` |
+| `POST /quick/:id/appeal` | `x-side-token` | always `409`: `publish_first` on a preview, `already_published` (with `appeal_path`) after Publish |
+| `POST /quick/:id/revoke`, `/takedown` | `x-side-token` | revoke after Done → `409`; takedown hides the card and never blocks publishing |
 | `POST /redflag` | `{message, disclosure: {adult_confirmed: true}, redaction: {user_approved: true}}` | Red Flag Court ruling (SCAM / SUS / LOOKS LEGIT). Redacted again in the relayer, ≤ 1,000 code points, no appeals, nothing stored |
+| `POST /redflag/warn` | `{optIn: true, ruling, flags[], text}` (the browser's own redacted text) | opt-in pattern record. `202 shadow` (`would_submit`) or `202 submitted` (`tx`); `422` not opted in / not SCAM or SUS / no flags / failed the privacy screen; `429` (5 per LA day); `502` summary or submit failed |
+| `GET /redflag/digest?days=7&n=10` | – | "Scams going around": `top_patterns_since` read from the ledger (`503` when no ledger address is set) |
 | `GET /practice/today` | – | practice-court case: topic only, never the rule text or house take |
 | `POST /practice/attempts` | `{take, disclosure: {consent: true, adult_confirmed: true}}` | Jailbreak the Jury attempt: `stopped_at_door` / `caught_by_bench` / `overruled` / `mistrial` / sealed (`got_through`, `moved_a_juror`) |
 | `POST /credits/grant` | `Authorization: Bearer ADMIN_TOKEN`; `{payer, cents}` | payment-webhook hook |
@@ -311,7 +341,9 @@ Then set `VERDICT_MODE=live` (and `MODERATION_ACK_LOCAL_ONLY=true` until a moder
 | `MAX_APPEALS_PER_CASE`, `FREE_APPEALS_PER_DAY`, `APPEAL_PRICE_TIER2_CENTS`, `_TIER3_CENTS` | 2, 1, 199, 499 | appeal policy |
 | `ADMIN_TOKEN`, `WEBHOOK_SIGNING_SECRET`, `WEBHOOK_TIMEOUT_MS` | –, –, 5000 | |
 | `TWITCH_CLIENT_ID` / `_BROADCASTER_ID` / `_USER_ACCESS_TOKEN`, `TWITCH_PREDICTION_WINDOW_SEC`, `TWITCH_APPEAL_WINDOW_SEC` | –, 120, 300 | Live Court |
-| `QUICK_DAILY_CAP`, `PRACTICE_DAILY_CAP`, `QUICK_TTL_SEC` | 10, 10, 86400 | Quick Verdict / Red Flag / practice-court caps; window to appeal a Quick Verdict onto the chain |
+| `QUICK_DAILY_CAP`, `PRACTICE_DAILY_CAP`, `QUICK_TTL_SEC` | 10, 10, 86400 | Quick Verdict / Red Flag / practice-court caps; how long a preview can still be published |
+| `PUBLISH_DAILY_CAP` | 3 | free publishes per user per LA day |
+| `PATTERN_LEDGER_MODE`, `PATTERN_LEDGER_ADDRESS`, `PATTERN_DAILY_CAP` | shadow, studionet address, 5 | Scam Pattern Ledger; live only when this and `VERDICT_MODE` are both `live` |
 | `PRACTICE_RULES_PATH`, `QUICK_STORE_PATH`, `REDTEAM_STORE_PATH`, `SEALED_STORE_PATH`, `ACCOUNT_KEY_SECRET` | `relayer/config/…`, `relayer/data/*.jsonl`, random | reviewed rule list; private stores (owner-only files); HMAC key for per-account counters |
 
 ---

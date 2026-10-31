@@ -195,6 +195,13 @@ test("publish: free, not an appeal; fresh on-chain Tier 1 through the package pa
     await h.app.idle();
     const fns = h.chain.broadcasts.map((b) => b.fn);
     assert.ok(fns.includes("open_case_package") && fns.includes("judge"), fns.join(","));
+    const open = h.chain.broadcasts.find((b) => b.fn === "open_case_package")!;
+    assert.equal(JSON.parse(String(open.args[0])).disclosure.noticeVersion, "publish-onchain-v1", "the package records the publish notice");
+    // consent records: one per side, own notice version and time
+    const rows = readFileSync(h.cfg.quick.storePath, "utf8").trim().split("\n").map((l) => JSON.parse(l));
+    const last = rows.filter((x) => x.id === q.id).pop();
+    assert.deepEqual(last.publishConsentRecords.map((c: { notice: string }) => c.notice), ["publish-onchain-v1", "publish-onchain-v1"]);
+    assert.ok(last.publishConsentRecords.every((c: { at: string }) => typeof c.at === "string"));
     // the old appeal endpoint and a second publish now point at the on-chain case
     for (const p of ["publish", "appeal", "consent"]) {
       const again = await h.post(`/quick/${q.id}/${p}`, { disclosure: PUBLISH_CONSENT }, side(q.loser));
@@ -298,6 +305,7 @@ test("publish: 3 free publishes per user per Los Angeles day, then 429 with noth
     const over = await h.post(`/quick/${q4.id}/publish`, {}, side(q4.loser));
     assert.equal(over.status, 429);
     assert.equal(over.json.code, "publish_cap");
+    assert.equal(over.json.resets_at, "2026-11-01T07:00:00.000Z", "429 says when publishing reopens (LA midnight)");
     assert.equal(h.chain.broadcasts.length, before);
     // another user is not affected
     const other: Record<string, string> = {}; // keyless: identified by IP, a different user from the API key

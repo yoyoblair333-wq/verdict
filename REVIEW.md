@@ -15,10 +15,51 @@
 | `scripts/verify.sh` on a fresh copy with an empty `HOME` (cold caches) | **VERIFY: PASS**, all 8 steps, 433 s total (python 3.13.18, cold pip / npm / GenVM / linter caches, no `.env.local` in the copy). Counts in the copy match the table above, and the offline demo prints DEMO: PASS |
 | studionet redeploy + 3-case live run (contract changed: `judge` and `open_case` access) | contract `0x7DBc10d8922A5Ba498007D212F2088872F2aCe06`, pin match; see `docs/LIVE_EVIDENCE.md` |
 
+## Round 4 (engineering A): CI fix, Publish, ledger routes, owner/relayer split
+
+### CI root cause (run 41231760942)
+
+`genlayer-test` direct mode picks its GenVM SDK as "newest cached, else the latest GitHub release". The suite never pinned it (`GENVM_VERSION` only reached `genvm-lint`). On this machine the HEAD request for `releases/latest` is blocked, so a cold cache silently fell back to **v0.2.12**, and the dev cache already held **v0.2.16**: both pass. A fresh GitHub runner resolves the real latest GenVM release, so the 170-test direct tier ran against an SDK this contract does not target and failed en masse (the job log was 9,176 lines; a passing local run is about 300). Python 3.12 is not the cause: a fresh copy with Python 3.12 and an empty `HOME` passed.
+
+Fixes:
+* `contracts/tests/direct/conftest.py` overrides `direct_deploy` to pass `sdk_version=GENVM_VERSION` (default `v0.2.16`, the linter's pin). `test_sdk_pin.py` makes "latest" raise and the cache look wrong, so it fails if the pin is removed (mutant `sdk-pin`).
+* `.github/workflows/ci.yml`: `runs-on: ubuntu-24.04` (ubuntu-latest moves to 26), Node 22 (the verified version), one `GENVM_VERSION` env for both caches and their keys, `GITHUB_TOKEN`/`GH_TOKEN` for authenticated release downloads, `permissions: contents: read`.
+* `relayer/scripts/run-tests.mjs`: `node --test "dir/*.test.js"` only expands globs on Node 21+; the runner lists files itself, so `npm test` also works on Node 20 (the declared minimum). Not executed on Node 20 here (no Node 20 binary reachable).
+* `scripts/verify.sh`: `[verify] START / PASS / FAIL` markers on stderr; a failing step prints its command and last 40 output lines, and on GitHub posts an `::error` annotation (readable with `gh api repos/<owner>/<repo>/check-runs/<job id>/annotations` even when the log host is blocked). Steps are grouped.
+
+### Publish = network check (Design §1, ADR-019, ADR-021): V-PUB status
+
+| Req | Status | Where / test |
+|---|---|---|
+| V-PUB-01 preview private, "Publish to share" | Y (relayer) / P (web: simulated prototype) | `GET /quick/:id` 404 without a side token; `share: "Publish to share"`; prototype's share button leads to Publish |
+| V-PUB-02 publish at most once | Y | `409 already_published` on publish / consent / appeal after submission |
+| V-PUB-03 both sides, own token, never on one consent | Y | `waiting_for_other_side`; per-side consent records (notice version + time) |
+| V-PUB-04 withdraw before T4 | Y | `POST /quick/:id/consent/withdraw`; `409` after submission (on-chain revoke/takedown routes apply) |
+| V-PUB-05 normal package, `noticeVersion = publish-onchain-v1`, Tier 1 via `open_case_package` + `judge` | Y | publish test checks the broadcast package's notice version and both calls; no contract change for Publish |
+| V-PUB-06 free, 3 per LA day, restored on a failed Tier 1, 429 with reset time | Y | cap test across LA midnight; refund test on a reverted Tier 1; no credit touched |
+| V-PUB-07 queue when the gas budget is out | N | V-OPS-04 breaker not built |
+| V-PUB-08 network ruling replaces the preview; line + receipt only at FINALIZED_SUCCESS | Y (relayer) / P (web copy "Provisional, being checked") | card tests; `GET /quick/:id` stops returning the preview verdict after Publish |
+| V-PUB-09 "The network overruled the preview." Tier 1 only | Y | `overruled_preview` + `overruled_line` on Tier 1; Tier 2/3 keep the flag but not the line |
+| V-PUB-10 / ADR-021 item 1 finalized line scope | Y (relayer) / N (copy lint) | `footer` only on FINALIZED_SUCCESS cards; never on Quick Verdict, practice or SHADOW bodies |
+| V-PUB-11 not an appeal; ladder Tier 2 then Tier 3, max 2 | Y | published case reaches the Supreme Court; free appeal covers Tier 2 **or** Tier 3 (ADR-021 item 3) |
+| V-PUB-12 unpublished → `409 publish_first`; UI Appeal leads to Publish | Y | route test + prototype |
+| V-PUB-13 SHADOW copy | P | SHADOW results say "Test run · Not public yet"; no public URLs exist yet in any mode |
+| V-PUB-14 keep preview winner only; analytics events | P | `preview.winnerIndex` kept on the case meta; the six events are not emitted (no analytics pipeline) |
+
+Also from ADR-021: publish requests lapse after 72 h with "The other side didn't agree to go public." (item 6); the free-appeal counter now resets at 00:00 Los Angeles (item 4; Settle It case caps stay per UTC day as rate limits); pattern submissions use the LA clock too.
+
+### Scam Pattern Ledger wiring
+
+`POST /redflag/warn` (opt-in exact `true`; outcome → HTTP via `PATTERN_HTTP`; never throws on content) and `GET /redflag/digest` (`top_patterns_since`). SHADOW unless `PATTERN_LEDGER_MODE=live` and `VERDICT_MODE=live`. Stand-in tests: `relayer/test/standin/redflag_warn.test.ts`. Note: the ruling and flags are client-supplied at opt-in (ADR-021 item 8); the ledger's validators, not the relayer, decide coherence.
+
+### Owner / relayer split on JudgeRouter
+
+`__init__(daily_limit=0, relayer="")`, owner-only `set_relayer`, `relayer` in `get_config`. `judge`, `appeal`, `confirm_verdict`, `finalize` accept the case creator, the owner or the current relayer (so a rotated key keeps working); `open_case_package` and `expire` were already open to any sender. `revoke` stays creator-or-owner (the relayer role does not extend to it, but the relayer key that opened a case is its creator, so the revoke route still works). Admin and legacy `open_case` stay owner-only. Tests: `contracts/tests/direct/test_relayer_role.py`. **The contract source changed, so its digest no longer matches the deployed studionet contract**; nothing was redeployed. Blair deploys the final versions from her wallet: `deploy/OWNER_DEPLOY.md`.
+
 ## Round 3: what was built
 
 1. **Quick Verdict** (`relayer/src/quick.ts`, `lib/jury.ts`). An off-chain jury: the contract's personas, rubric presets, fixed-rules prompt, strict JSON parser and aggregation, ported line for line and checked against the contract source by a test. The LLM call sits behind `JudgeProvider`; tests use a deterministic `StubProvider`, and **no real provider or API key is in the repo** (the routes answer 503 until one is passed to `buildApp`). Every body says `label: "Quick Verdict"`, `network_checked: false`, rail **Submitted → Jury scoring → Done**, and carries no receipt number, digest or tx; `assertQuickHonest` refuses to send one.
-2. **Appeal onto the chain** (ADR-018 item 1, as corrected). The losing side of a Settle It Quick Verdict appeals; both sides must first accept the `appeal-onchain-v1` notice (refused with 409 if the other side hasn't), and the submit-time notice `quick-v1` already disclosed publication on appeal. It opens a normal on-chain Tier 1 case through the existing package + judge path, reusing the same side tokens. It counts as appeal 1 (daily free appeal, else $1.99); the on-chain case starts with one appeal used, so its one remaining appeal is Tier 2 at $4.99 and it never reaches the Supreme Court. Revoke after Done → 409; takedown never blocks the appeal. No contract change.
+2. **Appeal onto the chain** (ADR-018 item 1, as corrected). *Superseded in round 4 by Publish = network check (ADR-019); the route now answers `409 publish_first`.* The losing side of a Settle It Quick Verdict appeals; both sides must first accept the `appeal-onchain-v1` notice (refused with 409 if the other side hasn't), and the submit-time notice `quick-v1` already disclosed publication on appeal. It opens a normal on-chain Tier 1 case through the existing package + judge path, reusing the same side tokens. It counts as appeal 1 (daily free appeal, else $1.99); the on-chain case starts with one appeal used, so its one remaining appeal is Tier 2 at $4.99 and it never reaches the Supreme Court. Revoke after Done → 409; takedown never blocks the appeal. No contract change.
 3. **Red Flag Court** (`lib/redflag.ts`, `lib/redact.ts`). Redact, don't reject: links (removed whole, never opened), emails, phones, @handles, long numbers, card/SSN-shaped numbers and passwords (with a warning), company names and likely names become labelled pills. The browser redacts first; the relayer redacts again. Rulings SCAM / SUS / LOOKS LEGIT with the vote line in words ("3 Scam · 2 Sus"). Deterministic post-checks: LOOKS LEGIT only if no juror voted Scam; any money, investment or crypto offer is at least SUS and gets the chip "Money offer: we never rule these legit." Fixed 16-code flag list, no free-text flags. Threats, extortion and self-harm get the help line with 988 and no ruling. A message that talks to the AI is stopped at the door (SUS, no tally). 1,000 code points (ADR-014), with each pill counted as one. No appeals, nothing stored, 10 a day per account.
 4. **Jailbreak the Jury practice court** (`lib/practice.ts`). Secret rule from the reviewed list `relayer/config/practice-rules.v1.json` (validated at startup: unreviewed, injected or PII-bearing rules stop the relayer); only the topic reaches the browser. House take = entry 1, player = entry 0. Outcomes: **Stopped at the door** (relayer blocklist hit; no split, no bench, a labelled roast; normalised text + matched pattern to the private red-team store), **Caught by the bench** (real split), **Overruled**, **Mistrial** (attempt refunded), and **Sealed** when the take won *or moved even one juror* (ADR-015 item 4): private patch queue only, no take, split or bench in the response. 10 attempts a day per account. Game clocks reset at 00:00 America/Los_Angeles (ADR-018 item 3). Label "Practice court · Not a public record".
 5. **Prototype tabs** in `app/index.html` and `app/artifact.html` (identical game blocks, checked by a test): Red Flag Court (6 samples, live redaction pills, tap-to-hide, unticked approval box, 3-step rail) and Jailbreak the Jury (one 18+ gate, sealed rule card, unticked consent box with the V-JB-13 text, attempt counter). Footer "Simulated in your browser · Not checked by the network". The browser rules are tested against the same fixtures as the relayer, plus a differential test. Settle It is unchanged.

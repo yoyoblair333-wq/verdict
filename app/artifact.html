@@ -1089,6 +1089,8 @@ function showResult(){
   $('#pubFoot').hidden = !pub;
   $('#publishBox').hidden = pub;
   if(!pub) syncPublish();
+  // A preview is shared only privately with its two sides; any public card needs Publish.
+  $('#dlBtn').textContent = pub ? DL_LABEL : 'Publish to share';
   $('#resultTitle').textContent = prev ? `${verdictWord}. ${r.hi}\u2060–\u2060${r.lo}.` : verdictWord;
   $('#card').setAttribute('aria-label', `Verdict card. ${r.hi} to ${r.lo} for ${r.W}. Ruling: ${r.ruling}`);
   const ab = $('#appealBtn');
@@ -1157,7 +1159,9 @@ $('#appealBtn').addEventListener('click', async () => {
   showResult();
 });
 
+const DL_LABEL = $('#dlBtn').textContent;
 $('#dlBtn').addEventListener('click', () => {
+  if(current && !current.published){ $('#publishBox').scrollIntoView({behavior: RM ? 'auto' : 'smooth', block:'center'}); $('#publishBtn').focus({preventScroll:true}); return; }
   const cv = $('#card');
   const url = cv.toDataURL('image/png');
   let ov = document.getElementById('saveSheet');

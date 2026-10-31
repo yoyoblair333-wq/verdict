@@ -262,5 +262,13 @@ for (const [label, html] of [["index.html", INDEX], ["artifact.html", ARTIFACT]]
 test("app: Settle It flow still present", () => {
   for (const html of [INDEX, ARTIFACT]) {
     for (const id of ['id="form"', 'id="takeA"', 'id="takeB"', 'id="appealBtn"', 'id="court"', "function deliberate("]) assert.ok(html.includes(id), id);
+    // Publish = network check (ADR-019): Publish button, both unticked consent boxes, the waiting
+    // state, the overrule banner and the labelled-simulated published footer.
+    for (const id of ['id="publishBtn"', 'id="publishWait"', 'id="overruledBanner"', 'id="pubFoot"', "The network overruled the preview.", "Appeal: publish first", "Publish to share", "Nothing is published yet."]) assert.ok(html.includes(id), id);
+    for (const id of ["pubConsentA", "pubConsentB"]) {
+      assert.ok(html.includes(`<input type="checkbox" id="${id}">`), `${id} starts unticked`);
+    }
+    assert.match(html, /<p class="pubfoot" id="pubFoot" hidden><span class="simtag">Simulated<\/span>/, "the published footer is labelled simulated");
+    assert.ok(!/fetch\(|XMLHttpRequest|sendBeacon/.test(html.slice(html.indexOf("function syncPublish"), html.indexOf("$('#appealBtn').addEventListener"))), "the simulated publish makes no network call");
   }
 });
