@@ -5,3 +5,5 @@ genvm-linter==0.11.0
 pytest==9.1.1
 # static tier: validates schemas/*.json against fixtures/*.json
 jsonschema==4.26.0
+# typecheck tier: genvm-lint typecheck shells out to pyright
+pyright==1.1.414
