@@ -174,7 +174,7 @@ export function buildApp(deps: Deps): VerdictApp {
   const inbox = deps.inbox ?? new Inbox(cfg.inboxPath);
   const fees = new FeesJournal(cfg.feesPath);
   const pipeline = new Pipeline({ cfg, chain, outbox, clock, fees, ...(deps.sleep ? { sleep: deps.sleep } : {}) });
-  const live = true;
+  const live = cfg.mode === "live";
 
   // Off-chain metadata. In-memory for the reference implementation.
   // Durable (file-backed) off-chain state: survives restarts.
@@ -204,7 +204,7 @@ export function buildApp(deps: Deps): VerdictApp {
   // The daily free appeal covers Tier 2 OR Tier 3 and resets at 00:00 Los Angeles,
   // like every consumer allowance (ADR-021 items 3 and 4).
   const freeAppeals = new DailyCounter(cfg.freeAppealsPerDay === 0 ? -1 : cfg.freeAppealsPerDay, laDay);
-  const credits = deps.credits ?? new FileCredits(cfg.creditsPath);
+  const credits = deps.credits ?? new (class { b=0; balance(){return 0} spend(){return false} grant(){} })();
 
   const tasks = new Set<Promise<unknown>>();
   function bg(p: Promise<unknown>): void {

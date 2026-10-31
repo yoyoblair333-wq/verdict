@@ -142,10 +142,10 @@ Design sheets (topology, lifecycle, appeal ladder, data boundary): [diagrams/](d
 
 | Tier | Where | What is real | What is a stand-in | Count | Runs by default |
 |---|---|---|---|---|---|
-| **direct** | `contracts/tests/direct/` | Real GenVM v0.2 Python SDK (storage, calldata, `run_nondet_unsafe`, validator replay) via `genlayer-test` direct mode | LLM replies (regex mocks); single process, no network | 155 | yes |
+| **direct** | `contracts/tests/direct/` | Real GenVM v0.2 Python SDK (storage, calldata, `run_nondet_unsafe`, validator replay) via `genlayer-test` direct mode; both contracts (`judge_router.py`, `pattern_ledger.py`), the owner/relayer split, and the GenVM SDK pin | LLM replies (regex mocks); single process, no network | 279 | yes |
 | **static** | `contracts/tests/static/` | JSON Schema validation of `schemas/` against `fixtures/` and the practice-rule list | nothing | 15 | yes |
-| **unit** | `relayer/test/unit/` | Pure relayer logic: canonicalisation, fixtures, finality classification, journals, pinning; Quick Verdict jury port (checked against the contract source), redaction and Red Flag rules (shared fixtures), practice-court rules and clocks; the browser copy of those rules in `app/*.html` | nothing (no network) | 69 | yes |
-| **stand-in** | `relayer/test/standin/` | The real relayer HTTP app, outbox, inbox, finality tracker | **`FakeChain`** (an in-memory imitation of the contract and tx lifecycle) and a fake Twitch; a deterministic **`StubProvider`** for the Quick Verdict jury (no LLM, no key) | 70 | yes |
+| **unit** | `relayer/test/unit/` | Pure relayer logic: canonicalisation, fixtures, finality classification, journals, pinning; Quick Verdict jury port (checked against the contract source), redaction and Red Flag rules (shared fixtures), practice-court rules and clocks; the browser copy of those rules in `app/*.html`; Pattern Ledger summary and screen; publish budget, fee measurement | nothing (no network) | 112 | yes |
+| **stand-in** | `relayer/test/standin/` | The real relayer HTTP app, outbox, inbox, finality tracker; Publish (consent, expiry, cap, budget queue, overrule), Pattern Ledger routes, `/ops/fees` | **`FakeChain`** (an in-memory imitation of the contract and tx lifecycle) and a fake Twitch; a deterministic **`StubProvider`** for the Quick Verdict jury (no LLM, no key) | 91 | yes |
 | **live** | `contracts/tests/live/`, `relayer/test/live/` | A real GenLayer network, read-only (code pin + views) | nothing | 2 | only with `GENLAYER_LIVE=1` + RPC env |
 
 Write-path behaviour on a real network is covered by the recorded evidence run ([docs/LIVE_EVIDENCE.md](docs/LIVE_EVIDENCE.md)), not by an automatic test.
