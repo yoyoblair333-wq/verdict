@@ -158,6 +158,17 @@ footer{margin:40px 0 28px;padding-top:14px;border-top:1px solid var(--line);font
 .appeal{background:var(--pad);color:var(--robe);border:0;font:900 26px/1 var(--display);letter-spacing:.02em;padding:18px 16px 16px}
 .appeal[disabled]{opacity:.45;cursor:default}
 .note{font-size:14px;color:var(--muted);margin:10px 0 0;text-align:center}
+/* Publish = network check (Design §1); simulated in the prototype */
+.publish{background:var(--surface);border:2px solid var(--fg);padding:16px;margin-top:20px}
+.publish .pubhead{margin:0 0 6px;font-size:15px;line-height:1.4}
+.publish .consent{color:var(--fg)}
+.publish .consent input{width:20px;height:20px;flex:none;margin:1px 0 0;accent-color:var(--fg);cursor:pointer}
+.publish .appeal{margin-top:12px}
+.publish .wait{font-weight:700;color:var(--fg)}
+.simtag{display:inline-block;font-size:11px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;border:1.5px solid currentColor;border-radius:4px;padding:1px 5px;margin-right:6px;vertical-align:1px}
+.overruled{margin:14px 0 0;padding:12px 14px;background:var(--fg);color:var(--bg);font:900 24px/1.05 var(--display);text-align:center}
+.pubfoot{margin:10px 0 0;font-size:13px;font-weight:700;color:var(--muted);text-align:center}
+.rail.qv{grid-template-columns:repeat(3,1fr)}
 .declined{background:var(--surface);border:2px solid var(--fg);padding:20px;margin-top:20px}
 .declined h3{font:900 34px/1 var(--display);margin:0 0 8px}
 
@@ -253,7 +264,7 @@ footer{margin:40px 0 28px;padding-top:14px;border-top:1px solid var(--line);font
   <main id="compose">
     <section class="hero">
       <h1>Settle it.</h1>
-      <p>You each write your side. Five AI jurors rule. On the live version, a network nobody controls checks the verdict. Lose? Appeal to a higher court.</p>
+      <p>You each write your side. Five AI jurors give you a private Quick Verdict. Publish it and, on the live version, a network nobody controls re-hears the case. Lose? Appeal to a higher court.</p>
     </section>
 
     <form id="form" novalidate>
@@ -295,8 +306,18 @@ footer{margin:40px 0 28px;padding-top:14px;border-top:1px solid var(--line);font
   <section class="result" id="result" aria-live="polite">
     <h2 id="resultTitle">The court has ruled</h2>
     <ol class="rail" id="resultRail" aria-label="Network status, simulated in this prototype"><li><i></i><span>Submitted</span></li><li><i></i><span>Jury scoring</span></li><li><i></i><span>Network checking</span></li><li><i></i><span>Finalized</span></li></ol>
-    <p class="railnote">Simulated. On the live version the card appears only once the network finalizes it.</p>
+    <p class="railnote" id="resultRailNote">Simulated. On the live version the card appears only once the network finalizes it.</p>
     <div class="cardframe"><canvas id="card" width="1080" height="1920" role="img" aria-label="Verdict card"></canvas></div>
+    <p class="overruled" id="overruledBanner" role="status" hidden>The network overruled the preview.</p>
+    <p class="pubfoot" id="pubFoot" hidden><span class="simtag">Simulated</span>The live card footer reads: Checked by GenLayer · Finalized, with the network’s receipt number.</p>
+    <div class="publish" id="publishBox" hidden>
+      <p class="pubhead"><strong>This is a Quick Verdict: a private preview.</strong> It isn’t public and isn’t checked by the network. Publish it and the network re-hears the case; its ruling replaces this preview. Publishing is free (3 a day) and isn’t an appeal. You both have to agree.</p>
+      <label class="consent"><input type="checkbox" id="pubConsentA"><span id="pubConsentAText">Side A: our takes become public and permanent.</span></label>
+      <label class="consent"><input type="checkbox" id="pubConsentB"><span id="pubConsentBText">Side B: our takes become public and permanent.</span></label>
+      <button class="btn2 appeal" id="publishBtn" type="button">Publish</button>
+      <p class="note wait" id="publishWait" role="status" hidden></p>
+      <p class="note"><span class="simtag">Simulated</span>In this prototype the network’s re-hearing runs in your browser.</p>
+    </div>
     <div class="actions">
       <button class="btn2 appeal" id="appealBtn">Appeal to a higher court</button>
       <button class="btn2" id="dlBtn">Save card</button>
@@ -674,9 +695,9 @@ function jurorScore(j, f, rubric){
 // PROTOTYPE SIMULATOR. Votes are a deterministic heuristic run in the browser,
 // not the real jury. Higher tiers add more seats and more noise (a fresh read);
 // they do not lean toward either side. Never film "real" overturns with this.
-function deliberate(c, tier, prior){
+function deliberate(c, tier, prior, salt){
   const fa = features(c.a.take), fb = features(c.b.take);
-  const seed = c.rubric+'|'+c.a.name+'|'+c.a.take+'|'+c.b.name+'|'+c.b.take+(tier>1?'|T'+tier:'');
+  const seed = c.rubric+'|'+c.a.name+'|'+c.a.take+'|'+c.b.name+'|'+c.b.take+(tier>1?'|T'+tier:'')+(salt||'');
   const seats = tier > 1 ? TIERS[tier].seats : PANEL;
   const noise = tier === 3 ? 2.8 : tier === 2 ? 2.4 : 1.4;
   const panelDiff = PANEL.reduce((acc,k) => acc + jurorScore(k,fa,c.rubric) - jurorScore(k,fb,c.rubric), 0)/5;
@@ -1011,7 +1032,16 @@ function fontsReady(){
 }
 
 /* ---------- flow ---------- */
-let current = null; // {c, caseNo, rulings:[tier1, tier2?, tier3?]}
+let current = null; // {c, caseNo, preview, published, overruled, rulings:[tier1, tier2?, tier3?]}
+/* Publish = network check (Design §1). Simulated: the browser stands in for the
+   network's re-hearing. Both sides consent (publish-onchain-v1), free, 3 per
+   Los Angeles day, not an appeal. Unpublished previews can't be appealed. */
+const PUBLISH_CAP = 3;
+const laDay = () => { try{ return new Intl.DateTimeFormat('en-CA',{timeZone:'America/Los_Angeles',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()); }catch(e){ return new Date().toISOString().slice(0,10); } };
+function publishesToday(){ const p = store.get('publishes', null); return p && p.day === laDay() ? p.n : 0; }
+const QV_RAIL = '<li><i></i><span>Submitted</span></li><li><i></i><span>Jury scoring</span></li><li><i></i><span>Done</span></li>';
+const NET_RAIL = '<li><i></i><span>Submitted</span></li><li><i></i><span>Jury scoring</span></li><li><i></i><span>Network checking</span></li><li><i></i><span>Finalized</span></li>';
+function railMode(el, preview){ el.innerHTML = preview ? QV_RAIL : NET_RAIL; el.classList.toggle('qv', preview); el.setAttribute('aria-label', preview ? 'Quick Verdict status' : 'Network status, simulated in this prototype'); }
 const SENSITIVE = /\b(kill myself|killing myself|suicide|self[- ]harm|hurt myself|hits me|hit me|choked|abuse[sd]?|abusive|threaten(ed|s)? to)\b/i;
 
 $('#form').addEventListener('submit', async e => {
@@ -1036,8 +1066,10 @@ $('#form').addEventListener('submit', async e => {
   }
   const first = deliberate(c, 1, null);
   const caseNo = String(hash(c.a.take + c.b.take) % 9000 + 1000);
-  current = {c, caseNo, rulings:[first]};
+  current = {c, caseNo, preview:first, published:false, overruled:false, rulings:[first]};
   await fontsReady();
+  railMode($('#courtRail'), true);
+  $('#courtRailNote').textContent = 'Quick Verdict · Not network-checked.';
   await runCourt(c, first, 1, null);
   drawCard($('#card'), c, first, {caseNo, tier:1});
   showResult();
@@ -1047,24 +1079,73 @@ $('#form').addEventListener('submit', async e => {
 function showResult(){
   $('#compose').style.display = 'none';
   $('#result').classList.add('on');
+  const pub = current.published;
+  railMode($('#resultRail'), !pub);
   setRail($('#resultRail'), 4);
+  $('#resultRailNote').textContent = pub ? 'Simulated. On the live version the card appears only once the network finalizes it.' : 'Quick Verdict · Not network-checked. Nothing is public.';
   const rs = current.rulings, r = rs[rs.length-1], tier = rs.length, prev = rs[rs.length-2];
-  const verdictWord = prev ? (r.winner === prev.winner ? 'Upheld' : 'Overturned') : 'The court has ruled';
+  const verdictWord = prev ? (r.winner === prev.winner ? 'Upheld' : 'Overturned') : pub ? 'The network has ruled' : 'Quick Verdict';
+  $('#overruledBanner').hidden = !(pub && current.overruled);
+  $('#pubFoot').hidden = !pub;
+  $('#publishBox').hidden = pub;
+  if(!pub) syncPublish();
   $('#resultTitle').textContent = prev ? `${verdictWord}. ${r.hi}\u2060–\u2060${r.lo}.` : verdictWord;
   $('#card').setAttribute('aria-label', `Verdict card. ${r.hi} to ${r.lo} for ${r.W}. Ruling: ${r.ruling}`);
   const ab = $('#appealBtn');
   // Only the losing side may appeal; in this single-device prototype the
   // button stands in for the loser's own screen.
   const loser = r.L;
-  ab.disabled = tier >= 3;
-  ab.textContent = tier >= 3 ? 'The Supreme Court has ruled' : tier === 2 ? `${loser}: appeal to the Supreme Court` : `${loser}: appeal to a higher court`;
-  $('#appealNote').textContent = tier >= 3 ? 'Supreme Court rulings are final. Even here.'
-    : tier === 2 ? 'Last appeal. The Supreme Court seats 9 jurors and its ruling is final.'
-    : 'The Appeals Court seats 7 jurors and can overturn this. Up to 2 appeals, losing side only.';
+  ab.disabled = pub && tier >= 3;
+  ab.textContent = !pub ? 'Appeal: publish first' : tier >= 3 ? 'The Supreme Court has ruled' : tier === 2 ? `${loser}: appeal to the Supreme Court` : `${loser}: appeal to a higher court`;
+  $('#appealNote').textContent = !pub ? 'A Quick Verdict is a preview, so it can’t be appealed. Publish it first; then the losing side can appeal: Appeals Court (daily free appeal or $1.99), then the Supreme Court ($4.99).'
+    : tier >= 3 ? 'Supreme Court rulings are final. Even here.'
+    : tier === 2 ? 'Last appeal. The Supreme Court seats 9 jurors and its ruling is final. $4.99.'
+    : 'The Appeals Court seats 7 jurors and can overturn this. Daily free appeal or $1.99. Up to 2 appeals, losing side only.';
   scrollTo({top:0, behavior: RM ? 'auto' : 'smooth'});
 }
 
+function syncPublish(){
+  if(!current) return;
+  const {a, b} = current.c, ca = $('#pubConsentA').checked, cb = $('#pubConsentB').checked;
+  $('#pubConsentAText').textContent = `${a.name}: our takes become public and permanent.`;
+  $('#pubConsentBText').textContent = `${b.name}: our takes become public and permanent.`;
+  const left = PUBLISH_CAP - publishesToday();
+  const btn = $('#publishBtn'), wait = $('#publishWait');
+  btn.disabled = left <= 0;
+  if(left <= 0){ btn.textContent = 'Publish'; wait.hidden = false; wait.textContent = 'That’s 3 free publishes today. Publishing reopens at midnight Pacific.'; return; }
+  if(current.publishAsked && !(ca && cb)){
+    const missing = ca ? b.name : cb ? a.name : `${a.name} and ${b.name}`;
+    btn.textContent = `Waiting for ${missing}…`;
+    wait.hidden = false;
+    wait.textContent = (ca || cb) ? `Waiting for ${missing} to accept. Nothing is published yet.` : 'Consent withdrawn. Nothing was published.';
+  } else {
+    btn.textContent = ca && cb ? 'Publish: both agreed' : 'Publish';
+    wait.hidden = true;
+  }
+}
+['#pubConsentA','#pubConsentB'].forEach(id => $(id).addEventListener('change', syncPublish));
+$('#publishBtn').addEventListener('click', async () => {
+  if(!current || current.published) return;
+  const ca = $('#pubConsentA').checked, cb = $('#pubConsentB').checked;
+  if(!ca && !cb){ current.publishAsked = false; const w = $('#publishWait'); w.hidden = false; w.textContent = 'Tick your consent first. Nothing is published without both of you.'; return; }
+  current.publishAsked = true;
+  if(!(ca && cb)){ syncPublish(); return; } // Publish waits for the other side
+  if(PUBLISH_CAP - publishesToday() <= 0){ syncPublish(); return; }
+  store.set('publishes', {day: laDay(), n: publishesToday() + 1});
+  // The network re-hears the case as a fresh Tier 1 (simulated: a fresh read in the browser).
+  const net = deliberate(current.c, 1, null, '|network');
+  current.published = true;
+  current.overruled = net.winner !== current.preview.winner;
+  current.rulings = [net];
+  railMode($('#courtRail'), false);
+  $('#courtRailNote').textContent = 'Simulated in this prototype. The live version waits for the GenLayer network.';
+  await runCourt(current.c, net, 1, null);
+  drawCard($('#card'), current.c, net, {caseNo: current.caseNo, tier:1, ...(current.overruled ? {stamp:'OVERRULED'} : {})});
+  showResult();
+});
+
 $('#appealBtn').addEventListener('click', async () => {
+  if(current && !current.published){ $('#publishBox').scrollIntoView({behavior: RM ? 'auto' : 'smooth', block:'center'}); $('#publishBtn').focus({preventScroll:true}); return; }
   if(!current || current.rulings.length >= 3) return;
   const prior = current.rulings[current.rulings.length-1];
   const tier = current.rulings.length + 1;
@@ -1094,7 +1175,7 @@ function backToCompose(){
   $('#result').classList.remove('on'); $('#declined').classList.remove('on');
   $('#compose').style.display = ''; scrollTo(0,0);
 }
-$('#newBtn').addEventListener('click', () => { backToCompose(); current = null; });
+$('#newBtn').addEventListener('click', () => { backToCompose(); current = null; $('#pubConsentA').checked = false; $('#pubConsentB').checked = false; });
 $('#declinedBack').addEventListener('click', backToCompose);
 $('#home').addEventListener('click', e => { e.preventDefault(); backToCompose(); });
 

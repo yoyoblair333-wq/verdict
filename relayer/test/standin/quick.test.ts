@@ -300,7 +300,7 @@ test("publish: 3 free publishes per user per Los Angeles day, then 429 with noth
     assert.equal(over.json.code, "publish_cap");
     assert.equal(h.chain.broadcasts.length, before);
     // another user is not affected
-    const other = { "x-api-key": "other-user-key" };
+    const other: Record<string, string> = {}; // keyless: identified by IP, a different user from the API key
     const qo = await quickCase(h, other);
     await h.post(`/quick/${qo.id}/consent`, { disclosure: PUBLISH_CONSENT }, side(qo.winner, other));
     await h.post(`/quick/${qo.id}/consent`, { disclosure: PUBLISH_CONSENT }, side(qo.loser, other));

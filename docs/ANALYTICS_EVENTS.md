@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Document | `docs/ANALYTICS_EVENTS.md` |
-| Version | v1.1 |
+| Version | v1.2 |
 | Date | 2026-10-31 |
 | Owner | Specifications lead (events); Blair (experiments and decisions) |
 | Status | Approved baseline. New events need a new version and a change-log line. |
-| Implements | `docs/SPEC.md` V-PRIV-10, V-RF-13 (v1.1); sources `marketing/security-games-playbook.md` §6 KPIs (v1.1), `marketing/viral-playbook.md` §1 and §7, `business/monetization.md` assumption register |
+| Implements | `docs/SPEC.md` V-PRIV-10, V-RF-13 (v1.1), V-PUB-14, V-PL-15 and §2b (v1.2); sources `marketing/security-games-playbook.md` §6 KPIs (v1.1), `marketing/viral-playbook.md` §1 and §7, `business/monetization.md` assumption register |
 
 **Rules.** (1) Every event below and nothing else. (2) The pipeline validates each event against this schema and drops anything that fails. (3) PII class is never above **P1**. (4) Data class is CONFIDENTIAL (`docs/DATA_CLASSIFICATION.md` §4.7); retention 13 months, then aggregates only.
 
@@ -19,7 +19,7 @@
 |---|---|---|
 | **P0** | No personal data (counts, enums, booleans, timings). | Yes |
 | **P1** | Pseudonymous: random `user_id`, `session_id`, HMAC'd `case_key`, `ref_user_id`. Cannot identify a person without the relayer DB. | Yes |
-| **P2** | Personal or linkable to public text: take text, handles, emails, phone, IP, side tokens, API keys, on-chain case ID, packageDigest, Twitch channel name; *(v1.1)* Red Flag message text at any stage, redacted items, juror lines, Jailbreak attempt text, matched patterns, `VR-` receipts of re-runs. | **No. Never.** |
+| **P2** | Personal or linkable to public text: take text, handles, emails, phone, IP, side tokens, API keys, on-chain case ID, packageDigest, Twitch channel name; *(v1.1)* Red Flag message text at any stage, redacted items, juror lines, Jailbreak attempt text, matched patterns, `VR-` receipts of re-runs; *(v1.2)* pattern summaries (candidate or stored), pattern ids, `request_key`, Pattern Ledger tx hashes, receipts of published cases, preview votes or scores. | **No. Never.** |
 
 ## 2. Common envelope (every event)
 
@@ -27,7 +27,7 @@
 |---|---|---|---|
 | `event` | enum (names in §3) | P0 | |
 | `event_id` | UUID v4 | P0 | Dedup key. |
-| `schema_version` | `"1.0"` \| `"1.1"` | P0 | `"1.1"` adds `game` and `venue`. |
+| `schema_version` | `"1.0"` \| `"1.1"` \| `"1.2"` | P0 | `"1.1"` adds `game` and `venue`. `"1.2"` adds the §3.11 and §3.12 events; the envelope is unchanged. |
 | `ts` | ISO 8601 UTC, ms | P0 | Server time when the server emits; client time otherwise, plus `client_skew_ms`. |
 | `user_id` | random 128-bit, base64url | P1 | Not the account ID, not an email. Anonymous visitors get a device-scoped random ID. |
 | `session_id` | random | P1 | |
@@ -125,7 +125,7 @@ Note: no event carries `winner_index` alongside a money amount except `appeal_de
 | `qv_completed` | Result stored (rail reaches Done) | Server | `context`, `seconds`, `jurors_ok` (0–5) | P1 |
 | `qv_failed` | Panel failed (processor error, malformed output) | Server | `context`, `reason` (`processor_error`\|`llm_error`\|`timeout`) | P1 |
 | `qv_withdrawn` | A side withdraws before Done (V-QV-07) | Server | — | P1 |
-| `qv_appeal_onchain_filed` | A losing side appeals a Settle It Quick Verdict onto the chain (V-QV-05) | Server | `paid_with` (`free`\|`credit`) | P1 |
+| `qv_appeal_onchain_filed` | **Retired in v1.2 (ADR-019; V-QV-05 superseded). Never emitted.** Use §3.11. Original trigger: a losing side appeals a Settle It Quick Verdict onto the chain. | — | — | P1 |
 
 ### 3.8 Red Flag Court (v1.1, ADR-014; `game = red_flag`, `venue = quick_verdict`)
 
@@ -167,6 +167,33 @@ Note: no event carries `winner_index` alongside a money amount except `appeal_de
 
 There are no bounty events until a bounty exists (ADR-016).
 
+### 3.11 Publish (v1.2, ADR-019; `surface = settle`)
+
+`venue = quick_verdict` until P4, then `venue = chain`. `mode` is recorded from T4.
+
+| Event | Trigger (SPEC §6.7) | Emitter | Extra properties | PII |
+|---|---|---|---|---|
+| `publish_requested` | P1: a side taps Publish on a Done preview | Server | `requester_won_preview` (bool), `minutes_since_preview` | P1 |
+| `publish_consented` | A side's `publish-onchain-v1` consent stored (P1 or P2) | Server | `side` (0–1), `notice_version`, `is_requester` (bool), `minutes_since_request` | P1 |
+| `publish_consent_withdrawn` | P3 | Server | `side`, `from_state` (`requested`\|`consented`), `actor` (`withdraw`\|`cancel`) | P1 |
+| `publish_cap_hit` | P4 refused by `PUBLISH_DAILY_CAP` | Server | `new_account` (bool) | P1 |
+| `publish_finalized` | The published Tier 1 reaches FINALIZED_SUCCESS, FINALIZED_ERROR or STALE | Server | `success` (bool), `seconds_since_dispatch`, `cap_restored` (bool) | P1 |
+| `preview_overruled` | With `publish_finalized{success = true}` when the network's `winner_index` ≠ the preview's | Server | — (the fact is the event) | P1 |
+
+`case_dispatched`, `verdict_provisional` and `verdict_finalized` also fire for a published case, as for any on-chain case. `appeal_filed` on a published case keeps its §3.4 meaning.
+
+### 3.12 Scam Pattern Ledger (v1.2, ADR-020; `game = red_flag`, `venue = chain` or `practice_court` for private runs)
+
+No event carries the summary, the pattern id, the `request_key` or a tx hash (V-PL-15).
+
+| Event | Trigger (SPEC §6.8) | Emitter | Extra properties | PII |
+|---|---|---|---|---|
+| `pattern_optin` | OPTED_IN: "Help warn others" ticked and sent | Server | `label` (`scam`\|`sus`), `notice_version` | P1 |
+| `pattern_recorded` | RECORDED: FINALIZED + SUCCESS, `outcome = new` | Server | `category`, `flag_codes` (array of the 16), `retried` (bool) | P1 |
+| `pattern_sighting` | SIGHTED: FINALIZED + SUCCESS, `outcome = sighting` | Server | `category`, `flag_codes`, `sightings_bucket` (`2`\|`3–9`\|`10–99`\|`100+`), `retried` (bool) | P1 |
+| `pattern_rejected` | REJECTED | Server | `reason` (`pii_screen`\|`validator_reject`\|`no_consensus`\|`duplicate_user`), `category` | P1 |
+| `pattern_cap_hit` | `PL_DAILY_CAP` reached | Server | — | P1 |
+
 ### 3.6 External metrics (not events)
 
 TikTok completion rate, shares + saves per 1,000 views, average views, Twitch chat messages per minute, Prediction participation %, Twitch clip counts. Source: platform analytics, entered weekly into the tracker by hand (playbook §7 ritual). Never joined to `user_id`.
@@ -179,7 +206,7 @@ All metrics use **server** events, by **weekly signup cohort** (ISO week of `sig
 
 | Metric | Definition | Playbook target |
 |---|---|---|
-| **WTV** (north star) | Count of `verdict_finalized` with `tier = 1` on `surface = settle` where the case had `opponent_submitted`, per ISO week. *(v1.1)* Once G-QV passes, add `qv_completed{context = settle_free}` for cases with `opponent_submitted`, and report the two venues separately. | Playbook §7 table |
+| **WTV** (north star) | Count of `verdict_finalized` with `tier = 1` on `surface = settle` where the case had `opponent_submitted`, per ISO week. *(v1.1)* Once G-QV passes, add `qv_completed{context = settle_free}` for cases with `opponent_submitted`, and report the two venues separately. *(v1.2)* A published case counts once, at its preview. Its on-chain Tier 1 counts in **On-chain decisions per week**, not again in WTV. | Playbook §7 table |
 | Opponent join rate | `opponent_submitted` ÷ `case_created` (surface `settle`), cases created in the week | ≥ 45% |
 | New-user share of opponents | `opponent_submitted` with `opponent_is_new = true` ÷ all `opponent_submitted` | 40–60% |
 | Card share rate | Distinct (case_key, user_id) with `card_shared` and `tier = 1` ÷ `verdict_viewed` with `tier = 1` | ≥ 25% |
@@ -197,7 +224,13 @@ All metrics use **server** events, by **weekly signup cohort** (ISO week of `sig
 | Finality health (ops) | `verdict_finalized` ÷ (`verdict_finalized` + `verdict_failed` + `case_stale` after dispatch) | ≥ 95% for G-LIVE |
 | Paid appeal share | `appeal_filed{paid_with=credit}` ÷ `appeal_filed` | Validates `A-APL-08`, `A-APL-09` |
 | Subscriber share of MAU | Active subscriptions ÷ monthly users with any server event | Validates `A-SUB-01` |
-| QV → chain appeal rate (v1.1) | `qv_appeal_onchain_filed` ÷ `qv_completed{context = settle_free}` | Feeds `A-APL-01` under ADR-013 |
+| QV → chain appeal rate (v1.1) | **Retired in v1.2**: replaced by Publish rate. | — |
+| **On-chain decisions per week** (v1.2, north-star companion, SPEC §2b) | Per ISO week, the count of: `publish_finalized{success}` + `appeal_decided` + `jb_rerun_finalized{success}` + `pattern_recorded` + `pattern_sighting` + `verdict_finalized{tier = 1}` on `surface ∈ {live, api}`. Reported in total, by source and by `mode`. Shown alongside: `pattern_rejected{reason ∈ validator_reject, no_consensus}` (network decisions that stored nothing). Private-run (`venue = practice_court`) events are excluded. | Report weekly next to WTV; design brief §4 |
+| Publish rate (v1.2) | Cases with `publish_finalized{success}` ÷ `qv_completed{context = settle_free}` with `opponent_submitted`, same week | Feeds `A-APL-01` and the gas budget (V-OPS-04) |
+| Publish consent completion (v1.2) | `publish_requested` that reach a second `publish_consented` within 7 days ÷ `publish_requested` | Watch. Low values mean T61 (winner withholds) |
+| Overrule rate (v1.2, guardrail for T56) | `preview_overruled` ÷ `publish_finalized{success}` | Alert on a week-over-week jump > 10 pp (Quick Verdict/contract drift, V-QV-06) |
+| Pattern opt-in rate (v1.2) | `pattern_optin` ÷ `rf_ruling_shown{label ∈ scam, sus}` excluding samples | Watch |
+| Pattern reject and no-consensus rates (v1.2, guardrail for T57, T60) | `pattern_rejected` by `reason` ÷ `pattern_optin` | G-PL: no-consensus ≤ 10%; alert on week-over-week jumps (V-PL-16) |
 | Completed plays per visitor (v1.1) | Plays reaching Done (`rf_ruling_shown`; `jb_result` excluding `blocked`) ÷ unique visitors per game, by `src` | Red Flag ≥ 0.6, Jailbreak ≥ 0.4 (security playbook §6) |
 | Shares per play (v1.1) | (`rf_card_shared` + `rf_warn_sent`) ÷ `rf_ruling_shown`; `jb_card_shared` ÷ completed Jailbreak plays | Red Flag ≥ 0.25, Jailbreak ≥ 0.15 |
 | Day-7 return (v1.1) | New players of a game who play it again on days 6–8 | ≥ 15% |
@@ -215,6 +248,8 @@ All metrics use **server** events, by **weekly signup cohort** (ISO week of `sig
 3. Every server event is emitted after its state change commits (no event for a rolled-back transition).
 4. (v1.1) After a test run of both games, a grep of the analytics store for any test paste string, attempt string, redacted value, juror line or `VR-` string returns nothing, and every `flag_codes` value is one of the 16 fixed codes.
 5. (v1.1) Vote counts and `jurors_moved` come only from real recorded votes. Door catches emit `jurors_moved` = null.
+6. (v1.2) A full publish on testnet (preview Done → Publish → second consent → Tier 1 final) emits, in order: `qv_completed`, `publish_requested`, `publish_consented`×2, `case_dispatched`, `verdict_provisional`, `verdict_finalized`, `publish_finalized`, plus `preview_overruled` when the winners differ. A run with one consent emits no `case_dispatched`.
+7. (v1.2) After a pattern test run, a grep of the analytics store for any test summary, pattern id, `request_key` or 64-hex tx hash returns nothing, and every `category` value is in the fixed enum.
 
 ---
 
@@ -258,5 +293,6 @@ These are measurements, not A/B tests. Each updates an assumption in `model.xlsx
 
 | Version | Date | Change |
 |---|---|---|
+| v1.2 | 2026-10-31 | ADR-019 and ADR-020. §3.11 Publish (6 events: `publish_requested`, `publish_consented`, `publish_consent_withdrawn`, `publish_cap_hit`, `publish_finalized`, `preview_overruled`) and §3.12 Pattern Ledger (5 events: `pattern_optin`, `pattern_recorded`, `pattern_sighting`, `pattern_rejected`, `pattern_cap_hit`); `schema_version` 1.2; P2 list extended; `qv_appeal_onchain_filed` and the QV → chain appeal rate retired; WTV note; 6 metric rows including **On-chain decisions per week**; acceptance criteria 6–7. |
 | v1.1 | 2026-10-31 | Envelope `game` and `venue`; §3.7 Quick Verdict (5 events), §3.8 Red Flag Court (11), §3.9 Jailbreak the Jury (12, counting the three opt-ins separately), §3.10 trust page (2); P2 list extended; WTV note for Quick Verdict; 8 new metric rows; acceptance criteria 4–5. |
 | v1.0 | 2026-10-31 | First baseline. Formalises the playbook's 8 events and K-factor into 40+ events, metric definitions, PII classes and an experiment and validation register. |

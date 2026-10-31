@@ -502,7 +502,7 @@ Reading the table: Settle It wins on reach, build speed, legal safety and founde
 11. **Rate limit.** 5 submissions per user per LA day (per account, or per HMAC(IP) until accounts exist). This counter is separate from the 10/day Red Flag cap. A validator-agreed `[REJECTED]` counts against it. A no-consensus result does not count, and it is retried at most once with a fresh summary and then dropped.
 12. **Only the relayer writes.** `submit_pattern` accepts only the relayer address or the owner.
 13. **Gate: SHADOW until counsel signs off** (ADR-014 stance).
-    - Until written counsel sign-off, no pattern record is written to any public network, testnet included. ADR-014 item 8 and V-RF-09 still bind until then. Pre-sign-off runs use the private localnet (C10) only. We call this a "private run", never "shadow mode" (ADR-013 item 7).
+    - Until written counsel sign-off, no pattern record is written to any public network, testnet included. ADR-014 item 8 and V-RF-09 still bind until then. Pre-sign-off runs use the private localnet (C10) only. We call this a "private run", never "shadow mode" (ADR-013 item 7). Engineering tests on Studionet or testnet may submit **staff-written synthetic** records that derive from no user paste. The Studionet deployment in `docs/live/pattern-ledger-run.json` (no submissions) is allowed on that basis.
     - After sign-off the ledger runs in SHADOW on the target network (ADR-006): records are written, the digest and the "Recorded on GenLayer" line are not shown publicly, and no user is told their pattern is public.
     - LIVE only after gate G-PL.
 
@@ -523,10 +523,45 @@ Reading the table: Settle It wins on reach, build speed, legal safety and founde
 
 ---
 
+## ADR-021 Lead calls on the ADR-019/020 conflicts
+
+**Context.** The docs lane raised ten conflicts while writing ADR-019 and ADR-020. Blair asked the lead to run autonomously. Each call below is reversible.
+
+**Decision.**
+1. **"Checked by GenLayer · Finalized".** This line may appear on any on-chain card whose verdict reached FINALIZED_SUCCESS. That covers published Settle It cases, Live Court and API cases. It never appears on a Quick Verdict or a practice-court card.
+2. **Ledger staging.** Accept the docs lane's three stages:
+   - Before counsel signs off, private localnet runs only, plus staff-written synthetic records on studionet.
+   - After counsel signs off, SHADOW on the target network.
+   - LIVE after G-PL.
+   - The existing studionet deployment holds only synthetic records.
+3. **Free appeal tier.** The daily free appeal covers either tier, Tier 2 or Tier 3, as ADR-004 and SPEC §2.5 say. $4.99 is the price only when the free appeal is already used. Close SPEC open question 8.
+4. **Clocks.** Every consumer allowance resets at 00:00 America/Los_Angeles. That covers publish, pattern, the games and the free appeal. Engineering moves the free-appeal counter to LA in the next round. SPEC §5 is updated to match. Close open questions 10 and 13.
+5. **"Preview" wording.** Accept the copy change. SHADOW is "Test run · Not public yet", and the Live Court overlay is "Jury's view (test run)".
+6. **Blocked publish.**
+   - A publish request expires after 72 hours.
+   - The requester then sees "The other side didn't agree to go public."
+   - Neither side can publish the other's take alone. This keeps two-sided consent, and T61 stays accepted.
+   - Close open question 9.
+7. **Sharing a preview.**
+   - A preview can be shared only as a private link to the two participants.
+   - Any public share card requires Publish.
+   - Annotate DATA_CLASSIFICATION §4.10.
+8. **Opt-in timing.** Confirmed: at opt-in, the browser re-sends its own redacted text. The relayer redacts it again and holds it only for that request.
+9. **Jailbreak decisions.** Both Hall re-runs and self-chosen weekly re-checks count as one decision type under V-JB-06. Close open question 12.
+10. **Values the docs lane chose.** Accepted as written:
+    - G-PUB needs at least 50 SHADOW publishes.
+    - G-PL needs at least 200 staff-reviewed records with 0 leaks and no more than 10% no-consensus.
+    - One sighting per user, per pattern, per 30 days.
+    - Preview votes are deleted 24 hours after the network ruling is final.
+    - WTV counts a case once, at its preview.
+
+---
+
 ## Change log
 
 | Version | Date | Change |
 |---|---|---|
+| v1.5 | 2026-10-31 | Added ADR-021 (lead calls on the ten ADR-019/020 conflicts). |
 | v1.4 | 2026-10-31 | Added ADR-019 (Publish = network check; supersedes ADR-018 item 1 and ADR-013 items 5 and 8) and ADR-020 (Scam Pattern Ledger; amends ADR-014 items 8 and 15). Marked the superseded text inline, added a note to ADR-002 on the new approved line, added ADR-018 to the index, and fixed the header version (it said v1.2 after v1.3 was logged). |
 | v1.3 | 2026-10-31 | Added ADR-018 (lead calls on open questions 4–7, the untested trust-page claims, and the naming conflict). |
 | v1.2 | 2026-10-31 | Added ADR-013 (Quick Verdict), ADR-014 (Red Flag Court), ADR-015 (Jailbreak the Jury), ADR-016 (bounty policy) and ADR-017 (trust page "Try to rig it."). ADR-014 amends ADR-007 for Red Flag Court only (1,000 code points). ADR-014 and ADR-015 amend V-SAFE-02's stamp list. |

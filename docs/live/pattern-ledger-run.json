@@ -1,0 +1,128 @@
+{
+ "network": "studionet",
+ "contract": "0x6b07f609606cB42E4EBe8B373Fb31E07D87F315f",
+ "owner_and_relayer": "0x34653Fb290480a8C99B4D92D4857123B5624c37d",
+ "contract_file": "contracts/pattern_ledger.py",
+ "contract_code_sha256": "9b4538adbb7786dadc58d1c1fe6f751b7490bcf0d0ccf701376777290de18de2",
+ "startedAt": "2026-10-31T19:10:55.958Z",
+ "deploy": {
+  "tx": "0x2de745554f48a90f40a766f9f91494df100c25dff863a050545a72156346d8cd",
+  "status": "ACCEPTED",
+  "execution": "SUCCESS"
+ },
+ "submissions": [
+  {
+   "label": "1-new",
+   "intent": "new pattern",
+   "request_key": "live_098e2d8abd7b4dadadf1718e",
+   "flag_codes": [
+    "urgency",
+    "upfront_payment",
+    "link_pressure"
+   ],
+   "category": "delivery",
+   "summary": "A text claims a parcel is on hold and asks for a small redelivery fee through a link before it is sent back.",
+   "tx": "0x57bb12bcde6c8ba67bf7c50c87acd52b5b79d24bc9b85ad9b3e26f9203fdeea1",
+   "status": "UNDETERMINED",
+   "execution": "ERROR",
+   "revert": "[LLM_ERROR] pattern review: unexpected keys",
+   "at": "2026-10-31T19:11:41.990Z",
+   "final_status": "FINALIZED",
+   "final_execution": "ERROR",
+   "finality": "FINALIZED_ERROR"
+  },
+  {
+   "label": "2-dedup",
+   "intent": "same pattern as #1 (dedup sighting)",
+   "request_key": "live_83cd4bed46ac5891687a8282",
+   "flag_codes": [
+    "urgency",
+    "link_pressure",
+    "threat_of_loss"
+   ],
+   "category": "delivery",
+   "summary": "A message says a parcel delivery failed and demands a small fee paid through a link, or the parcel is returned.",
+   "tx": "0x3085b5e3147853f0af252589d368c68fb17a59de10b2af8e26a67142f39582f1",
+   "status": "UNDETERMINED",
+   "execution": "ERROR",
+   "revert": "[LLM_ERROR] pattern review: unexpected keys",
+   "at": "2026-10-31T19:12:17.713Z",
+   "final_status": "UNDETERMINED",
+   "final_execution": "ERROR",
+   "finality": "FINALIZED_ERROR"
+  },
+  {
+   "label": "3-pii",
+   "intent": "deliberately rejected for PII (digits and an email-like handle)",
+   "request_key": "live_2625980cc1c8c7ae5be643d5",
+   "flag_codes": [
+    "code_request",
+    "impersonation_claim"
+   ],
+   "category": "account-lock",
+   "summary": "Pretends to be support at help@fictional and asks for the 6 digit code sent by text.",
+   "tx": "0x2d3d9a39db832b89e47b97acac222e14404cc1533c7daf9561d1b6dc8c132748",
+   "status": "ACCEPTED",
+   "execution": "ERROR",
+   "revert": "[REJECTED] summary contains identifying data (digits)",
+   "at": "2026-10-31T19:12:22.658Z"
+  }
+ ],
+ "reads": {
+  "get_pattern_1": {
+   "error": "Missing or invalid parameters.\nDouble check you have provided the correct parameters.\n\nDetails: execution failed\nVersion: viem@2.57.13"
+  },
+  "list_recent": [],
+  "top_patterns_since": [],
+  "get_config": {
+   "categories": [
+    "delivery",
+    "account-lock",
+    "romance",
+    "job",
+    "prize",
+    "investment",
+    "impersonation",
+    "other"
+   ],
+   "dedup_candidates": 10,
+   "flag_codes": [
+    "urgency",
+    "too_good_to_be_true",
+    "upfront_payment",
+    "crypto_only",
+    "off_platform_move",
+    "link_pressure",
+    "code_request",
+    "stranger_friendly",
+    "pay_to_get_paid",
+    "impersonation_claim",
+    "secrecy",
+    "guaranteed_returns",
+    "cant_meet",
+    "threat_of_loss",
+    "talks_to_the_ai",
+    "money_offer"
+   ],
+   "history_cap": 100,
+   "max_summary_chars": 200,
+   "next_id": 1,
+   "owner": "0x34653Fb290480a8C99B4D92D4857123B5624c37d",
+   "paused": false,
+   "relayer": "0x34653Fb290480a8C99B4D92D4857123B5624c37d",
+   "schema": "verdict.pattern-ledger.v1"
+  },
+  "get_by_request_key_1-new": {
+   "outcome": "",
+   "pattern_id": 0
+  },
+  "get_by_request_key_2-dedup": {
+   "outcome": "",
+   "pattern_id": 0
+  },
+  "get_by_request_key_3-pii": {
+   "outcome": "",
+   "pattern_id": 0
+  }
+ }
+}

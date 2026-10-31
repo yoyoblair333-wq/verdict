@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Document | `docs/THREAT_MODEL.md` |
-| Version | v1.2 |
+| Version | v1.3 |
 | Date | 2026-10-31 |
 | Owner | Specifications lead |
 | Status | Approved baseline. Review at every gate in `docs/SPEC.md` §10 and after any incident. |
-| Depends on | `docs/SPEC.md` v1.2 (requirement IDs), `docs/DATA_CLASSIFICATION.md` v1.1, `docs/DECISIONS.md` ADR-013 to ADR-017 |
+| Depends on | `docs/SPEC.md` v1.3 (requirement IDs), `docs/DATA_CLASSIFICATION.md` v1.2, `docs/DECISIONS.md` ADR-013 to ADR-020 |
 
 **Method.** STRIDE per trust boundary. Likelihood (L) and Impact (I) are High / Medium / Low, judged for the testnet-to-public-launch period. Risk = the higher of the two when either is High, otherwise Medium. "Residual" is what is left after the listed mitigations are in place, not today's state; today's state is the Status column of the cited requirements. Category **H** (v1.2) marks harm, safety and legal threats that sit outside STRIDE but matter as much (misreading, gambling exposure, reputational abuse).
 
@@ -30,6 +30,9 @@
 | AS11 | Red Flag pastes: messages written by a non-participant, often holding their contact details | The sender never consented; a leak or publication can't be justified. | CONFIDENTIAL, transient (`DATA_CLASSIFICATION.md` §4.8) |
 | AS12 | Unpatched Jailbreak attempts (sealed attempts, red-team store, disclosure inbox) | A working trick that leaks is an exploit against real cases. | CONFIDENTIAL, restricted (§4.9) |
 | AS13 | Meaning of game rulings (LOOKS LEGIT, SCAM, CAUGHT) | A ruling misread or misused in public harms users or a third party. | — |
+| AS14 | Publish consent and the published record (v1.3) | Publish makes both takes permanent; it must only happen with both sides' own consent. | CONFIDENTIAL (consents) / PUBLIC-ON-CHAIN (record) |
+| AS15 | Pattern Ledger integrity and privacy (v1.3) | A public, permanent list. A leaked detail can't be removed, and a poisoned list misleads people about scams. | PUBLIC-ON-CHAIN (`DATA_CLASSIFICATION.md` §4.12) |
+| AS16 | Fee budget for free publishes and pattern writes (v1.3) | VERDICT pays every publish and pattern fee. | — |
 
 ## 2. Actors
 
@@ -50,6 +53,9 @@
 | AC13 | Scammer using Red Flag Court as an oracle | Untrusted | Tune a scam message until it comes back LOOKS LEGIT, then use the card as "proof". |
 | AC14 | Rival or harasser ("ruling farmer") | Untrusted | Get a SCAM card about a competitor's or person's message and post it as a verdict on them. |
 | AC15 | Jailbreak player or red-teamer | Untrusted (invited) | Find a real bypass; some will publish it for clout. |
+| AC16 | Ledger poisoner (v1.3): a scammer or their helpers | Untrusted | Seed the Pattern Ledger with fake or skewed patterns so a real scam looks "known" or benign, or so the digest points away from it. |
+| AC17 | Competitor or brand-motivated actor (v1.3) | Untrusted | Farm sightings to push a pattern up the digest or bury another, or tie a category to a rival. |
+| AC18 | Preview winner who doesn't want the network to hear the case (v1.3) | Untrusted | Withhold publish consent so the loser can't appeal. |
 
 ## 3. Trust boundaries
 
@@ -65,6 +71,8 @@
 | TB8 | Relayer ↔ moderation provider | entry text (before chain) | provider API key | Third party sees pre-chain text. |
 | TB9 | Relayer ↔ LLM processor (Quick Verdict, C9) | redacted Red Flag text, Quick Verdict takes, prompts | processor API key | Third party sees off-chain text; no-retention terms required. |
 | TB10 | Relayer ↔ practice court localnet (C10) | Jailbreak attempts, house take, practice verdicts | localnet keys | Private network we run; must not be reachable from the internet. |
+
+*(v1.3)* Publish writes cross TB2 like any case. Pattern Ledger (C11) writes also cross TB2. The summary is generated across TB9.
 
 ```
  [Browser C1] --TB1--> [Relayer C2] --TB2--> [GenLayer C3/C4]
@@ -167,7 +175,23 @@ Format: ID · STRIDE (S spoofing, T tampering, R repudiation, I information disc
 | T50 | I | TB2 | **A testnet re-run publishes personal data** or harmful text, permanently. | L | H | Separate unticked opt-in naming public and permanent; re-moderation and the PII screen; bench-caught finalists only (V-JB-06). | **Low-Medium.** Irreversible if both passes miss. |
 | T51 | T | TB10 | **Practice court drifts from production**, so a bypass found in practice doesn't reproduce, or a real bypass is missed and works on real Settle It cases. | M | M | Same `contractCodeDigest` (V-JB-01); V-SEC-05 shared-fixture sync before launch (V-JB-12); patches ship to production and the practice court together. | **Medium** until V-SEC-05 is Y. |
 | T52 | D | TB1/TB9 | **Cost abuse** of free Quick Verdicts, Red Flag checks or Jailbreak attempts (LLM spend, localnet load). | H | L | Game counters (V-RF-15, V-JB-08); HMAC(IP) keys (V-PRIV-09); V-SEC-06 case caps. | **Medium**, accepted: the LLM cost per panel is small. |
-| T53 | I/E | TB1→TB2 | **An appeal onto the chain publishes the other side's take** after that side wanted out, for example after a takedown. | M | M | Appeal allowed only on a consent notice that disclosed publication on appeal (V-QV-05); withdrawal before Done (V-QV-07); the ADR-012 parity is deliberate. | **Medium.** Needs counsel review of the new notice. |
+| T53 | I/E | TB1→TB2 | **An appeal onto the chain publishes the other side's take** after that side wanted out, for example after a takedown. *(v1.3: the path is replaced by Publish, which needs both sides' own consent, ADR-019. See T54 and T61.)* | M | M | Appeal allowed only on a consent notice that disclosed publication on appeal (V-QV-05); withdrawal before Done (V-QV-07); the ADR-012 parity is deliberate. | **Medium.** Needs counsel review of the new notice. |
+
+### 4.8 Publish and the Scam Pattern Ledger (v1.3, ADR-019 and ADR-020)
+
+| ID | S/T/R/I/D/E/H | TB | Threat | L | I | Mitigations | Residual |
+|---|---|---|---|---|---|---|---|
+| T54 | S/E | TB1 | **Consent forged for the other side:** one person ticks `publish-onchain-v1` for both sides (holding both tokens, a forwarded invite link, or a request body naming the other side), or a relayer bug dispatches on one consent. | M | H | Each consent needs that side's own token or account; side derived from the token, never the body (V-SEC-02, V-PUB-03); dispatch only from CONSENTED with two consent rows (§6.7 P2, P4); package carries `publish-onchain-v1` (V-PRIV-03); consent records kept as evidence (T17). | **Medium.** As T03/T04, possessing an invite link is the authority. One person holding both links can publish their own two takes. |
+| T55 | D | TB1/TB2 | **Publish-cap abuse costing fees:** sybil accounts, two colluding accounts, or scripted previews made only to be published, so VERDICT pays many Tier 1 fees. | H | M | 3 per user per LA day charged at T4 (V-PUB-06); once per case (V-PUB-02); new-account limits (V-SEC-06); both sides must consent; V-OPS-04 budget breaker queues instead of sending (V-PUB-07); publish cap alerts (`publish_cap_hit`). Testnet fee is $0 (ADR-008). | **Medium**, accepted: cost is bounded per account and by the breaker. Revisit at G-MAINNET with the fee profile. |
+| T56 | H | — | **Preview/network mismatch read as a bug** or as proof the app is rigged ("it told me I won"). | M | M | The card says "The network overruled the preview." (V-PUB-09); the notice says the network's ruling counts (§11a); the preview is private and never circulates (V-PUB-01); trust-page row (§9.10); overrule rate tracked (`preview_overruled`). A rate far above the expected model variance is treated as Quick Verdict/contract drift (V-QV-06). | **Low-Medium.** Some users will still feel cheated, but the copy makes it an expected outcome. |
+| T57 | I | TB9/TB2 | **Pattern summary leaks personal data:** a name, number, brand, place or unusual detail from the paste survives into the summary and becomes public and permanent. | M | H | Two redaction passes (V-RF-05, V-RF-06); LLM instructed to abstract (V-PL-03); deterministic screen in relayer and contract (V-PL-04); validator judgment (a) (V-PL-05); 200-character cap; no public-network write before counsel sign-off, then SHADOW (V-PL-13); G-PL review set of ≥ 200 records with 0 leaks; staff digest review (V-PL-12); rate monitoring (V-PL-16). | **Medium.** Irreversible on-chain; a quasi-identifier (rare job title, small town) can pass every check. Largest new accepted risk. |
+| T58 | T/H | TB1→TB2 | **Ledger poisoning:** a scammer submits fake or skewed patterns, for example a soft summary of their own scam, so that the real scam looks "known" or benign, or so the digest points away from it. | M | M | The ledger never feeds rulings, prompts, the money rule or LOOKS LEGIT (V-PL-10); copy never says known = harmless or unlisted = safe (V-LEGAL-09); a submission needs a SCAM or SUS ruling on a real paste (V-PL-01); validators must agree it is a coherent scam pattern (V-PL-05); a stored summary is never rewritten by a sighting (V-PL-06); caps and per-user sighting dedupe (V-PL-09, V-PL-14); staff-reviewed digest (V-PL-12). | **Medium.** A determined group can still add skewed records. They cannot change a ruling or an existing record. |
+| T59 | T/D | TB1→TB2 | **Competitors farming sightings** to push a pattern up "Scams going around", bury another, or tie a category to a rival's market. | M | M | 5/day cap (V-PL-09); one sighting per user per pattern per 30 days (V-PL-14); brands, links and amounts screened out, so no rival can be named (V-PL-04, V-PL-05); alert on a pattern gaining an outsized share of sightings (V-PL-16); staff digest review (V-PL-12). | **Medium.** Sybil accounts raise counts slowly; the digest review is the backstop. |
+| T60 | D | TB2 | **Validator disagreement causes rejection loops:** borderline summaries flip validators between (a)/(b) answers, giving no consensus or repeated `[REJECTED]`, which burns fees and frustrates users. | M | L | Deterministic screen removes most (a) cases before the chain (V-PL-04); exact-boolean equivalence (V-PL-05); one retry with a fresh summary, then drop (V-PL-09); an agreed reject is final and counts against the cap; no-consensus and reject rates alerted (V-PL-16); G-PL needs no-consensus ≤ 10%. | **Low-Medium.** |
+| T61 | E/H | TB1 | **Preview winner blocks the appeal** by never consenting to Publish, so the loser can't reach the network or appeal. | M | L | Deliberate: consent outranks the appeal for unpublished cases (ADR-019 Consequences). Takedown never withdraws consent already given (§6.7). ADR-012 protection applies from Tier 1 FINALIZED_SUCCESS. | **Medium**, accepted. Nothing is published and no verdict circulates, so the harm is limited to the loser's frustration. |
+| T62 | I | — | **Linking a user to a public pattern:** opt-in, sighting-dedupe or analytics records reveal who reported which pattern (for example who was targeted by a romance scam). | L | M | No user id on-chain (V-PL-02); opt-in record without pattern id (V-PL-01); HMAC sighting key deleted after 30 days (V-PL-14); no pattern id, summary or tx hash in analytics or logs (V-PL-15); random `request_key`. | **Low.** |
+| T63 | H | — | **Affiliation misread:** "Checked by GenLayer" or "Recorded on GenLayer" is read as GenLayer endorsing VERDICT or a verdict. | M | L | Lines scoped (V-PUB-10, V-PL-11); affiliation and "arbitration" claims banned (V-LEGAL-09); positioning in the design brief §3. | **Low.** |
+| T64 | I | — | **Digest re-identification:** a pattern with very few sightings, shown in the digest, is traced back to one person's situation. | L | M | Summary is abstract and screened (T57 mitigations); staff review (V-PL-12); open question SPEC §13 item 11 (minimum sightings to show). | **Low-Medium** until question 11 is decided. |
 
 ---
 
@@ -189,15 +213,21 @@ Format: ID · STRIDE (S spoofing, T tampering, R repudiation, I information disc
 | 12 | T45 Exploit publication | Medium | REL, OPS | Practice court plus sealing; self-publication by players accepted. |
 | 13 | T47 / T48 Ruling-farming and scam oracle | Medium | REL, COPY | Card carries no message; caps; monitoring. |
 | 14 | T51 Practice-court drift | Medium | CON, REL | Blocks G-JB until V-SEC-05 is Y. |
+| 15 | T57 Pattern summary leaks personal data | Medium | REL, CON, LEGAL | Opt-in; four layers of checks; no public write before counsel sign-off. Blocks G-PL. |
+| 16 | T54 Consent forged for the other side | Medium | REL, WEB | Per-side token consent; same possession model as T03. |
+| 17 | T55 Publish-cap abuse | Medium | REL, OPS | Capped per user and by the budget breaker; $0 on testnet. |
+| 18 | T58 / T59 Ledger poisoning and sighting farming | Medium | REL, OPS | The ledger decides nothing; caps, dedupe, staff digest review. |
+| 19 | T61 Preview winner withholds Publish | Medium | — | Consent outranks the appeal before anything is public. |
 
 ## 6. Review triggers
 
-Re-run this model when: a gate in SPEC §10 is attempted (including G-QV, G-RF, G-JB, G-JB-RERUN); a new surface, game, payment method or integration is added; any bounty or contest is proposed; Red Flag text is proposed for any chain; any SEV incident; GenLayer SDK or consensus version changes; any change to the package schema.
+Re-run this model when: a gate in SPEC §10 is attempted (including G-QV, G-RF, G-JB, G-JB-RERUN, G-PUB, G-PL); any field is proposed for the pattern record; the ledger is proposed as an input to any ruling; a new surface, game, payment method or integration is added; any bounty or contest is proposed; Red Flag text is proposed for any chain; any SEV incident; GenLayer SDK or consensus version changes; any change to the package schema.
 
 ## 7. Change log
 
 | Version | Date | Change |
 |---|---|---|
+| v1.3 | 2026-10-31 | Publish and Scam Pattern Ledger (ADR-019, ADR-020). Added assets AS14–AS16, actors AC16–AC18, a TB2/TB9 note, threats T54–T64 (§4.8), residual ranks 15–19, new review triggers, and a pointer from T53 to the Publish path. |
 | v1.2 | 2026-10-31 | Quick Verdict and security games (ADR-013 to ADR-017). Added category H, assets AS11–AS13, actors AC13–AC15, boundaries TB9–TB10, threats T43–T53 (§4.7), residual ranks 10–14 and new review triggers. |
 | v1.1 | 2026-10-31 | Added T42 (winner blocks appeal via revocation), mitigated by ADR-012. |
 | v1.0 | 2026-10-31 | First baseline. Covers REVIEW findings E1–E11 and C1–C15 where they are security-relevant, plus packageDigest, provenance, revocation and finality. |

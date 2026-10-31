@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Document | `docs/DATA_CLASSIFICATION.md` |
-| Version | v1.1 |
+| Version | v1.2 |
 | Date | 2026-10-31 |
 | Owner | Specifications lead |
 | Status | Approved baseline |
-| Implements | `docs/SPEC.md` V-PRIV-01 to V-PRIV-12, V-SEC-02, -03, -07, -09, -10, -15; v1.1: V-QV-01, -05, -07, V-RF-05, -06, -09, -13, V-JB-01, -03 to -06, -11 (ADR-013 to ADR-015) |
+| Implements | `docs/SPEC.md` V-PRIV-01 to V-PRIV-12, V-SEC-02, -03, -07, -09, -10, -15; v1.1: V-QV-01, -05, -07, V-RF-05, -06, -09, -13, V-JB-01, -03 to -06, -11 (ADR-013 to ADR-015); v1.2: V-PUB-01, -03, -06, -14, V-PL-01 to -04, -13 to -15 (ADR-019, ADR-020) |
 
 ---
 
@@ -15,7 +15,7 @@
 
 | Class | Definition | Handling rule |
 |---|---|---|
-| **PUBLIC-ON-CHAIN** | Written to GenLayer (contract state or transaction calldata). World-readable and **permanent**: it cannot be edited or deleted by anyone, including VERDICT. | Only after every side's consent (V-PRIV-02/03). Only fields named in this document, and only through the closed package schema or the contract's own outputs. |
+| **PUBLIC-ON-CHAIN** | Written to GenLayer (contract state or transaction calldata). World-readable and **permanent**: it cannot be edited or deleted by anyone, including VERDICT. | Only after every side's consent (V-PRIV-02/03). Only fields named in this document, and only through the closed package schema or the contract's own outputs. *(v1.2)* Pattern records (§4.12): only after the submitting user's opt-in, only through `PatternLedger`'s fixed fields, and only once counsel has signed off (V-PL-13). They hold no third-party content, so no sender consent is involved (ADR-020, V-SAFE-09). |
 | **CONFIDENTIAL** | Stored off-chain by VERDICT or a processor. Need-to-know access. May be **shown** publicly only through a consented, revocable surface (a card, the gallery), and must be removable from VERDICT's pages on takedown. | Encrypted at rest and in transit. Role-based access. Fixed retention. Never on-chain. |
 | **SECRET** | A credential. Possession grants authority. | Secret manager or hash-only storage. Never logged, never in analytics, never in error bodies, never on-chain, never shown after first issue. |
 
@@ -176,9 +176,38 @@ Anything an entry's author types into an entry is public once the case reaches P
 | Element | Class | Stored where | Retention | Who can read |
 |---|---|---|---|---|
 | Take text, judged by Quick Verdict (not appealed) | CONFIDENTIAL | Relayer DB; sent to the LLM processor | Life of the case record, max 1 year unused; **deleted** (not just hidden) ≤ 24 h after withdrawal or takedown | Sides; relayer; processors |
-| Quick Verdict result (votes, scores, reasons, venue) | CONFIDENTIAL | Relayer DB | As the takes | Sides; public only on a shared card (no receipt) |
-| Take text after an appeal onto the chain | **PUBLIC-ON-CHAIN** | Contract | Permanent | Public |
+| Quick Verdict result (votes, scores, reasons, venue) | CONFIDENTIAL | Relayer DB | As the takes | Sides; public only on a shared card (no receipt). *(v1.2, ADR-019: Settle It previews are private, with no public card. See §4.11.)* |
+| Take text after an appeal onto the chain *(v1.2: read "after Publish", §4.11)* | **PUBLIC-ON-CHAIN** | Contract | Permanent | Public |
 | Consent record including the notice version that discloses publication on appeal | CONFIDENTIAL | Relayer DB | Life of case record + 3 years | Relayer, operator |
+
+### 4.11 Publish (v1.2, ADR-019)
+
+| Element | Class | Stored where | Retention | Who can read |
+|---|---|---|---|---|
+| Preview card and result (Settle It Quick Verdict) | CONFIDENTIAL | Relayer DB | As §4.10 takes | Sides only. **No public URL** (V-PUB-01) |
+| Publish consent record per side (case, side, `publish-onchain-v1`, timestamp, withdrawn-at) | CONFIDENTIAL | Relayer DB | Life of case record + 3 years (evidence) | Relayer, operator |
+| Publish request state (§6.7) and requester side | CONFIDENTIAL | Relayer DB | Life of case record | Sides, relayer |
+| Publish cap counter (per user per LA day) | CONFIDENTIAL | Relayer DB / memory | 48 h | Relayer |
+| Preview `winner_index`, kept for the overrule check | CONFIDENTIAL | Relayer DB | Life of case record | Relayer. Shown publicly only as the overrule line (V-PUB-09) |
+| Preview votes, scores and reasons after Publish | CONFIDENTIAL | Relayer DB | Deleted ≤ 24 h after the Tier 1 is FINALIZED_SUCCESS; until then as §4.10 | Sides (private view) |
+| Published takes, package, network ruling, receipt (`noticeVersion = publish-onchain-v1`) | **PUBLIC-ON-CHAIN** | Contract | Permanent | Public |
+| "The network overruled the preview." flag on the card | CONFIDENTIAL; shown on the card | Relayer DB, card | As the card | Sides; public once the card is public (LIVE mode) |
+
+### 4.12 Scam Pattern Ledger (v1.2, ADR-020)
+
+| Element | Class | Stored where | Retention | Who can read |
+|---|---|---|---|---|
+| Browser-redacted text re-sent at opt-in | CONFIDENTIAL, transient | Relayer request memory; LLM processor (C9) | **Request lifetime only** (V-RF-13, V-PL-03) | Relayer; processor under no-retention terms |
+| Candidate summary before the screen and validators | CONFIDENTIAL, transient | Relayer request memory | Request lifetime only. A summary that fails is **not** stored, only its reason code | Relayer |
+| Pattern record: `id`, `flag_codes`, `category`, `summary` (≤ 200), `sightings`, `first_seen`, `last_seen`, history of (time, kind, codes) | **PUBLIC-ON-CHAIN** | `PatternLedger` (C11) | Permanent | Public |
+| `submit_pattern` calldata incl. random `request_key` | **PUBLIC-ON-CHAIN** | Chain | Permanent | Public. `request_key` MUST NOT derive from the user or the message (V-PL-02) |
+| Message text, hash of the message, sender, user or account id, IP | **Never** in a pattern record or its calldata | — | — | — |
+| Pattern opt-in consent record (user, `pattern-optin-v1`, timestamp, ruling-record id; **no pattern id**) | CONFIDENTIAL | Relayer DB | 3 years (evidence) | Relayer, operator |
+| Pattern submission counter (per user per LA day) | CONFIDENTIAL | Relayer DB / memory | 48 h | Relayer |
+| Sighting dedupe key HMAC(user, pattern id, rotating secret) | CONFIDENTIAL, restricted | Relayer DB | 30 days, then deleted (V-PL-14) | Relayer only. No operator query by user |
+| Rejection reason codes (`pii_screen`, `validator_reject`, `no_consensus`, `duplicate_user`, `cap`), with no summary | CONFIDENTIAL | Relayer DB | 90 days | Operator |
+| Private-run records on the localnet (C10, before counsel sign-off) | CONFIDENTIAL | Practice court localnet | Wiped at each review cycle | Operator, counsel, security reviewer |
+| Weekly digest "Scams going around" (codes, category, summary, sightings, receipt) | Public (after G-PL) | CMS / web | Indefinite | Public |
 
 ## 5. Handling rules that apply to every class
 
@@ -189,10 +218,14 @@ Anything an entry's author types into an entry is public once the case reaches P
 5. SECRET values are rotated on any suspected exposure, and the rotation is logged.
 6. (v1.1) Text that a non-participant wrote (Red Flag pastes) is never stored beyond the request and never written on-chain, whatever its redaction state.
 7. (v1.1) Sealed attempts and disclosure reports are readable only by the Security reviewer role, and every access is logged.
+8. (v1.2) Pattern records are the only Red Flag-derived data that may go on-chain. They go only through `PatternLedger`'s fixed fields, and only after counsel sign-off (V-PL-13). Rule 6 still holds: no word a non-participant wrote is stored or published.
+9. (v1.2) No store may join a user to a pattern id beyond the 30-day HMAC sighting key. Analytics and logs never hold a pattern id, summary, `request_key` or ledger tx hash (V-PL-15).
+10. (v1.2) Nothing from a preview becomes public except through Publish with both sides' `publish-onchain-v1` consent.
 
 ## 6. Change log
 
 | Version | Date | Change |
 |---|---|---|
+| v1.2 | 2026-10-31 | ADR-019 and ADR-020. Added §4.11 Publish (consents, cap counter, preview winner index, preview votes deleted ≤ 24 h after Tier 1 is final, published record) and §4.12 Scam Pattern Ledger (public pattern-record fields, transient summary inputs, opt-in record without pattern id, 30-day HMAC sighting key, rejection codes, private-run records, digest); PUBLIC-ON-CHAIN rule for pattern records; §4.10 notes; handling rules 8–10. |
 | v1.1 | 2026-10-31 | Added the Security reviewer role; §4.8 Red Flag Court (raw paste never received, message text request-only, ruling records 30 d, flag aggregates 35 d); §4.9 Jailbreak attempts (door/bench 12 months, sealed until patched + 90 d, re-runs public on testnet, disclosure inbox); §4.10 Quick Verdict Settle It cases; analytics forbidden list; handling rules 6–7. |
 | v1.0 | 2026-10-31 | First baseline. Covers the package schema v1 fields, receipt inbox, side tokens, API keys, IPs, credits, payment IDs, Twitch tokens and analytics. |
