@@ -105,3 +105,14 @@ def test_relayer_role_does_not_extend_to_revoke(direct_vm, split, direct_alice, 
     direct_vm.sender = direct_bob       # the creator may (the relayer checked the side token)
     split.revoke(cid, dg, 0)
     assert split.get_case(cid)["status"] == "revoked"
+
+
+def test_open_case_package_stays_open_to_anyone_and_its_creator_runs_it(direct_vm, split, direct_charlie):
+    # The web app lets visitors sign their own cases with a burner account (engineering C).
+    # The package checks (consent, 18+, digest, injection) apply to every caller.
+    cid, dg = open_valid(direct_vm, split, direct_charlie)   # neither owner nor relayer
+    direct_vm.mock_llm(r"VERDICT", verdict_json(0, [8, 4]))
+    split.judge(cid, dg)                                     # charlie is the case's creator
+    split.confirm_verdict(cid, dg, 1)
+    split.appeal(cid, dg, 1)
+    assert split.get_case(cid)["tier"] == 2

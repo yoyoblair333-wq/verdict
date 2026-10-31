@@ -23,6 +23,8 @@ import type { CaseView, ChainPort } from "./lib/genlayer.js";
 import { Inbox, Outbox, type OpIntent, type Receipt, type ReceiptBody } from "./lib/journal.js";
 import { MAX_ENTRY_CHARS, moderate, type ModerationProvider } from "./lib/moderation.js";
 import { StateStore } from "./lib/state.js";
+import { FeesJournal } from "./lib/fees.js";
+import { PublishBudget, type BudgetSnapshot } from "./lib/publishBudget.js";
 import {
   buildPackage,
   PRESETS,
@@ -170,7 +172,8 @@ export function buildApp(deps: Deps): VerdictApp {
     deps.webhook ?? ((url: string, ev: WebhookEvent) => deliverWebhook(url, ev, cfg.webhookSecret, cfg.webhookTimeoutMs));
   const outbox = deps.outbox ?? new Outbox(cfg.outboxPath, clock);
   const inbox = deps.inbox ?? new Inbox(cfg.inboxPath);
-  const pipeline = new Pipeline({ cfg, chain, outbox, clock, ...(deps.sleep ? { sleep: deps.sleep } : {}) });
+  const fees = new FeesJournal(cfg.feesPath);
+  const pipeline = new Pipeline({ cfg, chain, outbox, clock, fees, ...(deps.sleep ? { sleep: deps.sleep } : {}) });
   const live = cfg.mode === "live";
 
   // Off-chain metadata. In-memory for the reference implementation.
@@ -179,6 +182,14 @@ export function buildApp(deps: Deps): VerdictApp {
   const loaded = store.load();
   const meta = loaded.cases;
   const drafts = loaded.drafts;
+  // Global monthly publish budget + FIFO queue, durable in the state store (ADR-022).
+  const publishBudget = new PublishBudget({
+    capCents: cfg.quick.publishBudgetCentsMonth,
+    estimateCents: cfg.quick.publishFeeEstimateCents,
+    clock,
+    load: () => loaded.meta.get("publish_budget") as BudgetSnapshot | undefined,
+    save: (s) => store.saveMeta("publish_budget", s),
+  });
   const persist = (id: number) => {
     const m = meta.get(id);
     if (!m) return;
@@ -878,14 +889,29 @@ export function buildApp(deps: Deps): VerdictApp {
     }),
   );
 
+  function requireAdmin(req: Request): void {
+    if (!cfg.adminToken) throw new HttpError(404, "not found");
+    const auth = req.header("authorization") ?? "";
+    const want = Buffer.from(sha256(`Bearer ${cfg.adminToken}`), "hex");
+    if (!timingSafeEqual(Buffer.from(sha256(auth), "hex"), want)) throw new HttpError(401, "unauthorized");
+  }
+
+  // GET /ops/fees  admin only: measured fee per on-chain tx (ADR-022 item 4) + the publish budget.
+  app.get(
+    "/ops/fees",
+    wrap(async (req, res) => {
+      requireAdmin(req);
+      const last = Math.min(200, Math.max(1, Number(req.query.last ?? 20) || 20));
+      res.setHeader("cache-control", "no-store");
+      res.json({ ...fees.summary(last), publish_budget: publishBudget.status() });
+    }),
+  );
+
   // POST /credits/grant  { payer, cents }  (Authorization: Bearer ADMIN_TOKEN)
   app.post(
     "/credits/grant",
     wrap(async (req, res) => {
-      if (!cfg.adminToken) throw new HttpError(404, "not found");
-      const auth = req.header("authorization") ?? "";
-      const want = Buffer.from(sha256(`Bearer ${cfg.adminToken}`), "hex");
-      if (!timingSafeEqual(Buffer.from(sha256(auth), "hex"), want)) throw new HttpError(401, "unauthorized");
+      requireAdmin(req);
       const { payer, cents } = (req.body ?? {}) as { payer?: unknown; cents?: unknown };
       if (typeof payer !== "string" || payer === "" || typeof cents !== "number" || !Number.isInteger(cents) || cents <= 0) {
         throw new HttpError(400, "body must be { payer: string, cents: positive integer }");
@@ -1011,6 +1037,7 @@ export function buildApp(deps: Deps): VerdictApp {
   // Quick Verdict (off-chain): Settle It quick + publish, Red Flag Court (+ pattern ledger), practice court.
   registerQuickRoutes(app, {
     shadowLabel: SHADOW_LABEL,
+    publishBudget,
     pattern: {
       cfg: pcfg,
       limiter: new DailyCounter(pcfg.dailyCap, laDay), // 5 per user per LA day (ADR-021 item 4)

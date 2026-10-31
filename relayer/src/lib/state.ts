@@ -9,7 +9,7 @@
 
 import { JsonlFile } from "./journal.js";
 
-type Snapshot<T> = { kind: "case"; id: number; data: T } | { kind: "draft"; id: string; data: T | null };
+type Snapshot<T> = { kind: "case"; id: number; data: T } | { kind: "draft"; id: string; data: T | null } | { kind: "meta"; id: string; data: unknown };
 
 export class StateStore<C extends object, D extends object> {
   private readonly log: JsonlFile;
@@ -17,15 +17,17 @@ export class StateStore<C extends object, D extends object> {
     this.log = new JsonlFile(file);
   }
 
-  load(): { cases: Map<number, C>; drafts: Map<string, D> } {
+  load(): { cases: Map<number, C>; drafts: Map<string, D>; meta: Map<string, unknown> } {
     const cases = new Map<number, C>();
     const drafts = new Map<string, D>();
+    const meta = new Map<string, unknown>();
     for (const r of this.log.readAll() as Array<Snapshot<C | D>>) {
-      if (r.kind === "case") cases.set(r.id, r.data as C);
+      if (r.kind === "meta") meta.set(r.id, r.data);
+      else if (r.kind === "case") cases.set(r.id, r.data as C);
       else if (r.data === null) drafts.delete(r.id);
       else drafts.set(r.id, r.data as D);
     }
-    return { cases, drafts };
+    return { cases, drafts, meta };
   }
 
   saveCase(id: number, data: C): void {
@@ -34,5 +36,10 @@ export class StateStore<C extends object, D extends object> {
 
   saveDraft(id: string, data: D | null): void {
     this.log.append({ kind: "draft", id, data });
+  }
+
+  /** Relayer-wide singletons (e.g. the publish budget and queue). Last write wins. */
+  saveMeta(id: string, data: unknown): void {
+    this.log.append({ kind: "meta", id, data });
   }
 }

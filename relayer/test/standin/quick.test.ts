@@ -10,7 +10,7 @@ import path from "node:path";
 import { test } from "node:test";
 import { StubProvider } from "../../src/lib/jury.js";
 import { loadPracticeConfig } from "../../src/lib/practice.js";
-import { caseBody, CONSENT, harness, KEY, openAndJudge, type Harness } from "./harness.js";
+import { caseBody, CONSENT, harness, KEY, openAndJudge, SECRETS, type Harness } from "./harness.js";
 
 const PRACTICE = loadPracticeConfig(new URL("../../../config/practice-rules.v1.json", import.meta.url).pathname);
 const PUBLISH_CONSENT = { consent: true, adult_confirmed: true, notice_version: "publish-onchain-v1" };
@@ -96,7 +96,7 @@ test("quick: a broken juror answer fails the whole panel and refunds the cap", a
 
 function baseQuick() {
   const d = mkdtempSync(path.join(tmpdir(), "verdict-q-"));
-  return { dailyCap: 10, practiceDailyCap: 10, publishDailyCap: 3, ttlSec: 86400, practiceRulesPath: "", storePath: path.join(d, "quick.jsonl"), redTeamPath: path.join(d, "redteam.jsonl"), sealedPath: path.join(d, "sealed.jsonl"), accountKeySecret: "s" };
+  return { dailyCap: 10, practiceDailyCap: 10, publishDailyCap: 3, publishBudgetCentsMonth: 50000, publishFeeEstimateCents: 90, ttlSec: 86400, practiceRulesPath: "", storePath: path.join(d, "quick.jsonl"), redTeamPath: path.join(d, "redteam.jsonl"), sealedPath: path.join(d, "sealed.jsonl"), accountKeySecret: "s" };
 }
 
 // ---------------------------------------- Publish = network check (Design §1)
@@ -493,6 +493,95 @@ test("card line: 'Checked by GenLayer · Finalized' on every FINALIZED_SUCCESS o
     assert.ok(!/Checked by GenLayer/.test(JSON.stringify(pending.json)), "no line before FINALIZED_SUCCESS");
     h.chain.holdFinal = false;
     await h.app.idle();
+  });
+});
+
+test("publish budget: when the month's budget is spent, publishes queue FIFO (private, no network claim), either side cancels, next LA month dispatches", async () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "verdict-budget-"));
+  const quick = { ...baseQuick(), publishBudgetCentsMonth: 90, publishFeeEstimateCents: 90, publishDailyCap: 10 };
+  let ids: { a: string; b: string; c: string } = { a: "", b: "", c: "" };
+  const qs: Record<string, { id: string; winner: string; loser: string }> = {};
+  await withH({ quick }, { dir, judgeProvider: contest([0, 0, 0, 0, 0]) }, async (h) => {
+    const first = await quickCase(h);
+    await bothConsent(h, first);
+    assert.equal((await h.post(`/quick/${first.id}/publish`, {}, side(first.loser))).status, 202, "the budget covers one");
+    await h.app.idle();
+    const sent = h.chain.broadcasts.length;
+    for (const k of ["a", "b", "c"] as const) {
+      const q = await quickCase(h);
+      await bothConsent(h, q);
+      qs[k] = q;
+      ids[k] = q.id;
+    }
+    const a = await h.post(`/quick/${ids.a}/publish`, {}, side(qs.a!.loser));
+    assert.equal(a.status, 202);
+    assert.equal(a.json.status, "queued");
+    assert.equal(a.json.position, 1);
+    assert.equal(a.json.message, "You're in line to be checked by the network. Your preview stays private until then.");
+    assert.ok(!/Checked by GenLayer|receipt_number|package_digest|"tx"/.test(JSON.stringify(a.json)), "no early claim while queued");
+    assert.equal((await h.post(`/quick/${ids.b}/publish`, {}, side(qs.b!.winner))).json.position, 2);
+    assert.equal((await h.post(`/quick/${ids.c}/publish`, {}, side(qs.c!.loser))).json.position, 3);
+    assert.equal((await h.post(`/quick/${ids.a}/publish`, {}, side(qs.a!.loser))).json.position, 1, "tapping again keeps your place");
+    assert.equal(h.chain.broadcasts.length, sent, "nothing queued reaches the chain");
+    // the OTHER side cancels b; c moves up; the preview stays private
+    const cx = await h.post(`/quick/${ids.b}/publish/cancel`, {}, side(qs.b!.loser));
+    assert.equal(cx.status, 200);
+    assert.equal(cx.json.status, "private");
+    assert.equal((await h.get(`/quick/${ids.c}/publish`, side(qs.c!.winner))).json.position, 2);
+    assert.equal((await h.post(`/quick/${ids.b}/publish/cancel`, {}, side(qs.b!.loser))).json.code, "not_queued");
+    // withdrawing consent also leaves the line
+    assert.equal((await h.post(`/quick/${ids.c}/consent/withdraw`, {}, side(qs.c!.winner))).status, 200);
+    assert.equal((await h.get(`/quick/${ids.c}/publish`, side(qs.c!.loser))).json.status, "private");
+    await bothConsent(h, qs.c!);
+    assert.equal((await h.post(`/quick/${ids.c}/publish`, {}, side(qs.c!.loser))).json.position, 2, "back of the line");
+    // the 72 h consent expiry does not apply while waiting in line
+    h.clock.now = new Date("2026-11-01T06:00:00Z");
+    assert.equal((await h.get(`/quick/${ids.a}/publish`, side(qs.a!.loser))).json.status, "queued");
+    // a paid appeal never waits for the publish budget
+    const c1 = await h.get(`/cases/${(await h.get(`/quick/${first.id}`, side(first.winner))).json.case_id}`);
+    const loserTok = c1.json.case.winner_index === 0 ? first.loser : first.winner;
+    const ap = await h.post(`/cases/${c1.json.case.id}/appeal`, {}, side(loserTok));
+    assert.equal(ap.status, 202, "appeals are funded by their own revenue: never queued");
+    await h.app.idle();
+  });
+  // restart with the same state: the queue survived; next LA month dispatches a then c, in order
+  await withH({ quick }, { dir, judgeProvider: contest([0, 0, 0, 0, 0]) }, async (h) => {
+    h.clock.now = new Date("2026-10-31T23:00:00Z");
+    assert.equal((await h.get(`/quick/${ids.a}/publish`, side(qs.a!.loser))).json.position, 1, "durable queue");
+    h.clock.now = new Date("2026-11-01T07:00:00Z"); // November in LA
+    h.chain.now = "2026-11-01T07:00:00Z";
+    const st = await h.get(`/quick/${ids.a}/publish`, side(qs.a!.loser));
+    assert.equal(st.json.status, "published", JSON.stringify(st.json));
+    assert.equal((await h.get(`/quick/${ids.c}/publish`, side(qs.c!.loser))).json.position, 1, "c is next; the month's budget covers one");
+    await h.app.idle();
+    assert.ok(h.chain.broadcasts.some((b) => b.fn === "open_case_package"));
+  });
+});
+
+test("ops/fees: admin only; one row per finalized on-chain tx with the measured fee (or 'unavailable')", async () => {
+  await withH({}, { judgeProvider: contest([0, 0, 0, 0, 0]) }, async (h) => {
+    assert.equal((await h.get("/ops/fees")).status, 401);
+    assert.equal((await h.get("/ops/fees", { authorization: "Bearer nope" })).status, 401);
+    const orig = h.chain.getTransaction.bind(h.chain);
+    let n = 0;
+    h.chain.getTransaction = async (hash: string) => {
+      const tx = await orig(hash);
+      return tx && ++n % 2 === 0 ? { ...tx, gasUsed: 1000, gasPrice: 3 } : tx;
+    };
+    const q = await quickCase(h);
+    await bothConsent(h, q);
+    await h.post(`/quick/${q.id}/publish`, {}, side(q.loser));
+    await h.app.idle();
+    const r = await h.get("/ops/fees", { authorization: `Bearer ${SECRETS.adminToken}` });
+    assert.equal(r.status, 200);
+    assert.ok(r.json.txs >= 2, JSON.stringify(r.json));
+    assert.ok(r.json.by_op.open && r.json.by_op.judge, Object.keys(r.json.by_op).join(","));
+    for (const row of r.json.latest) {
+      assert.ok(row.fee === null ? row.fee_source === "unavailable" : row.fee_source === "gasUsed*gasPrice", JSON.stringify(row));
+      assert.match(row.tx, /^0x/);
+    }
+    assert.equal(r.json.publish_budget.spent_cents, 90);
+    assert.equal(r.json.publish_budget.cap_cents, 50000);
   });
 });
 

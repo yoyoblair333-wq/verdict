@@ -245,11 +245,11 @@ function statusChips(c) {
 }
 
 function txItem(t) {
-  const st = h("span", { class: "st" }, t.mine ? "signed in this browser" : "");
+  const st = h("span", { class: "st" });
   const li = h(
     "li",
     {},
-    h("span", { class: "row" }, h("span", { class: "fn" }, t.fn), h("span", {}, FN_LABEL[t.fn] ?? "")),
+    h("span", { class: "row" }, h("span", { class: "fn" }, t.fn), h("span", {}, FN_LABEL[t.fn] ?? ""), t.mine ? h("span", { class: "chip" }, "signed in this browser") : null),
     h("code", {}, t.hash),
     h(
       "span",

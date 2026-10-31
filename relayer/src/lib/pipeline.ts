@@ -3,6 +3,7 @@
 // Plus `reconcile`, which settles every unfinished outbox op against the
 // chain instead of double-submitting after a timeout or crash.
 
+import { FeesJournal, measuredFee, opOf } from "./fees.js";
 import type { Config } from "../config.js";
 import { digestEquals } from "./canonical.js";
 import { classifyTx, isTerminal, pollFinality, type Classification } from "./finality.js";
@@ -39,6 +40,8 @@ export interface PipelineDeps {
   outbox: Outbox;
   clock: () => Date;
   sleep?: (ms: number) => Promise<void>;
+  /** Fee measurement (ADR-022 item 4): one row per terminal on-chain transaction. */
+  fees?: FeesJournal;
 }
 
 export class Pipeline {
@@ -103,7 +106,24 @@ export class Pipeline {
       ...(this.d.sleep ? { sleep: this.d.sleep } : {}),
     });
     this.d.outbox.record({ type: "status", opKey, txHash: hash, ...final });
+    await this.recordFee(opKey, hash, final.finality);
     return final;
+  }
+
+  /** Never fails the caller: a missing or unreadable fee is logged as unavailable. */
+  private async recordFee(opKey: string, hash: string, finality: string): Promise<void> {
+    if (!this.d.fees) return;
+    let m: { fee: string | null; source: string } = { fee: null, source: "unavailable" };
+    try {
+      m = measuredFee(await this.d.chain.getTransaction(hash));
+    } catch {
+      m = { fee: null, source: "read_failed" };
+    }
+    try {
+      this.d.fees.record({ at: this.d.clock().toISOString(), op_key: opKey, op: opOf(opKey), tx: hash, finality, fee: m.fee, fee_source: m.source });
+    } catch (e) {
+      console.error("[fees] could not record fee:", (e as Error).message); // measurement must never block a verdict
+    }
   }
 
   /** Settle every unfinished op. Never resubmits an op whose effect is already on-chain. */

@@ -1,6 +1,7 @@
 // Environment configuration. Every secret is read from the environment;
 // nothing sensitive is committed. See ../.env.example.
 
+import { PUBLISH_BUDGET_CEILING_CENTS, PUBLISH_BUDGET_DEFAULT_CENTS } from "./lib/publishBudget.js";
 import { randomBytes } from "node:crypto";
 import path from "node:path";
 
@@ -29,6 +30,8 @@ export interface Config {
   statePath: string;
   /** Prepaid credit ledger (user ids stored as unsalted sha256: pseudonymous, not anonymous). */
   creditsPath: string;
+  /** Fee measurement journal (ADR-022 item 4). */
+  feesPath: string;
   /** Seconds a draft's other side has to submit its take before the draft expires. */
   draftTtlSec: number;
   /** Seconds a package may wait before open_case_package must land. */
@@ -64,6 +67,10 @@ export interface Config {
     practiceDailyCap: number;
     /** Free publishes (Quick Verdict -> on-chain) per user per Los Angeles day (Design §1). */
     publishDailyCap: number;
+    /** Global monthly fee budget for free publishes, in cents (ADR-022). Max PUBLISH_BUDGET_CEILING_CENTS. */
+    publishBudgetCentsMonth: number;
+    /** Fee reserved per publish until real fees are measured (open + judge + confirm). */
+    publishFeeEstimateCents: number;
     /** Seconds a Settle It Quick Verdict can still be taken on-chain. */
     ttlSec: number;
     /** Reviewed secret-rule list for the practice court. */
@@ -148,6 +155,15 @@ export function relayerKey(mode: VerdictMode, raw: string | undefined): `0x${str
   return v as `0x${string}`;
 }
 
+/** ADR-022: the operator sets the budget, but never above the hard ceiling. Refuse to start. */
+export function publishBudget(cents: number): number {
+  if (!Number.isInteger(cents) || cents < 0) throw new Error("PUBLISH_BUDGET_CENTS_MONTH must be a non-negative integer (cents)");
+  if (cents > PUBLISH_BUDGET_CEILING_CENTS) {
+    throw new Error(`PUBLISH_BUDGET_CENTS_MONTH=${cents} is above the hard ceiling of ${PUBLISH_BUDGET_CEILING_CENTS} cents a month (ADR-022); refusing to start`);
+  }
+  return cents;
+}
+
 export function loadConfig(): Config {
   const mode = parseMode(process.env.VERDICT_MODE?.trim());
   const digest = req("EXPECTED_CONTRACT_CODE_DIGEST").toLowerCase();
@@ -166,6 +182,7 @@ export function loadConfig(): Config {
     inboxPath: path.resolve(opt("VERDICT_INBOX_PATH", path.join(dataDir, "inbox.jsonl"))),
     statePath: path.resolve(opt("VERDICT_STATE_PATH", path.join(dataDir, "state.jsonl"))),
     creditsPath: path.resolve(opt("VERDICT_CREDITS_PATH", path.join(dataDir, "credits.jsonl"))),
+    feesPath: path.resolve(opt("VERDICT_FEES_PATH", path.join(dataDir, "fees.jsonl"))),
     draftTtlSec: Math.min(Math.max(60, int("VERDICT_DRAFT_TTL_SEC", 86400)), 7 * 86400),
     submissionTtlSec: Math.max(60, int("VERDICT_SUBMISSION_TTL_SEC", 900)),
     caseLifetimeSec: Math.min(Math.max(300, int("VERDICT_CASE_LIFETIME_SEC", 86400)), 30 * 86400),
@@ -190,6 +207,8 @@ export function loadConfig(): Config {
       dailyCap: int("QUICK_DAILY_CAP", 10),
       practiceDailyCap: int("PRACTICE_DAILY_CAP", 10),
       publishDailyCap: int("PUBLISH_DAILY_CAP", 3),
+      publishBudgetCentsMonth: publishBudget(int("PUBLISH_BUDGET_CENTS_MONTH", PUBLISH_BUDGET_DEFAULT_CENTS)),
+      publishFeeEstimateCents: Math.max(1, int("PUBLISH_FEE_ESTIMATE_CENTS", 90)),
       ttlSec: Math.min(Math.max(300, int("QUICK_TTL_SEC", 86400)), 7 * 86400),
       practiceRulesPath: path.resolve(opt("PRACTICE_RULES_PATH", path.resolve(process.cwd(), "config", "practice-rules.v1.json"))),
       storePath: path.resolve(opt("QUICK_STORE_PATH", path.join(dataDir, "quick.jsonl"))),

@@ -37,6 +37,7 @@ import { decideRuling, FLAG_CODES, isMoneyOffer, LEGIT_STANDING, RULING_COPY, ru
 import { validateVerdictPayload } from "./lib/verdict.js";
 import { patternLlmFrom, submitPattern, type PatternChainPort, type PatternConfig, type PatternOutcome } from "./lib/pattern.js";
 import type { Ruling } from "./lib/redflag.js";
+import { QUEUED_MESSAGE, type PublishBudget } from "./lib/publishBudget.js";
 
 /** Reads the digest needs (PatternLedgerClient implements it). */
 export interface PatternReader {
@@ -150,6 +151,8 @@ interface QuickCase {
   hidden: boolean;
   /** On-chain case id once published; null while it is still a private preview. */
   caseId: number | null;
+  /** Set while waiting in the publish queue (ADR-022); null otherwise. */
+  queuedAt?: string | null;
 }
 
 /** Older store rows (pre-publish) used `appealConsent`; consents given under the
@@ -184,6 +187,8 @@ export interface QuickCtx {
   judgeOpened: (id: number, onTier1Failed?: () => void) => Promise<Record<string, unknown>>;
   pattern?: PatternWiring;
   shadowLabel: string;
+  /** Global monthly publish budget + FIFO queue (ADR-022). */
+  publishBudget: PublishBudget;
 }
 
 const sha256 = (s: string) => createHash("sha256").update(s).digest("hex");
@@ -251,6 +256,91 @@ export function registerQuickRoutes(app: Express, ctx: QuickCtx): void {
 
   const awaiting = (q: QuickCase) => q.publishConsent.flatMap((c, i) => (c ? [] : [i]));
 
+  const budget = ctx.publishBudget;
+  const queuedBody = (q: QuickCase, position: number): Record<string, unknown> => ({
+    status: "queued", position, message: QUEUED_MESSAGE, published: false, cancel_path: `/quick/${q.id}/publish/cancel`,
+  });
+
+  /** Opens the published case on-chain and starts Tier 1. Budget already reserved by the caller. */
+  async function dispatch(q: QuickCase, acct: string): Promise<{ status: number; body: Record<string, unknown> }> {
+    let opened;
+    try {
+      opened = await ctx.openCase({
+        requestKey: randomBytes(16).toString("hex"),
+        rubric: q.rubric,
+        surface: "settle",
+        entries: q.entries.map((text) => ({ text, assurance: "self_asserted" as const })),
+        sideTokenHashes: q.sideTokenHashes, // the same side tokens work on the on-chain case
+        preview: { quickId: q.id, winnerIndex: q.verdict.winnerIndex },
+        noticeVersion: PUBLISH_NOTICE_VERSION, // the package records the publish notice (V-PUB-05)
+      });
+    } catch (e) {
+      publishCap.refund(acct); // nothing was opened
+      budget.release(); // and no fee was spent
+      throw e;
+    }
+    if (opened.status !== 201) {
+      publishCap.refund(acct); // nothing was published (refused, or a SHADOW test run)
+      budget.release();
+      return { status: opened.status, body: { ...opened.body, from_quick_verdict: q.id, published: false, price_cents: 0 } };
+    }
+    const id = opened.body.id as number;
+    q.caseId = id;
+    q.publishRequestedBy = null;
+    q.publishRequestedAt = null;
+    q.queuedAt = null;
+    save(q);
+    // No ruling (FINALIZED_ERROR, STALE, ...) restores the user's allowance: a technical refund (V-PUB-06).
+    // The budget keeps the reservation: those transactions still cost a fee.
+    const judged = await ctx.judgeOpened(id, () => publishCap.refund(acct));
+    return {
+      status: 202,
+      body: {
+        ...opened.body, published: true, tier: 1, appeals_used: 0, appeals_left: cfg.maxAppealsPerCase,
+        next_appeal: { tier: 2, jurors: 7, free_or_cents: cfg.appealPriceCents.tier2 }, judge: judged,
+        price_cents: 0, paid_with: "free publish (VERDICT pays)", from_quick_verdict: q.id,
+        preview_winner_index: q.verdict.winnerIndex,
+        note: "Published. The network re-hears the case; its ruling replaces the preview once finalized.",
+      },
+    };
+  }
+
+  /** Dispatch queued publishes, oldest first, while the month's budget covers them. */
+  let draining: Promise<void> | null = null;
+  function drain(): Promise<void> {
+    if (draining) return draining;
+    const run = (async () => {
+      await Promise.resolve(); // let `draining` be assigned before the loop can finish
+      try {
+        for (let e = budget.takeNext(); e; e = budget.takeNext()) {
+          const q = cases.get(e.quickId);
+          if (!q || q.caseId !== null || !q.publishConsent.every(Boolean) || clock().getTime() > Date.parse(q.expiresAt)) {
+            budget.release(); // stale entry: nothing to send
+            if (q) {
+              q.queuedAt = null;
+              save(q);
+            }
+            continue;
+          }
+          try {
+            await dispatch(q, e.account);
+          } catch (err) {
+            // Technical failure: back to the head of the line, try again later.
+            budget.requeueFront(e);
+            publishCap.take(e.account, clock()); // dispatch refunded it; it is still in line
+            console.error(`[publish] queued dispatch for ${q.id} failed:`, (err as Error).message);
+            break;
+          }
+        }
+      } finally {
+        draining = null;
+      }
+    })();
+    draining = run;
+    return run;
+  }
+  if (cfg.mode === "live") setInterval(() => void drain().catch(() => {}), 60_000).unref();
+
   /** Lapse a publish request the other side never agreed to (72 h). Returns true if it just lapsed. */
   function lapse(q: QuickCase): boolean {
     if (q.publishRequestedBy === null || q.publishRequestedBy === undefined || !q.publishRequestedAt) return false;
@@ -266,6 +356,8 @@ export function registerQuickRoutes(app: Express, ctx: QuickCtx): void {
   function publishStatus(q: QuickCase, side: number): Record<string, unknown> {
     lapse(q);
     if (q.caseId !== null) return { status: "published", case_id: q.caseId, appeal_path: `/cases/${q.caseId}/appeal` };
+    const pos = budget.position(q.id);
+    if (pos > 0) return queuedBody(q, pos);
     const left = awaiting(q);
     if (q.publishRequestExpiredFor === side) return { status: "expired", awaiting_sides: left, message: PUBLISH_REQUEST_EXPIRED };
     if (q.publishRequestedBy !== null && q.publishRequestedBy !== undefined) {
@@ -384,6 +476,7 @@ export function registerQuickRoutes(app: Express, ctx: QuickCtx): void {
     "/quick/:id/publish",
     wrap(async (req, res) => {
       const { q, side } = quickSide(req);
+      await drain();
       res.json(publishStatus(q, side));
     }),
   );
@@ -415,6 +508,11 @@ export function registerQuickRoutes(app: Express, ctx: QuickCtx): void {
       if (q.caseId !== null) throw new HttpError(409, "already submitted to the network; consent can no longer be withdrawn", { code: "already_published", case_id: q.caseId });
       q.publishConsent[side] = false;
       q.publishConsentRecords![side] = null;
+      const queued = budget.cancel(q.id); // both consents are needed to stay in line
+      if (queued) {
+        publishCap.refund(queued.account);
+        q.queuedAt = null;
+      }
       if (q.publishRequestedBy === side) {
         q.publishRequestedBy = null; // the requester cancels its own request
         q.publishRequestedAt = null;
@@ -429,7 +527,13 @@ export function registerQuickRoutes(app: Express, ctx: QuickCtx): void {
     "/quick/:id/publish",
     wrap(async (req, res) => {
       const { q, side } = quickSide(req);
+      await drain();
       notPublished(q);
+      const pos = budget.position(q.id);
+      if (pos > 0) {
+        res.status(202).json(queuedBody(q, pos));
+        return;
+      }
       if (clock().getTime() > Date.parse(q.expiresAt)) throw new HttpError(410, "this Quick Verdict has expired and can no longer be published");
       if (!q.consentNotice.every((n) => PUBLISH_DISCLOSING_NOTICES.has(n))) {
         throw new HttpError(409, "a side consented on a notice that did not disclose publication", { code: "notice_not_disclosing" });
@@ -465,40 +569,34 @@ export function registerQuickRoutes(app: Express, ctx: QuickCtx): void {
       const acct = accountKey(req);
       const left = publishCap.take(acct, clock());
       if (left < 0) throw new HttpError(429, `that's ${cfg.quick.publishDailyCap} free publishes today; publishing reopens at midnight Pacific`, { code: "publish_cap", resets_at: nextLaMidnight(clock()).toISOString() });
-      let opened;
-      try {
-        opened = await ctx.openCase({
-          requestKey: randomBytes(16).toString("hex"),
-          rubric: q.rubric,
-          surface: "settle",
-          entries: q.entries.map((text) => ({ text, assurance: "self_asserted" as const })),
-          sideTokenHashes: q.sideTokenHashes, // the same side tokens work on the on-chain case
-          preview: { quickId: q.id, winnerIndex: q.verdict.winnerIndex },
-          noticeVersion: PUBLISH_NOTICE_VERSION, // the package records the publish notice (V-PUB-05)
-        });
-      } catch (e) {
-        publishCap.refund(acct); // nothing was opened
-        throw e;
-      }
-      if (opened.status !== 201) {
-        publishCap.refund(acct); // nothing was published (refused, or a SHADOW test run)
-        res.status(opened.status).json({ ...opened.body, from_quick_verdict: q.id, published: false, price_cents: 0 });
+      // ADR-022: free publishes draw on one global monthly budget. When it is spent,
+      // the publish waits in a FIFO queue (never in SHADOW: a test run spends nothing).
+      if (cfg.mode === "live" && !budget.tryReserve()) {
+        q.queuedAt = clock().toISOString();
+        q.publishRequestedBy = null; // the 72 h consent expiry applies before the queue, not in it
+        q.publishRequestedAt = null;
+        save(q);
+        const position = budget.enqueue({ quickId: q.id, side, account: acct, queuedAt: q.queuedAt });
+        res.status(202).json({ ...queuedBody(q, position), publishes_left_today: left });
         return;
       }
-      const id = opened.body.id as number;
-      q.caseId = id;
-      q.publishRequestedBy = null;
-      q.publishRequestedAt = null;
+      const out = await dispatch(q, acct);
+      res.status(out.status).json(out.status === 202 ? { ...out.body, publishes_left_today: left } : out.body);
+    }),
+  );
+
+  // Either side cancels a queued publish (ADR-022 item 2). Nothing was sent.
+  app.post(
+    "/quick/:id/publish/cancel",
+    wrap(async (req, res) => {
+      const { q, side } = quickSide(req);
+      notPublished(q);
+      const e = budget.cancel(q.id);
+      if (!e) throw new HttpError(409, "this publish is not waiting in line", { code: "not_queued" });
+      publishCap.refund(e.account); // the requester gets the publish back
+      q.queuedAt = null;
       save(q);
-      // No ruling (FINALIZED_ERROR, STALE, ...) restores the allowance: a technical refund (V-PUB-06).
-      const judged = await ctx.judgeOpened(id, () => publishCap.refund(acct));
-      res.status(202).json({
-        ...opened.body, published: true, tier: 1, appeals_used: 0, appeals_left: cfg.maxAppealsPerCase,
-        next_appeal: { tier: 2, jurors: 7, free_or_cents: cfg.appealPriceCents.tier2 }, judge: judged,
-        price_cents: 0, paid_with: "free publish (VERDICT pays)", publishes_left_today: left, from_quick_verdict: q.id,
-        preview_winner_index: q.verdict.winnerIndex,
-        note: "Published. The network re-hears the case; its ruling replaces the preview once finalized.",
-      });
+      res.json({ status: "private", cancelled_by: side, published: false, note: "Taken out of line. Nothing was published." });
     }),
   );
 
