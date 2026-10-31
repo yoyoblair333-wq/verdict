@@ -54,3 +54,11 @@ export function digestEquals(a: string, b: string): boolean {
   for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
   return diff === 0;
 }
+
+/** Receipt display (ADR-024 item 7): "Receipt" plus the short packageDigest, first 4 and
+ * last 4 hex characters; the full digest stays available. `VR-` is retired. */
+export function receiptDisplay(digest: string): { label: "Receipt"; short: string; full: string; text: string } {
+  const hex = digest.replace(/^0x/i, "").toLowerCase();
+  const short = hex.length > 8 ? `${hex.slice(0, 4)}…${hex.slice(-4)}` : hex;
+  return { label: "Receipt", short, full: hex, text: `Receipt ${short}` };
+}

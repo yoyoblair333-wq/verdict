@@ -19,10 +19,14 @@
 // user key is only used for the in-memory daily counter.
 
 import { createHmac, randomBytes } from "node:crypto";
+import { existsSync, renameSync, writeFileSync } from "node:fs";
 import { createAccount, createClient } from "genlayer-js";
 import { localnet, studionet, testnetAsimov, testnetBradbury } from "genlayer-js/chains";
 import type { NetworkName, VerdictMode } from "../config.js";
 import { toPlain } from "./genlayer.js";
+import type { TxLike } from "./finality.js";
+import type { TransactionHash } from "genlayer-js/types";
+import { JsonlFile } from "./journal.js";
 import { extractJson } from "./jury.js";
 import { controlPatternHit, normalise } from "./moderation.js";
 import { DailyCounter } from "./rateLimit.js";
@@ -150,9 +154,12 @@ export interface PatternSubmitArgs {
   requestKey: string;
 }
 
-/** What the module needs from the chain: one write. */
+/** What the module needs from the chain: one write, plus (optional) the reads that
+ * track that write to finality and find the pattern it landed on (ADR-024 item 5). */
 export interface PatternChainPort {
   submitPattern(args: PatternSubmitArgs): Promise<string>;
+  getTransaction?(hash: string): Promise<TxLike | null>;
+  getByRequestKey?(requestKey: string): Promise<unknown>;
 }
 
 const CHAINS = { localnet, studionet, testnetAsimov, testnetBradbury } as const;
@@ -179,6 +186,10 @@ export class PatternLedgerClient implements PatternChainPort {
     });
     if (typeof hash !== "string" || !/^0x[0-9a-fA-F]+$/.test(hash)) throw new Error("writeContract returned no tx hash");
     return hash;
+  }
+
+  async getTransaction(hash: string): Promise<TxLike | null> {
+    return ((await this.client.getTransaction({ hash: hash as TransactionHash })) as unknown as TxLike | null) ?? null;
   }
 
   private async read(functionName: string, args: Array<string | number> = []): Promise<unknown> {
@@ -243,10 +254,29 @@ export const patternKeyOf = (category: string, codes: readonly string[]): string
  * instance; a restart forgets the window (a SHOULD in SPEC, documented in README). */
 export class SightingWindow {
   private readonly seen = new Map<string, number>();
+  private readonly file: JsonlFile | undefined;
+  /** `file` makes the window durable across restarts (ADR-024 item 5). On load, expired
+   * and forgotten keys are dropped and the file is rewritten with live keys only. */
   constructor(
     private readonly secret: string,
     private readonly windowMs: number = PATTERN_SIGHTING_WINDOW_MS,
-  ) {}
+    file?: string,
+    now: Date = new Date(),
+  ) {
+    if (!file) return;
+    this.file = new JsonlFile(file);
+    for (const r of this.file.readAll() as Array<{ k?: unknown; until?: unknown }>) {
+      if (typeof r.k !== "string" || typeof r.until !== "number") continue;
+      if (r.until <= 0) this.seen.delete(r.k);
+      else this.seen.set(r.k, r.until);
+    }
+    this.prune(now.getTime());
+    if (existsSync(file)) {
+      const tmp = `${file}.tmp`;
+      writeFileSync(tmp, [...this.seen].map(([k, until]) => JSON.stringify({ k, until }) + "\n").join(""), { mode: 0o600 });
+      renameSync(tmp, file);
+    }
+  }
 
   private key(user: string, pattern: string): string {
     return createHmac("sha256", this.secret).update(`sighting|${user}|${pattern}`).digest("hex");
@@ -263,7 +293,17 @@ export class SightingWindow {
   }
 
   record(user: string, pattern: string, now: Date): void {
-    this.seen.set(this.key(user, pattern), now.getTime() + this.windowMs);
+    const k = this.key(user, pattern);
+    const until = now.getTime() + this.windowMs;
+    this.seen.set(k, until);
+    this.file?.append({ k, until });
+  }
+
+  /** Drop a sighting that never counted (the ledger transaction never reached a verdict). */
+  forget(user: string, pattern: string): void {
+    const k = this.key(user, pattern);
+    if (!this.seen.delete(k)) return;
+    this.file?.append({ k, until: 0 });
   }
 
   /** Number of live keys (tests: keys are deleted after the window). */
@@ -316,7 +356,7 @@ export type PatternOutcome =
   | { status: "summary_failed"; reason: string }
   | { status: "rejected_locally"; reason: Exclude<ScreenReason, ""> | "too_long" | "empty" | "injection" | "duplicate_user" }
   | { status: "shadow"; request: PatternSubmitArgs }
-  | { status: "submitted"; request: PatternSubmitArgs; tx: string }
+  | { status: "submitted"; request: PatternSubmitArgs; tx: string; patternKey: string }
   | { status: "submit_failed"; request: PatternSubmitArgs; error: string };
 
 export const newPatternRequestKey = (): string => randomBytes(16).toString("hex");
@@ -380,7 +420,7 @@ export async function submitPattern(ctx: PatternCtx, rulingResult: PatternRuling
   try {
     const tx = await ctx.chain.submitPattern(request);
     window?.w.record(window.user, pkey, now);
-    return done({ status: "submitted", request, tx }, { category: request.category, tx });
+    return done({ status: "submitted", request, tx, patternKey: pkey }, { category: request.category });
   } catch (e) {
     return done({ status: "submit_failed", request, error: (e as Error).message });
   }

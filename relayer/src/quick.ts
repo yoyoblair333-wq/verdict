@@ -29,6 +29,8 @@
 
 import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import type { Express, Request, Response } from "express";
+import path from "node:path";
+import { pollFinality } from "./lib/finality.js";
 import type { Config } from "./config.js";
 import { HttpError, wrap } from "./lib/http.js";
 import { JsonlFile } from "./lib/journal.js";
@@ -209,6 +211,8 @@ export interface QuickCtx {
   shadowLabel: string;
   /** Global monthly publish budget + FIFO queue (ADR-022). */
   publishBudget: PublishBudget;
+  /** Runs a background task that app.idle() waits for (ledger finality tracking). */
+  bg?: (p: Promise<unknown>) => void;
 }
 
 const sha256 = (s: string) => createHash("sha256").update(s).digest("hex");
@@ -307,7 +311,44 @@ export function registerQuickRoutes(app: Express, ctx: QuickCtx): void {
   // is remembered until expiry so a ticket can be used once.
   const ticketKey = createHmac("sha256", cfg.quick.accountKeySecret).update("verdict-ruling-ticket-v1").digest();
   const usedTickets = new Map<string, number>();
-  const sightings = new SightingWindow(createHmac("sha256", cfg.quick.accountKeySecret).update("verdict-sighting-v1").digest("hex"));
+  // V-PL-14 window, durable next to the Quick Verdict store (HMAC keys only, pruned on load).
+  const dataDir = path.dirname(cfg.quick.storePath);
+  const sightings = new SightingWindow(createHmac("sha256", cfg.quick.accountKeySecret).update("verdict-sighting-v1").digest("hex"), undefined, path.join(dataDir, "pattern-sightings.jsonl"), clock());
+
+  // Pattern ledger receipts (ADR-024 item 5): each submission is tracked to finality and
+  // journaled as {request_key, tx, finality, pattern_id}. No user, no text, no IP.
+  type PatternReceipt = { request_key: string; tx: string; finality: string; pattern_id: number | null; at: string };
+  const receiptsFile = new JsonlFile(path.join(dataDir, "pattern-receipts.jsonl"));
+  const patternReceipts = new Map<string, PatternReceipt>();
+  for (const r of receiptsFile.readAll() as PatternReceipt[]) patternReceipts.set(r.request_key, r);
+  const putReceipt = (r: PatternReceipt) => {
+    patternReceipts.set(r.request_key, r);
+    receiptsFile.append(r);
+  };
+
+  /** Follow one ledger write to a verdict. FINALIZED_SUCCESS: find its pattern id (the
+   * Proof tab's receipt). FINALIZED_ERROR (validators rejected it): counts, as ADR-020
+   * item 11 says. No verdict (STALE, no consensus): the allowance and the sighting are
+   * given back. The ADR's one retry with a fresh summary is not built: the text is not
+   * kept after the request (ADR-021 item 8), so the user can simply warn again. */
+  async function trackPattern(chain: PatternChainPort, requestKey: string, tx: string, undo: () => void): Promise<void> {
+    if (!chain.getTransaction) return;
+    const cls = await pollFinality(() => chain.getTransaction!(tx), { until: "FINAL", timeoutMs: cfg.finalityTimeoutMs, intervalMs: cfg.pollIntervalMs });
+    let patternId: number | null = null;
+    if (cls.finality === "FINALIZED_SUCCESS" && chain.getByRequestKey) {
+      try {
+        const ref = (await chain.getByRequestKey(requestKey)) as { pattern_id?: unknown } | null;
+        const id = Number(ref?.pattern_id);
+        if (Number.isInteger(id) && id > 0) patternId = id;
+      } catch (e) {
+        console.error("[pattern] pattern id lookup failed:", (e as Error).message);
+      }
+    }
+    // No verdict: STALE, or a terminal state without consensus (UNDETERMINED, timeouts).
+    const noVerdict = cls.finality === "STALE" || (cls.finality === "FINALIZED_ERROR" && cls.chainStatus !== "FINALIZED");
+    if (noVerdict) undo();
+    putReceipt({ request_key: requestKey, tx, finality: cls.finality, pattern_id: patternId, at: clock().toISOString() });
+  }
 
   function issueTicket(ruling: Ruling, flags: string[], text: string): string {
     const payload = Buffer.from(JSON.stringify({ v: 1, n: randomBytes(12).toString("hex"), r: ruling, f: [...flags], h: sha256(text), exp: clock().getTime() + RULING_TICKET_TTL_MS })).toString("hex");
@@ -876,6 +917,17 @@ export function registerQuickRoutes(app: Express, ctx: QuickCtx): void {
       );
       // Our own technical failures give the ticket back, so the user can try again.
       if (out.status === "summary_failed" || out.status === "submit_failed") unredeem();
+      if (out.status === "submitted" && pw.chain) {
+        const userKey = accountKey(req);
+        const sUser = stableKey(req);
+        putReceipt({ request_key: out.request.requestKey, tx: out.tx, finality: "PENDING", pattern_id: null, at: clock().toISOString() });
+        const task = trackPattern(pw.chain, out.request.requestKey, out.tx, () => {
+          pw.limiter.refund(userKey);
+          sightings.forget(sUser, out.patternKey);
+        });
+        if (ctx.bg) ctx.bg(task);
+        else void task.catch((e) => console.error("[pattern] tracking failed:", (e as Error).message));
+      }
       const status = PATTERN_HTTP[out.status];
       switch (out.status) {
         case "skipped":
@@ -898,7 +950,7 @@ export function registerQuickRoutes(app: Express, ctx: QuickCtx): void {
           res.status(status).json({ status: out.status, mode: "shadow", label: ctx.shadowLabel, would_submit: { category: out.request.category, flag_codes: out.request.flagCodes, summary: out.request.summary } });
           return;
         case "submitted":
-          res.status(status).json({ status: out.status, category: out.request.category, flag_codes: out.request.flagCodes, summary: out.request.summary, request_key: out.request.requestKey, tx: out.tx, note: "Thanks. The network checks the pattern before it's recorded." });
+          res.status(status).json({ status: out.status, category: out.request.category, flag_codes: out.request.flagCodes, summary: out.request.summary, request_key: out.request.requestKey, tx: out.tx, finality: "PENDING", receipt_path: `/redflag/receipts/${out.request.requestKey}`, note: "Thanks. The network checks the pattern before it's recorded." });
           return;
         case "submit_failed":
           res.status(status).json({ status: out.status, error: "the pattern couldn't be sent to the network; nothing was recorded" });
@@ -906,6 +958,34 @@ export function registerQuickRoutes(app: Express, ctx: QuickCtx): void {
       }
     }),
   );
+
+  /** Finalized ledger transactions that landed on pattern `id` (the Proof tab's receipts). */
+  function proofTxs(id: number): string[] {
+    if (!Number.isInteger(id) || id <= 0) return [];
+    return [...patternReceipts.values()].filter((r) => r.pattern_id === id && r.finality === "FINALIZED_SUCCESS").map((r) => r.tx);
+  }
+
+  // Proof tab: the transaction hash(es) per pattern. Only FINALIZED_SUCCESS writes count.
+  app.get("/redflag/proof/:patternId", (req, res) => {
+    const id = Number(req.params.patternId);
+    if (!Number.isInteger(id) || id <= 0) {
+      res.status(400).json({ error: "pattern id must be a positive integer" });
+      return;
+    }
+    const live = ctx.pattern?.cfg.mode === "live";
+    const txs = live ? proofTxs(id) : [];
+    res.json({ pattern_id: id, mode: ctx.pattern?.cfg.mode ?? "shadow", txs, proof_line: txs.length ? "Recorded on GenLayer" : null });
+  });
+
+  // One submission's status, by the random request key the warn response returned.
+  app.get("/redflag/receipts/:requestKey", (req, res) => {
+    const r = patternReceipts.get(String(req.params.requestKey));
+    if (!r) {
+      res.status(404).json({ error: "no such pattern submission" });
+      return;
+    }
+    res.json({ request_key: r.request_key, tx: r.tx, finality: r.finality, pattern_id: r.pattern_id, recorded: r.finality === "FINALIZED_SUCCESS" && r.pattern_id !== null });
+  });
 
   // Weekly "Scams going around" digest, read from the ledger (Design §2 views).
   app.get(
@@ -925,8 +1005,14 @@ export function registerQuickRoutes(app: Express, ctx: QuickCtx): void {
       // "Recorded on GenLayer" only in live mode, on a ledger read that succeeded (ADR-020
       // items 9 and 13; AUDIT-2 P2-2). SHADOW says it is a test run instead.
       const live = ctx.pattern!.cfg.mode === "live";
+      const list = (Array.isArray(patterns) ? patterns : []).map((p) => {
+        if (!live || typeof p !== "object" || p === null) return p;
+        const id = Number((p as { id?: unknown }).id);
+        const txs = proofTxs(id);
+        return txs.length ? { ...(p as object), proof: { label: "Recorded on GenLayer", txs } } : p;
+      });
       res.json({
-        title: "Scams going around", since, days, mode: ctx.pattern!.cfg.mode, patterns: Array.isArray(patterns) ? patterns : [],
+        title: "Scams going around", since, days, mode: ctx.pattern!.cfg.mode, patterns: list,
         proof_line: live ? "Recorded on GenLayer" : null,
         ...(live ? {} : { label: ctx.shadowLabel }),
       });

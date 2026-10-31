@@ -9,6 +9,7 @@ import * as C from "./config.js";
 import { buildPackage, localCheck, preflight, randomRequestKey, sha256Hex } from "./lib/package.js";
 import { classifyTx, revertReason, voteSummary } from "./lib/finality.js";
 import { hideDecision } from "./lib/display.js";
+import { groupCases, idsToFetch, isRelayerCase, provenanceLabel, receiptDisplay, RELAYER_CHIP, tierStatus, VISITOR_CHIP } from "./lib/gallery.js";
 
 const NUM_TO_NAME = transactionsStatusNumberToName;
 const TIER_NAME = { 1: "Verdict", 2: "Appeals Court", 3: "Supreme Court" };
@@ -82,21 +83,6 @@ function rubricLabel(c) {
   return hit ? hit[1] : "Custom rubric";
 }
 
-function provenanceLabel(prov) {
-  if (!Array.isArray(prov) || prov.length === 0) return "Provenance not recorded; authorship not verified.";
-  const one = (p) => {
-    const src = p.entry_source ?? p.entrySource;
-    if (src === "participant_submitted" && p.assurance === "verified_participant") return "submitted by the participant holding that side's link (checked by the VERDICT relayer)";
-    if (src === "participant_submitted") return "submitted through Settle It; authorship not verified";
-    if (src === "host_submitted") return "relayed by the stream host; authorship not verified";
-    if (src === "api_client_submitted") return "submitted by an API client; authorship not verified";
-    return "source unknown; not verified";
-  };
-  const labels = prov.map(one);
-  const body = labels.every((l) => l === labels[0]) ? `All takes ${labels[0]}` : labels.map((l, i) => `Entry ${letter(i)}: ${l}`).join(". ");
-  return `${body}. The receipt number proves which takes were judged, not that the verdict is correct.`;
-}
-
 // ------------------------------------------------------------ app state
 
 const state = {
@@ -105,7 +91,9 @@ const state = {
   source: null, // {kind: "live"|"snapshot", at}
   evidence: {}, // caseId -> [{fn, hash}]
   hidden: [], // [{id, reason}]: operator list (src/hidden-cases.json) + recorded takedowns
+  pinned: [], // evidence case ids (evidence.json): always fetched by id and listed first
   cases: [],
+  nextBefore: 1, // "Load older" cursor: ids below this are not fetched yet
 };
 
 const myCases = () => store(C.MY_CASES_KEY) ?? [];
@@ -135,6 +123,7 @@ async function loadEvidence() {
       if (j.contract?.toLowerCase() === C.CONTRACT_ADDRESS.toLowerCase()) {
         state.evidence = j.cases ?? {};
         state.hidden = Array.isArray(j.hidden) ? j.hidden : [];
+        state.pinned = Array.isArray(j.pinned) ? j.pinned : Object.keys(state.evidence).map(Number);
       }
     }
   } catch {
@@ -152,12 +141,27 @@ async function checkPin() {
   }
 }
 
+/** Evidence cases by id first, then the newest page by id (never list_recent's
+ * 50-newest window, which spam could fill: AUDIT-2 P1-7, ADR-023 item 5). */
 async function loadLive() {
   const config = await view("get_config");
-  const recent = await view("list_recent", [50, ""]);
+  const { pinned, page, nextBefore } = idsToFetch(config.next_id, state.pinned, undefined, C.PAGE_SIZE);
   const cases = [];
-  for (const row of recent) cases.push(await view("get_case", [row.id]));
-  return { config, cases };
+  for (const id of [...pinned, ...page]) cases.push(await view("get_case", [id]));
+  return { config, cases, nextBefore };
+}
+
+async function loadOlder() {
+  const btn = $("older");
+  if (btn) btn.disabled = true;
+  try {
+    const { page, nextBefore } = idsToFetch(state.config?.next_id, state.pinned, state.nextBefore, C.PAGE_SIZE);
+    for (const id of page) state.cases.push(await view("get_case", [id]));
+    state.nextBefore = nextBefore;
+  } catch (e) {
+    console.warn("older page failed", e);
+  }
+  renderCases();
 }
 
 async function loadSnapshot() {
@@ -177,6 +181,7 @@ async function refresh() {
     const [live, pin] = await Promise.all([loadLive(), checkPin()]);
     state.config = live.config;
     state.cases = live.cases;
+    state.nextBefore = live.nextBefore;
     state.pin = pin;
     state.source = { kind: "live", at: new Date().toISOString() };
   } catch (e) {
@@ -185,6 +190,7 @@ async function refresh() {
       const snap = await loadSnapshot();
       state.config = snap.config;
       state.cases = snap.cases;
+      state.nextBefore = 1; // a snapshot has no older pages
       state.pin = snap.pin ?? null;
       state.source = { kind: "snapshot", at: snap.snapshotAt, error: e.message };
     } catch (e2) {
@@ -238,10 +244,12 @@ function renderFacts() {
   add("Source", state.source.kind === "live" ? `Live RPC, ${C.RPC_URL}` : `Build-time snapshot (${fmtTime(state.source.at)}). Live RPC failed: ${state.source.error}`);
 }
 
-function statusChips(c) {
-  const chips = [h("span", { class: `chip ${c.status === "final" ? "final" : ""}` }, c.status)];
+function statusChips(c, relayerCase) {
+  const chips = [h("span", { class: `chip ${relayerCase ? "relayer" : "visitor"}`, "data-origin": relayerCase ? "relayer" : "visitor" }, relayerCase ? RELAYER_CHIP : VISITOR_CHIP)];
+  chips.push(h("span", { class: `chip ${c.status === "final" ? "final" : ""}`, title: "On-chain status (get_case)" }, c.status));
   chips.push(h("span", { class: "chip" }, `${TIER_NAME[c.tier] ?? `Tier ${c.tier}`} · ${c.jurors}`));
-  if (c.confirmed_tier > 0) chips.push(h("span", { class: "chip", title: "confirm_verdict: the creator saw this tier's jury transaction reach FINALIZED + SUCCESS" }, `Tier ${c.confirmed_tier} finalized`));
+  const ts = tierStatus(c, relayerCase);
+  if (ts) chips.push(h("span", { class: "chip tierstatus", title: ts.title }, ts.text));
   return chips;
 }
 
@@ -280,10 +288,18 @@ async function checkTx(hash, st) {
   }
 }
 
+/** "Receipt 1a2b…9f0e" with the full packageDigest one tap away (ADR-024 item 7). */
+function receiptEl(digest) {
+  const r = receiptDisplay(digest);
+  if (!r) return h("span", {}, "Receipt ", h("code", {}, "(legacy case, no package)"));
+  return h("details", { class: "receipt" }, h("summary", {}, r.label, " ", h("code", {}, r.short)), h("code", { class: "full" }, r.full));
+}
+
 // Every chain string below goes through h(), which appends text nodes and
 // uses setAttribute: nothing from the chain is ever parsed as HTML.
 function caseCard(c) {
   const hide = hideDecision(c, state.hidden);
+  const relayerCase = isRelayerCase(c, C.RELAYER_ADDRESS);
   const n = c.entries?.length ?? 0;
   const judged = c.winner_index >= 0;
   const body = h("div", { class: "casebody" });
@@ -342,9 +358,9 @@ function caseCard(c) {
 
   body.append(
     h("div", { class: "meta" },
-      h("span", {}, "Receipt number ", h("code", {}, c.package_digest || "(legacy case, no package)")),
-      h("span", {}, "Creator ", h("code", {}, c.creator)),
-      h("span", {}, provenanceLabel(c.provenance)),
+      receiptEl(c.package_digest),
+      h("span", {}, relayerCase ? "Creator (the VERDICT relayer) " : "Creator (visitor's testnet account) ", h("code", {}, c.creator)),
+      h("span", { class: "prov" }, provenanceLabel(c.provenance, relayerCase)),
     ),
   );
 
@@ -363,8 +379,8 @@ function caseCard(c) {
   }
   body.append(det);
 
-  const card = h("article", { class: "case", "data-case-id": c.id },
-    h("div", { class: "casehead" }, h("span", { class: "no" }, `Case #${c.id}`), h("span", { class: "chips" }, hide ? h("span", { class: "chip" }, "hidden") : null, statusChips(c))),
+  const card = h("article", { class: `case ${relayerCase ? "" : "visitorcase"}`, "data-case-id": c.id, "data-origin": relayerCase ? "relayer" : "visitor" },
+    h("div", { class: "casehead" }, h("span", { class: "no" }, `Case #${c.id}`), h("span", { class: "chips" }, hide ? h("span", { class: "chip" }, "hidden") : null, statusChips(c, relayerCase))),
     body,
   );
   return card;
@@ -381,8 +397,28 @@ function renderCases() {
     box.append(h("p", { class: "empty" }, "No cases on this contract yet."));
     return;
   }
-  for (const c of state.cases) {
-    box.append(caseCard(c));
+  const g = groupCases(state.cases, state.pinned, C.RELAYER_ADDRESS);
+  if (g.evidence.length) {
+    box.append(h("h3", { class: "group", id: "evidence-h" }, "Evidence cases (pinned)"),
+      h("p", { class: "meta" }, "The recorded runs in docs/LIVE_EVIDENCE.md, fetched by id so newer cases can never push them off this page."));
+    const ev = h("div", { class: "group", "data-group": "evidence" });
+    g.evidence.forEach((c) => ev.append(caseCard(c)));
+    box.append(ev);
+  }
+  if (g.relayer.length) {
+    box.append(h("h3", { class: "group" }, "Opened by the VERDICT relayer"));
+    const rl = h("div", { class: "group", "data-group": "relayer" });
+    g.relayer.forEach((c) => rl.append(caseCard(c)));
+    box.append(rl);
+  }
+  const vis = h("details", { class: "visitors", id: "visitors", "data-group": "visitor" },
+    h("summary", {}, `Visitor cases (${g.visitor.length}) · not moderated by VERDICT`),
+    h("p", { class: "meta" }, "Anyone can open a case on this contract with their own testnet account. Their consent, 18+, moderation and provenance labels are their own claims; VERDICT checked none of them. Text that trips the display filter is hidden, but the filter is not moderation."),
+  );
+  g.visitor.forEach((c) => vis.append(caseCard(c)));
+  box.append(vis);
+  if (state.source?.kind === "live" && state.nextBefore > 1) {
+    box.append(h("button", { class: "btn2 small", id: "older", type: "button", onclick: () => loadOlder() }, "Load older cases"));
   }
 }
 
@@ -608,7 +644,7 @@ async function onSubmit(ev) {
     });
     const pf = await preflight(built, C.CONTRACT_ADDRESS, new Date());
     if (pf) throw new Error(pf);
-    log("Case package built. Receipt number:", h("code", {}, built.digest));
+    log("Case package built.", receiptEl(built.digest));
     current = { requestKey, digest: built.digest, caseId: 0, txs: [], tier: 1 };
 
     railNote("Signing open_case_package with your burner…");

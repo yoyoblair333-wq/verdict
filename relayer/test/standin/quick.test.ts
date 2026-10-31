@@ -236,6 +236,10 @@ test("publish: the network's Tier 1 ruling replaces the preview; a changed winne
     assert.equal(c.json.card.overruled_line, "The network overruled the preview.");
     assert.equal(c.json.card.footer, "Checked by GenLayer · Finalized");
     assert.equal(c.json.card.receipt_number, r.json.package_digest);
+    // ADR-024 item 7: "Receipt" + first 4 and last 4 hex of the packageDigest; full value alongside; never VR-
+    const d = String(r.json.package_digest).replace(/^0x/, "");
+    assert.deepEqual(c.json.card.receipt, { label: "Receipt", short: `${d.slice(0, 4)}…${d.slice(-4)}`, full: d, text: `Receipt ${d.slice(0, 4)}…${d.slice(-4)}` });
+    assert.ok(!JSON.stringify(c.json).includes("VR-"));
     assert.equal(c.json.card.published_from_quick, q.id);
   });
   await withH({}, { judgeProvider: contest([1, 1, 1, 1, 1]) }, async (h) => {
@@ -277,6 +281,11 @@ test("publish: after publishing, the normal ladder: losing side only, Tier 2 fre
     await h.app.idle();
     const c2 = await h.get(`/cases/${id}`);
     assert.equal(c2.json.case.tier, 2);
+    // V-PUB-09 / ADR-024 item 2: the overrule line is Tier 1 only; the flag may stay on the record
+    assert.equal(c.json.card.overruled_line, "The network overruled the preview.", "Tier 1 card shows it");
+    assert.equal(c2.json.card.overruled_preview, true);
+    assert.equal(c2.json.card.overruled_line, undefined, "Tier 2 card never shows the line");
+    assert.ok(!JSON.stringify(c2.json.card).includes("overruled the preview"));
     assert.equal(c2.json.case.jurors, 7);
     const loser2 = tokFor(1 - c2.json.case.winner_index);
     h.credits.grant(payer, 199);
@@ -289,6 +298,8 @@ test("publish: after publishing, the normal ladder: losing side only, Tier 2 fre
     const c3 = await h.get(`/cases/${id}`);
     assert.equal(c3.json.case.tier, 3, "a published case can reach the Supreme Court");
     assert.equal(c3.json.card.overruled_preview, true, "the overrule flag describes the publish moment and stays");
+    assert.equal(c3.json.card.overruled_line, undefined, "Tier 3 card never shows the line (V-PUB-09)");
+    assert.ok(!JSON.stringify(c3.json.card).includes("overruled the preview"));
     const a4 = await h.post(`/cases/${id}/appeal`, {}, side(tokFor(1 - c3.json.case.winner_index)));
     assert.ok(a4.status === 409 || a4.status === 429, `max 2 appeals (${a4.status})`);
   });

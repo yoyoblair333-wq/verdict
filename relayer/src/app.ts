@@ -16,7 +16,7 @@ import type { PracticeConfig } from "./lib/practice.js";
 import { registerQuickRoutes, type PatternReader } from "./quick.js";
 import { PatternLedgerClient, patternConfigFromEnv, type PatternChainPort, type PatternConfig } from "./lib/pattern.js";
 import type { Config } from "./config.js";
-import { digestEquals } from "./lib/canonical.js";
+import { digestEquals, receiptDisplay } from "./lib/canonical.js";
 import { FileCredits, type CreditStore } from "./lib/credits.js";
 import type { CaseOutcome, Classification } from "./lib/finality.js";
 import type { CaseView, ChainPort } from "./lib/genlayer.js";
@@ -376,6 +376,7 @@ export function buildApp(deps: Deps): VerdictApp {
       ...publishedFields(r, meta.get(r.caseId)),
       ...(r.finality === "FINALIZED_SUCCESS" && r.verdict ? { footer: FINALIZED_LINE } : {}),
       receipt_number: r.packageDigest,
+      receipt: receiptDisplay(r.packageDigest), // "Receipt 1a2b…9f0e"; full value alongside (ADR-024 item 7)
       case_id: r.caseId,
       tier: r.tier,
       status: r.caseStatus,
@@ -1037,6 +1038,7 @@ export function buildApp(deps: Deps): VerdictApp {
   // Quick Verdict (off-chain): Settle It quick + publish, Red Flag Court (+ pattern ledger), practice court.
   registerQuickRoutes(app, {
     shadowLabel: SHADOW_LABEL,
+    bg,
     publishBudget,
     pattern: {
       cfg: pcfg,

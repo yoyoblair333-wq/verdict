@@ -160,3 +160,18 @@ footer{margin:44px 0 28px;padding-top:14px;border-top:1px solid var(--line);font
 }
 .hiddennote{border-left:4px solid var(--fg);padding:6px 10px;margin:0 0 12px;font-size:14px;overflow-wrap:anywhere}
 .tx.muted{color:var(--muted);font-style:italic}
+
+/* Trust labels (ADR-023, AUDIT-2 P1-7) */
+.chip.visitor{border-style:dashed}
+.chip.relayer{font-weight:800}
+.case.visitorcase{border-style:dashed}
+h3.group{font-size:18px;margin:22px 0 4px}
+details.visitors{margin-top:22px;border-top:2px dashed currentColor;padding-top:10px}
+details.visitors>summary{cursor:pointer;font-weight:800;font-size:18px;padding:6px 0}
+details.receipt{display:inline}
+details.receipt>summary{cursor:pointer;display:inline}
+details.receipt code.full{display:block;overflow-wrap:anywhere;margin-top:4px}
+#older{margin-top:16px}
+.cases>*{min-width:0}
+div.group{display:grid;gap:16px;min-width:0}
+details.visitors>.case{margin-top:16px}

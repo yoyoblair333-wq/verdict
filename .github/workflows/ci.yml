@@ -32,7 +32,9 @@ jobs:
           # (relayer/scripts/run-tests.mjs) also works on Node 20.
           node-version: "22"
           cache: npm
-          cache-dependency-path: relayer/package-lock.json
+          cache-dependency-path: |
+            relayer/package-lock.json
+            web/package-lock.json
       - name: Cache GenVM SDK release (downloaded by genlayer-test direct mode)
         uses: actions/cache@v4
         with:
@@ -43,5 +45,9 @@ jobs:
         with:
           path: ~/.cache/genvm-linter
           key: genvm-linter-${{ env.GENVM_VERSION }}
+      - name: Playwright Chromium + its OS libraries (web offline tests)
+        # verify.sh installs the browser itself; this step adds the system
+        # libraries Chromium needs on a bare runner (apt, needs sudo).
+        run: cd web && npm ci --no-audit --no-fund && npx --no-install playwright install --with-deps chromium
       - name: Verify (same script as a fresh clone)
         run: bash scripts/verify.sh

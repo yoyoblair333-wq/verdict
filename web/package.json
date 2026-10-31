@@ -4,16 +4,21 @@
   "private": true,
   "description": "VERDICT live web app: reads (and, with a per-browser testnet burner, writes) the deployed JudgeRouter on GenLayer studionet.",
   "type": "module",
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "build": "node scripts/build.mjs",
     "snapshot": "node scripts/snapshot.mjs",
-    "test": "node test/live.test.cjs"
+    "browser:install": "playwright install chromium",
+    "test": "node --test --test-concurrency=1 test/offline.test.mjs",
+    "test:live": "node test/live.test.cjs"
   },
   "dependencies": {
     "genlayer-js": "1.1.8"
   },
   "devDependencies": {
-    "esbuild": "0.25.11"
+    "esbuild": "0.25.11",
+    "playwright": "1.63.0"
   }
 }

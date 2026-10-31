@@ -6,6 +6,15 @@ export const RPC_URL = "https://studio.genlayer.com/api";
 export const CONTRACT_ADDRESS = "0x3f867934247d88Aa3134d897a9246cfB1324B1Fa";
 /** sha256 of contracts/judge_router.py as deployed (gen_getContractCode). */
 export const CONTRACT_CODE_DIGEST = "7c18143cf8f5224d6f8cdccebcdcc70b3b584f0b9247bf55c8439d2fac10ca1b";
+/**
+ * The VERDICT relayer's address on this deployment (get_config().relayer, also
+ * the owner and the evidence deployer; docs/LIVE_EVIDENCE.md). Only a case whose
+ * creator is this address gets relayer-verified labels (ADR-023, AUDIT-2 P1-7).
+ * Every other case is a visitor case: its labels are the opener's own claims.
+ */
+export const RELAYER_ADDRESS = "0x34653Fb290480a8C99B4D92D4857123B5624c37d";
+/** Cases per "Load older" page, fetched by id (not list_recent's 50-newest window). */
+export const PAGE_SIZE = 20;
 export const DEPLOY_TX = "0xf9606205fa12c2126b1499c814054ed5b9dba9077dad55968a3b1812344a8622";
 /**
  * Explorer for studionet as published in genlayer-js 1.1.8

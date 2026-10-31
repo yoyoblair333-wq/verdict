@@ -250,3 +250,75 @@ test("digest (AUDIT-2 P2-2): 'Recorded on GenLayer' only in live mode on a ledge
     assert.ok(!JSON.stringify(r.json).includes("Recorded on GenLayer"));
   });
 });
+
+class TrackedLedger extends Ledger {
+  /** One status script per submitted tx, consumed in order. */
+  scripts: Array<{ statusName: string; txExecutionResultName?: string } | null> = [];
+  private byHash = new Map<string, { statusName: string; txExecutionResultName?: string } | null>();
+  private n = 0;
+  readonly ids = new Map<string, number>();
+  override async submitPattern(a: PatternSubmitArgs): Promise<string> {
+    await super.submitPattern(a);
+    const hash = "0x" + (++this.n).toString(16).padStart(64, "0");
+    this.byHash.set(hash, this.scripts.shift() ?? { statusName: "FINALIZED", txExecutionResultName: "FINISHED_WITH_RETURN" });
+    this.ids.set(a.requestKey, 7);
+    return hash;
+  }
+  async getTransaction(hash: string) {
+    return this.byHash.get(hash) ?? null;
+  }
+  async getByRequestKey(rk: string) {
+    return { pattern_id: this.ids.get(rk) ?? 0, outcome: "new" };
+  }
+}
+
+test("ledger (ADR-024 item 5): each submission is tracked to finality; the Proof tab gets the tx hash per pattern; the digest shows it in LIVE only", async () => {
+  const ledger = new TrackedLedger();
+  const reader = { async topPatternsSince() { return [{ id: 7, category: "delivery", summary: SUMMARY, sightings: 1 }, { id: 8, category: "job", summary: SUMMARY, sightings: 1 }]; } };
+  let cat = "delivery";
+  await withH({ judgeProvider: llm(() => JSON.stringify({ category: cat, summary: SUMMARY })), patternChain: ledger, patternReader: reader, patternConfig: { mode: "live", address: `0x${"8a".repeat(20)}`, dailyCap: 2 } }, async (h) => {
+    const w = await h.post("/redflag/warn", await warnBody(h), KEY);
+    assert.equal(w.status, 202, JSON.stringify(w.json));
+    assert.equal(w.json.finality, "PENDING", "submitted is not recorded");
+    await h.app.idle();
+    const rc = await h.get(w.json.receipt_path);
+    assert.equal(rc.json.finality, "FINALIZED_SUCCESS");
+    assert.equal(rc.json.pattern_id, 7);
+    assert.equal(rc.json.recorded, true);
+    const proof = await h.get("/redflag/proof/7");
+    assert.deepEqual(proof.json.txs, [w.json.tx]);
+    assert.equal(proof.json.proof_line, "Recorded on GenLayer");
+    assert.deepEqual((await h.get("/redflag/proof/8")).json.txs, [], "no finalized write, no receipt");
+    const d = await h.get("/redflag/digest");
+    assert.deepEqual(d.json.patterns[0].proof, { label: "Recorded on GenLayer", txs: [w.json.tx] });
+    assert.equal(d.json.patterns[1].proof, undefined);
+    // a no-consensus result gives back the allowance and the sighting (ADR-020 item 11)
+    ledger.scripts.push({ statusName: "UNDETERMINED" });
+    cat = "job";
+    const nc = await h.post("/redflag/warn", await warnBody(h), KEY);
+    assert.equal(nc.status, 202);
+    await h.app.idle();
+    assert.equal((await h.get(nc.json.receipt_path)).json.finality, "FINALIZED_ERROR");
+    assert.equal((await h.get(nc.json.receipt_path)).json.recorded, false);
+    const again = await h.post("/redflag/warn", await warnBody(h), KEY);
+    assert.equal(again.status, 202, `cap of 2 and the same pattern: both were given back (${JSON.stringify(again.json)})`);
+    await h.app.idle();
+  });
+});
+
+test("V-PL-14: the sighting window is durable (survives a restart) and holds only HMAC keys", async () => {
+  const { mkdtempSync, readFileSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const path = await import("node:path");
+  const dir = mkdtempSync(path.join(tmpdir(), "verdict-sight-"));
+  await withH({ dir, judgeProvider: llm(ok) }, async (h) => {
+    assert.equal((await h.post("/redflag/warn", await warnBody(h), KEY)).status, 202);
+  });
+  const raw = readFileSync(path.join(dir, "pattern-sightings.jsonl"), "utf8");
+  assert.ok(!raw.includes(KEY["x-api-key"]) && !raw.includes("delivery") && !raw.includes("127.0.0.1"), "no raw user or pattern in the store");
+  await withH({ dir, judgeProvider: llm(ok) }, async (h) => {
+    h.clock.now = new Date("2026-11-05T12:00:00Z");
+    const dup = await h.post("/redflag/warn", await warnBody(h), KEY);
+    assert.equal(dup.json.code, "pattern_duplicate_user", "the restart did not forget the window");
+  });
+});

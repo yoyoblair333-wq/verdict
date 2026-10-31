@@ -11,7 +11,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createClient } from "genlayer-js";
 import { studionet } from "genlayer-js/chains";
-import { CONTRACT_ADDRESS, CONTRACT_CODE_DIGEST, RPC_URL } from "../src/config.js";
+import { CONTRACT_ADDRESS, CONTRACT_CODE_DIGEST, PAGE_SIZE, RPC_URL } from "../src/config.js";
+import { idsToFetch } from "../src/lib/gallery.js";
 import { hideDecision, redactCase } from "../src/lib/display.js";
 
 const dist = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../dist");
@@ -38,19 +39,23 @@ async function withRetry(fn, tries = 4) {
 }
 
 const config = await withRetry(() => view("get_config"));
-const recent = await withRetry(() => view("list_recent", [50, ""]));
 // Same display filter as the page: a hidden or flagged case is stored with
 // its text removed, so the published JSON never carries it either.
 let hidden = [];
+let pinnedIds = [];
 try {
-  hidden = JSON.parse(await readFile(path.join(dist, "evidence.json"), "utf8")).hidden ?? [];
+  const ev = JSON.parse(await readFile(path.join(dist, "evidence.json"), "utf8"));
+  hidden = ev.hidden ?? [];
+  pinnedIds = ev.pinned ?? [];
 } catch {
   hidden = JSON.parse(await readFile(path.join(dist, "../src/hidden-cases.json"), "utf8")).hidden ?? [];
 }
+// Same selection as the page: pinned evidence cases by id, then the newest page by id.
+const { pinned, page } = idsToFetch(config.next_id, pinnedIds, undefined, PAGE_SIZE);
 const cases = [];
 let redacted = 0;
-for (const row of recent) {
-  const c = await withRetry(() => view("get_case", [row.id]));
+for (const id of [...pinned, ...page]) {
+  const c = await withRetry(() => view("get_case", [id]));
   if (hideDecision(c, hidden)) {
     cases.push(redactCase(c));
     redacted++;

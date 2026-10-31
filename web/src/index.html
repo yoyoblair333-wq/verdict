@@ -42,7 +42,7 @@
 
   <section id="record" aria-labelledby="record-h">
     <h2 class="sect" id="record-h">Cases on-chain</h2>
-    <p class="lede">Newest first, from <code>list_recent</code> then <code>get_case</code>. Transaction hashes come from the recorded evidence run or from cases signed in this browser; the contract itself does not store them.</p>
+    <p class="lede">Read with <code>get_case</code> by id: the evidence cases first (pinned), then cases the VERDICT relayer opened, newest first. Cases opened by visitors' own testnet accounts sit behind their own control and are labelled as self-reported. "On-chain status" chips show what the contract records and who set it. Transaction hashes come from the recorded evidence runs or from cases signed in this browser; the contract itself does not store them.</p>
     <div id="cases" class="cases" aria-live="polite"><p class="empty">Loading cases from the network…</p></div>
   </section>
 

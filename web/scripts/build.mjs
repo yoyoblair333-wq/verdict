@@ -2,8 +2,10 @@
 //   app.js          genlayer-js + app code, bundled for the browser by esbuild
 //   index.html, styles.css, favicon.svg
 //   evidence.json   tx-hash index for the recorded studionet run
-//                   (docs/live/studionet-run.json); the contract does not store
-//                   tx hashes, so this is how read mode links them
+//                   (docs/live/studionet-run.json) and the browser-signed demo
+//                   case (docs/live/demo-case.json); the contract does not store
+//                   tx hashes, so this is how read mode links them. Its case ids
+//                   are the pinned evidence cases.
 // snapshot.json is written separately by scripts/snapshot.mjs (Pages workflow).
 import { build } from "esbuild";
 import { copyFile, mkdir, readFile, writeFile } from "node:fs/promises";
@@ -51,6 +53,14 @@ for (const t of run.transactions ?? []) {
   if (cur === null) continue;
   (cases[cur] ??= []).push({ fn: t.fn, hash: t.hash });
 }
+// Browser-signed demo case (docs/live/demo-case.json, AUDIT-2 P1-1): its tx
+// hashes are indexed too, so every visitor sees them, not only the signing browser.
+const demo = JSON.parse(await readFile(path.join(root, "docs/live/demo-case.json"), "utf8"));
+if (String(demo.contract).toLowerCase() !== String(run.contract).toLowerCase()) throw new Error("demo-case.json is for another contract");
+if (!Number.isSafeInteger(demo.case_id) || demo.case_id < 1) throw new Error("demo-case.json: bad case_id");
+cases[demo.case_id] = (demo.transactions ?? []).filter((t) => typeof t.hash === "string" && /^0x[0-9a-fA-F]{64}$/.test(t.hash)).map((t) => ({ fn: t.fn, hash: t.hash }));
+// Pinned = every evidence case: fetched by id and listed first, so spam can't push them off.
+const pinned = Object.keys(cases).map(Number).sort((a, b) => a - b);
 // Operator hidden list (src/hidden-cases.json) + takedowns recorded in the run.
 const hc = JSON.parse(await readFile(path.join(web, "src/hidden-cases.json"), "utf8"));
 if (String(hc.contract).toLowerCase() !== String(run.contract).toLowerCase()) throw new Error("hidden-cases.json is for another contract");
@@ -61,13 +71,14 @@ for (const x of hc.hidden ?? []) {
 }
 for (const id of takenDown) if (!hidden.some((x) => x.id === id)) hidden.push({ id, reason: "" });
 const evidence = {
-  source: "docs/live/studionet-run.json",
+  source: "docs/live/studionet-run.json + docs/live/demo-case.json",
   network: run.network,
   contract: run.contract,
   recordedAt: run.startedAt,
   cases,
+  pinned,
   takenDown,
   hidden,
 };
 await writeFile(path.join(dist, "evidence.json"), JSON.stringify(evidence, null, 2));
-console.log(`evidence.json: ${Object.keys(cases).length} cases, ${Object.values(cases).flat().length} txs, hidden=${JSON.stringify(hidden.map((x) => x.id))}`);
+console.log(`evidence.json: ${Object.keys(cases).length} cases (pinned ${JSON.stringify(pinned)}), ${Object.values(cases).flat().length} txs, hidden=${JSON.stringify(hidden.map((x) => x.id))}`);
