@@ -6,16 +6,20 @@ Shares the grid, fonts, seal, slips, bench, chips and footer geometry with gen.p
 
 Rules baked in here (on top of the gen_games.py rules):
   * Published Settle It cards are the ONE place the front layer names GenLayer: the case really was re-heard
-    on the network (brief section 1). Footer: check mark, "Checked by GenLayer · Finalized", "Receipt VR-{receipt}".
+    on the network (brief section 1). Footer: check mark, "Checked by GenLayer · Finalized" and the receipt, shown as a
+    short package digest (first 4 + last 4 hex). These are example cards, so the header says "Example card" and the
+    receipt is a sample digest of the card's own invented content, marked "(example)". Never a VR- string or a {placeholder}.
+  * Players appear by @username only, never a real-sounding first name (AUDIT-2 P2-8).
   * The network's ruling is the one that counts. When it differs from the preview, the preview is shown faded
     and struck through, and the headline says so. Appeals after publishing: 7 jurors next (brief section 1).
-  * The digest is front layer. Its only tech words sit in the small Proof-marked footer line the brief asks
-    for ("Recorded on GenLayer · Proof tab"), styled like the Hall re-run line. No receipts on the front.
+  * The digest is front layer. It does not claim a live ledger (the pattern ledger is in shadow mode, ADR-020 item 13):
+    the one footer line is "Proof tab: patterns recorded on GenLayer when live", next to the empty ring, never the
+    check mark. No receipts on the front. The counts are invented, so the header and every count say "Example".
   * Digest patterns are made up. Summaries carry no brand, name, number, link or amount (brief section 2);
     chips use only the fixed flag labels from relayer/src/lib/redflag.ts.
   * The opt-in screen has no default: both buttons are drawn identically, neither filled (playbook: no pre-ticked opt-ins).
 """
-import os, re, sys
+import os, re, sys, hashlib
 from gen import width, wrap, C, JUR, TIER1, icon, slip as pad_slip, slip_h, E
 from gen_games import (Card, header, headline, strip, stamp, split_line, juror_line, bench, cta,
                        centre, check_fit, CW)
@@ -24,12 +28,18 @@ FIX_MAX = 1008
 
 
 # ---------------------------------------------------------------- shared pieces
-def footer_network(c, line2, fy=1812):
+def sample_receipt(*parts):
+    """A sample receipt for an example card: first 4 + last 4 hex of sha256 over the card's invented content."""
+    h = hashlib.sha256('|'.join(parts).encode()).hexdigest()
+    return f'Receipt {h[:4]}…{h[-4:]} (example)'
+
+
+def footer_network(c, line2, rc, fy=1812):
     """Published footer: the filled check mark (gen.py), the network line, the receipt, then provenance."""
     fy = fy  # two lines, same baseline as gen_games.footer()
     c.add(f'<rect x="72" y="{fy-38}" width="936" height="2" fill="{C["blue"]}" opacity=".35"/>')
     c.add(f'<path d="M74 {fy-12} l9 9 l17 -19" fill="none" stroke="{C["pad"]}" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>')
-    net, rc = 'Checked by GenLayer · Finalized', 'Receipt VR-{receipt}'
+    net = 'Checked by GenLayer · Finalized'
     assert width(net, 'sg800', 26) + width(rc, 'sg500', 26) + 40 < FIX_MAX - 114, 'footer overflow'
     c.text(114, fy, net, 26, 'sg b')
     c.text(1008, fy, rc, 26, 'sg', C['blue'], 'end')
@@ -38,14 +48,11 @@ def footer_network(c, line2, fy=1812):
 
 
 def proof_footer(c, line1, line2, fy=1812):
-    """Front-layer footer with one Proof-marked line (same treatment as the Hall re-run line)."""
+    """Front-layer footer that points to the Proof tab. Empty ring, never the check mark: it claims nothing live."""
     c.add(f'<rect x="72" y="{fy-38}" width="936" height="2" fill="{C["blue"]}" opacity=".35"/>')
-    c.add(f'<path d="M74 {fy-12} l9 9 l17 -19" fill="none" stroke="{C["pad"]}" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>')
-    pw = width('Proof', 'sg800', 22) + 24
-    c.add(f'<rect x="114" y="{fy-22}" width="{pw:.1f}" height="30" rx="15" fill="{C["pad"]}"/>')
-    c.text(114 + pw / 2, fy, 'Proof', 22, 'sg b', C['robe'], 'middle')
-    assert width(line1, 'sg500', 26) + pw + 14 <= FIX_MAX - 114, 'footer overflow'
-    c.text(114 + pw + 14, fy, line1, 26, 'sg', C['docket'])
+    c.add(f'<circle cx="88" cy="{fy-9}" r="11" fill="none" stroke="{C["blue"]}" stroke-width="3"/>')
+    assert width(line1, 'sg500', 26) <= FIX_MAX - 114, 'footer overflow'
+    c.text(114, fy, line1, 26, 'sg', C['docket'])
     assert width(line2, 'sg500', 26) <= FIX_MAX - 114, 'footer overflow'
     c.text(114, fy + 42, line2, 26, 'sg', C['blue'])
     return fy - 38
@@ -106,7 +113,7 @@ def published(fname, case_no, rubric, a, b, preview, votes, ruling, by, head, ct
     winner = a[0] if ca > cb else b[0]
     overruled = preview[0] != winner
     c = Card()
-    header(c, 'Settle It', f'Case {case_no} · Published', C['pad'])
+    header(c, 'Settle It', f'Example card · Case {case_no}', C['pad'])
     y = headline(c, head, 300, 112)
     c.text(72, y + 62, rubric, 40, 'sg b', C['pad'])
     y += 62
@@ -122,13 +129,17 @@ def published(fname, case_no, rubric, a, b, preview, votes, ruling, by, head, ct
     c.text(72, py, lab, 30, 'sg', C['blue'])
     px = 72 + width(lab, 'sg500', 30) + 24
     pt = f'{preview[1]} for {preview[0]}'
-    pw = width(pt, 'bs900', 64)
+    tail = width('replaced' if overruled else 'same answer', 'sg700i', 30) + (26 if overruled else 78)
+    pfs = 64
+    while px + width(pt, 'bs900', pfs) + tail > FIX_MAX and pfs > 40: pfs -= 2   # keep the tail inside the margin
+    assert px + width(pt, 'bs900', pfs) + tail <= FIX_MAX, 'preview row overflow'
+    pw = width(pt, 'bs900', pfs)
     if overruled:
-        c.text(px, py + 8, pt, 64, 'bs', C['docket'], extra=' opacity=".42"')
+        c.text(px, py + 8, pt, pfs, 'bs', C['docket'], extra=' opacity=".42"')
         c.add(f'<rect x="{px-6:.1f}" y="{py-14}" width="{pw+12:.1f}" height="7" rx="2" fill="{C["stamp"]}" transform="rotate(-3 {px+pw/2:.1f} {py-10})"/>')
         c.text(px + pw + 26, py, 'replaced', 30, 'sg i', C['blue'])
     else:
-        c.text(px, py + 8, pt, 64, 'bs', C['docket'])
+        c.text(px, py + 8, pt, pfs, 'bs', C['docket'])
         cx = px + pw + 30
         c.add(f'<path d="M{cx} {py-14} l11 11 l21 -24" fill="none" stroke="{C["pad"]}" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>')
         c.text(cx + 48, py, 'same answer', 30, 'sg i', C['blue'])
@@ -140,14 +151,15 @@ def published(fname, case_no, rubric, a, b, preview, votes, ruling, by, head, ct
     FL_TOP = 1812 - 38
     cy = FL_TOP - 40 - 86
     y = centre(c, m, y, cy)
-    footer_network(c, 'Published by both sides · Submitted by participants')
+    footer_network(c, 'Published after both invite links accepted · Submitted by participants',
+                   sample_receipt(case_no, rubric, a[0], a[1], b[0], b[1]))
     check_fit(fname, y, cy)
     cta(c, cy, cta_txt)
     c.save(fname)
 
 
 # ---------------------------------------------------------------- Scams going around (digest)
-PATTERNS = [  # made up; fixed flag labels only; no brand, name, number, link or amount in the summary
+PATTERNS = [  # made up, counts included (shown as 'Example'); fixed flag labels only; no brand, name, number, link or amount in the summary
     ('delivery', 'Delivery', 37, ['Fake urgency', 'Asks for money', '“Click this link”'],
      'A text says your parcel is stuck and asks for a small fee to release it.'),
     ('account', 'Account lock', 24, ['Threatens a loss', 'Asks for a code'],
@@ -159,7 +171,7 @@ PATTERNS = [  # made up; fixed flag labels only; no brand, name, number, link or
 
 def digest(fname):
     c = Card()
-    header(c, 'Red Flag Court', 'Week of {date}')
+    header(c, 'Red Flag Court', 'Example card · sample week')
     y = headline(c, 'Scams going around this week', 300, 120)
     m = len(c.s)
     y += 52
@@ -171,7 +183,7 @@ def digest(fname):
         icx, icy = 72 + 24 + 40, top + 24 + 40
         c.add(f'<circle cx="{icx}" cy="{icy}" r="40" fill="{C["robe"]}" stroke="{C["pad"]}" stroke-width="4"/>' + cat_icon(kind, icx, icy, 50, C['pad']))
         c.text(202, top + 24 + 57, cat, 48, 'bs', C['pad'])
-        st = f'Seen {seen} times'
+        st = f'Example: seen {seen} times'
         sw = width(st, 'sg800', 30) + 44
         c.add(f'<rect x="{1008-24-sw:.1f}" y="{top+24+16}" width="{sw:.1f}" height="48" rx="24" fill="none" stroke="{C["docket"]}" stroke-width="3"/>')
         c.text(1008 - 24 - sw / 2, top + 24 + 51, st, 30, 'sg b', C['docket'], 'middle')
@@ -198,7 +210,7 @@ def digest(fname):
     y = centre(c, m, y, cy)
     c.add(f'<rect x="72" y="{cy}" width="936" height="96" rx="48" fill="{C["pad"]}"/>')
     c.text(540, cy + 62, 'Send this to my family', 46, 'sg b', C['robe'], 'middle')
-    proof_footer(c, 'Recorded on GenLayer · Proof tab', 'Patterns only. Never a message, a sender or a name.')
+    proof_footer(c, 'Proof tab: patterns recorded on GenLayer when live', 'Patterns only. Never a message, a sender or a name.')
     check_fit(fname, y, cy)
     c.save(fname)
 
@@ -263,17 +275,17 @@ def optin(fname):
 
 if __name__ == '__main__':
     published('card-published-overruled.svg', '#0733', "Who's right? Pizza night",
-              ('Nia', 'Cal ate most of the pizza. I ordered and I paid. We split it by slices eaten.'),
-              ('Cal', 'We agreed to split it evenly before it arrived. A deal is a deal, even after you see the box.'),
-              ('Nia', '3–2'),
-              [('judge', 'Cal'), ('romantic', 'Nia'), ('realist', 'Cal'), ('petty', 'Cal'), ('philo', 'Cal')],
+              ('@pizza_math', 'They ate most of the pizza. I ordered and I paid. We split it by slices eaten.'),
+              ('@split_it_fair', 'We agreed to split it evenly before it arrived. A deal is a deal, even after you see the box.'),
+              ('@pizza_math', '3–2'),
+              [('judge', '@split_it_fair'), ('romantic', '@pizza_math'), ('realist', '@split_it_fair'), ('petty', '@split_it_fair'), ('philo', '@split_it_fair')],
               'You shook on it before the box opened.', 'realist',
               'The network overruled the preview.', 'Think the network got it wrong? Appeal to 7 jurors.')
     published('card-published-confirmed.svg', '#0812', "Who's right? The thermostat",
-              ('Lee', 'I pay the heating bill, so the thermostat stays at a normal number. Sweaters exist.'),
-              ('Sam', 'Lee calls a cold flat “normal.” I can see my breath in the kitchen. That is not a vibe.'),
-              ('Lee', '4–1'),
-              [(k, 'Lee') for k in TIER1],
+              ('@bill_payer', 'I pay the heating bill, so the thermostat stays at a normal number. Sweaters exist.'),
+              ('@see_my_breath', 'They call a cold flat “normal.” I can see my breath in the kitchen. That is not a vibe.'),
+              ('@bill_payer', '4–1'),
+              [(k, '@bill_payer') for k in TIER1],
               'Whoever pays the bill sets the dial.', 'judge',
               'Confirmed by the network 5–0', 'Think the network got it wrong? Appeal to 7 jurors.')
     digest('card-redflag-digest.svg')

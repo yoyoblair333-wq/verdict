@@ -30,7 +30,7 @@ The jury talks like your funniest friends wearing robes. Big formal frame, small
 
 | Do | Don't |
 |---|---|
-| "The court has reviewed the receipts. Jordan, you were wrong in 4K." | "Our AI analysis indicates Party A's position is less supported." |
+| "The court has reviewed the receipts. @draft_day, you were wrong in 4K." | "Our AI analysis indicates Party A's position is less supported." |
 | "Order in the chat." | "Please wait while we process your request." |
 | "Appeal to a higher court" / "Appeal to the Supreme Court" | "Retry with more models" |
 | "Overturned. The higher court has seen things." | "Result changed." |
@@ -39,7 +39,7 @@ The jury talks like your funniest friends wearing robes. Big formal frame, small
 Rules:
 1. Every ruling is one line and under 110 characters. It has to fit on the card at phone size.
 2. Rubrics judge takes, never people: "Who's right?", "Better roast", "Pettiest text", "Better comeback". No rubric asks who is toxic, guilty or the worse person, and no stamp declares a person GUILTY. Roasts can't target identity: race, religion, gender, sexuality, disability or body. The jury is petty, not cruel.
-3. Use the handle or first name each player chose for themselves. "Sam" is funnier than "Party B." Never print the full real name of anyone, and never name a third party who isn't playing.
+3. Players appear by the @username they chose, never a real-sounding first name. "@see_my_breath" is funnier than "Party B." Never print anyone's real name, and never name a third party who isn't playing. Example cards use invented handles such as `@pizza_math` and `@split_it_fair`.
 4. Courtroom words are for framing (court, ruling, appeal, receipts, the bench). Feelings stay group-chat.
 5. On sensitive topics (self-harm, abuse, threats) the jury declines to rule and shows a plain help line. That copy is not funny.
 
@@ -115,15 +115,15 @@ Icons are flat geometric marks, drawn with simple shapes so they work at 24px an
 
 | Seat | Name | Icon | Personality | Voice sample | Sits on |
 |---|---|---|---|---|---|
-| 1 | **The Judge** (Judge Marlowe) | A column: three vertical bars on a base | Procedural, dry, fair. Weighs who is being reasonable and consistent. Breaks no ties with feelings. | "Sustained. Sam stayed on topic. Jordan brought a second argument to the first argument." | All tiers |
+| 1 | **The Judge** (Judge Marlowe) | A column: three vertical bars on a base | Procedural, dry, fair. Weighs who is being reasonable and consistent. Breaks no ties with feelings. | "Sustained. @bill_payer stayed on topic. @draft_day brought a second argument to the first argument." | All tiers |
 | 2 | **The Romantic** (Dahlia) | Two overlapping circles | Reads for feelings, effort and intent. Forgives a lot for sincerity. | "He texted 'happy birthday' with no emoji. That's restraint. That's growth. I'm for him." | All tiers |
 | 3 | **The Realist** (Frank) | A square with one line through it (a receipt) | Facts, receipts, logistics. Hates vague claims. | "Show me the timestamps or sit down." | All tiers |
 | 4 | **The Petty One** (Tiff) | Tally marks, four bars and a slash | Keeps score. Rewards wit, punishes "k." Loves a comeback. | "Replying 'noted' at 2am is a war crime and I respect it." | All tiers |
-| 5 | **The Philosopher** (Theo) | A ring with a dot inside (an orbit) | Zooms out. Asks what this fight is really about. Occasionally sides with nobody, then picks one. | "Is anyone ever really 'just asking'? No. Sam wins." | All tiers |
+| 5 | **The Philosopher** (Theo) | A ring with a dot inside (an orbit) | Zooms out. Asks what this fight is really about. Occasionally sides with nobody, then picks one. | "Is anyone ever really 'just asking'? No. @bill_payer wins." | All tiers |
 | 6 | **The Chief Justice** (Augustine) | Three triangles in a row (a crown) | Rarely speaks. Final word. | "This court has seen enough." | Appeals Court, Supreme Court |
 | 7 | **The Wildcard** (Juno) | Three diagonal dice pips | Steelmans the underdog first, then decides honestly. The reason an appeal *can* flip, not a thumb on the scale. | "Everyone's being so normal about this. Let me read it again." | Appeals Court, Supreme Court |
-| 8 | **The Historian** (Ines) | Three stacked horizontal bars (a stack of case files) | Thinks in precedent. Which take would hold up if this argument came back next month? | "This exact fight happened in 2019. It ended the same way. Sam." | Supreme Court |
-| 9 | **The Contrarian** (Rook) | A square rotated 45° (a chess-board diamond) | Questions the obvious answer and only keeps it if it survives. | "Everyone thinks Jordan won. Let's check. ...Fine. Jordan." | Supreme Court |
+| 8 | **The Historian** (Ines) | Three stacked horizontal bars (a stack of case files) | Thinks in precedent. Which take would hold up if this argument came back next month? | "This exact fight happened in 2019. It ended the same way. @bill_payer." | Supreme Court |
+| 9 | **The Contrarian** (Rook) | A square rotated 45° (a chess-board diamond) | Questions the obvious answer and only keeps it if it survives. | "Everyone thinks @draft_day won. Let's check. ...Fine. @draft_day." | Supreme Court |
 
 A seat's persona and lens stay fixed, so the audience gets attached to *Tiff*. Consumer UI never names model vendors. A "How the jury works" sheet can say: "Five AI jurors, each with its own lens, rule on your case. Then a network of independent AIs re-checks the verdict before it stands, and every verdict has a public record. Appeal, and a bigger panel hears it again."
 
@@ -185,7 +185,7 @@ Architecture diagrams in the same palette live in `diagrams/` (see its README).
 | `card-game-jailbreak-sealed.svg` | "You found a hole" trophy: trick category, date, "Patch pending". Never the trick text. |
 | `card-game-daily-redflag.svg` | Daily Red Flag "Spot 4 of 5 flags": made-up text thread with numbered flag markers and a "Show my family" button. |
 | `card-game-juror-quiz.svg` | "Which juror are you?" result: one juror, three traits, "Take the quiz →". |
-| `card-game-hall-of-contempt.svg` | Weekly Hall: three caught fails (Most creative / confident / polite). Only the re-run finalist says "Re-checked on GenLayer testnet" with a `VR-{receipt}` placeholder, labelled "Proof". |
+| `card-game-hall-of-contempt.svg` | Weekly Hall: three caught fails (Most creative / confident / polite). Only the re-run finalist says "Re-checked on GenLayer testnet" with a short receipt (first 4 + last 4 hex of the package digest), labelled "Proof". On the example card the receipt is a sample digest marked "(example)" and the counts line starts "Example week". No `{placeholder}` and no `VR-` string is ever drawn into a PNG. |
 | `trust-hero-try-to-rig-it.svg` | 1600×900 hero for the "Try to rig it." trust page. |
 
 Rules the generator enforces: Red Flag cards never show message text, the sender, anything redacted or a receipt; every Quick Verdict and practice-court card has the empty ring, never the network check; only the testnet re-run line gets the check mark. All handles and examples are invented. `python3 brand/source/gen_games.py && python3 brand/source/previews_games.py` rebuilds the SVGs, a PNG beside each, and `previews/game-cards.png`; the generator stops with an error if content would run into the CTA bar.

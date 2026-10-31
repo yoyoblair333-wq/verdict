@@ -7,7 +7,8 @@ from playwright.sync_api import sync_playwright
 
 B = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CARDS = ['card-example-relationship.svg', 'card-example-relationship-appeals.svg', 'card-example-roast.svg',
-         'card-example-petty.svg', 'card-example-petty-supreme.svg', 'verdict-card-template.svg']
+         'card-example-petty.svg', 'card-example-petty-supreme.svg']
+# verdict-card-template.svg is the field spec with {placeholders}; it is never rendered into a PNG.
 W, GAP = 420, 28
 
 html = ('<html><body style="margin:0;background:#F4F6FF">'

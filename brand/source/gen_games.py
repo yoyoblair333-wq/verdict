@@ -10,14 +10,16 @@ Rules baked in here:
   * Quick Verdict and practice-court cards carry an empty ring, never the network check mark (ADR-013 item 3).
   * LOOKS LEGIT is neutral, never green; SUS is amber; SCAM and CAUGHT are stamp red (ADR-014 item 14).
   * Stopped-at-the-door cards have no split and no bench; the juror line is labelled as a roast (ADR-015 item 3).
-  * Only the re-run Hall finalist says "Re-checked on GenLayer testnet" and carries a VR- receipt (ADR-015 item 6).
+  * Only the re-run Hall finalist says "Re-checked on GenLayer testnet" and carries a receipt (ADR-015 item 6).
+    The receipt is a short package digest; on this example card it is a sample digest marked "(example)".
+    No {placeholder} and no VR- string is ever drawn (AUDIT-2 P2-10).
   * Every example is invented: no real names, brands, coins or tickers.
   * Two layers (marketing/panel/SYNTHESIS.md rule 1): card copy is front layer, so no tech words.
     Banned on the front: personas, network-checked, on-chain, GenLayer, handle, hidden instruction(s).
     Say "5 AI jurors" and use their names. Only exception: the Hall re-run line, marked "Proof".
   * The Daily Red Flag thread is a made-up storytime, never a user's message.
 """
-import os, re, html
+import os, re, html, hashlib
 from gen import font, width, wrap, C, JUR, TIER1, icon, seal, style, E, OUT
 
 # Stamp tokens added for the games (brand-guide.md section 3). Never green.
@@ -430,9 +432,9 @@ def jb_patched(fname):
 
 def hall(fname):
     c = Card()
-    header(c, 'Hall of Contempt', 'Case of the week #014', C['pad'])
+    header(c, 'Hall of Contempt', 'Example card · week #014', C['pad'])
     y = headline(c, 'Hall of Contempt', 300)
-    c.text(72, y + 66, '{count} tries. {count} caught. {count} sealed until fixed.', 34, 'sg b', C['pad'])
+    c.text(72, y + 66, 'Example week: 212 tries. 209 caught. 3 sealed until fixed.', 34, 'sg b', C['pad'])
     y += 66
     m = len(c.s)
     fails = [
@@ -452,7 +454,12 @@ def hall(fname):
             c.add(f'<rect x="114" y="{y+28}" width="{pw:.1f}" height="30" rx="15" fill="{C["pad"]}"/>')
             c.text(114 + pw / 2, y + 50, 'Proof', 22, 'sg b', C['robe'], 'middle')
             c.text(114 + pw + 14, y + 50, 'Re-checked on GenLayer testnet', 28, 'sg b')
-            c.text(1008, y + 50, 'Receipt VR-{receipt}', 28, 'sg', C['blue'], 'end')
+            rc = 'Receipt ' + (lambda h: f'{h[:4]}…{h[-4:]}')(hashlib.sha256('|'.join([award, handle] + [t for _, t in segs]).encode()).hexdigest()) + ' (example)'
+            room = 1008 - (114 + pw + 14 + width('Re-checked on GenLayer testnet', 'sg800', 28) + 24)
+            rfs = 28
+            while width(rc, 'sg500', rfs) > room and rfs > 22: rfs -= 1
+            assert width(rc, 'sg500', rfs) <= room, 'hall receipt overflow'
+            c.text(1008, y + 50, rc, rfs, 'sg', C['blue'], 'end')
         else:
             c.add(f'<circle cx="88" cy="{y+40}" r="11" fill="none" stroke="{C["blue"]}" stroke-width="3"/>')
             c.text(114, y + 50, 'Practice court · Not a public record', 28, 'sg', C['blue'])

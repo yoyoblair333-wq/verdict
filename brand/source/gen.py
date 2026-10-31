@@ -195,7 +195,7 @@ def card(rubric, case_no, a, b, votes, ruling, by, fname, tier=1, stamp=None, te
     s.append(f'<text x="166" y="134" class="bs" font-size="64" fill="{C["docket"]}" letter-spacing="3">VERDICT</text>')
     court = TIERS[tier][0] if (tier > 1 or surface != 'live') else 'Live Court'
     s.append(f'<text x="1008" y="106" text-anchor="end" class="sg b" font-size="28" fill="{C["pad"] if hi_tier else C["blue"]}">{court}</text>')
-    s.append(f'<text x="1008" y="142" text-anchor="end" class="sg" font-size="26" fill="{C["blue"]}">Case {E(case_no)}</text>')
+    s.append(f'<text x="1008" y="142" text-anchor="end" class="sg" font-size="26" fill="{C["blue"]}">{"Template" if template else "Example card"} · Case {E(case_no)}</text>')
     rule_h = 8 if tier == 3 else 4 if tier == 2 else 2
     s.append(f'<rect x="72" y="182" width="936" height="{rule_h}" fill="{C["pad"] if hi_tier else C["blue"]}" opacity="{1 if hi_tier else .45}"/>')
     # rubric
@@ -266,10 +266,12 @@ def card(rubric, case_no, a, b, votes, ruling, by, fname, tier=1, stamp=None, te
         while width(first, 'sg800', nfs) > cw - 14 and nfs > 18: nfs -= 1   # keep neighbouring names apart
         s.append(f'<text x="{cx}" y="{cy + r + 40}" text-anchor="middle" class="sg b" font-size="{nfs}" fill="{col}">{first}</text>')
         vt = votes[i][1] if votes else '—'
-        while width(vt, 'sg800', vf) > cw - pad_x and len(vt) > 3: vt = vt[:-2] + '…'
-        vw = min(cw - 6, width(vt, 'sg800', vf) + pad_x)
+        vfs = vf
+        while width(vt, 'sg800', vfs) > cw - pad_x and vfs > 16: vfs -= 1   # shrink a long @handle before truncating it
+        while width(vt, 'sg800', vfs) > cw - pad_x and len(vt) > 3: vt = vt[:-2] + '…'
+        vw = min(cw - 6, width(vt, 'sg800', vfs) + pad_x)
         s.append(f'<rect x="{cx - vw/2}" y="{cy + r + 56}" width="{vw}" height="46" rx="23" fill="{C["pad"] if not template else "none"}" stroke="{C["pad"]}" stroke-width="2"/>')
-        s.append(f'<text x="{cx}" y="{cy + r + {5: 88, 7: 87}.get(n, 86)}" text-anchor="middle" class="sg b" font-size="{vf}" fill="{C["robe"] if not template else C["pad"]}">{E(vt)}</text>')
+        s.append(f'<text x="{cx}" y="{cy + r + {5: 88, 7: 87}.get(n, 86)}" text-anchor="middle" class="sg b" font-size="{vfs}" fill="{C["robe"] if not template else C["pad"]}">{E(vt)}</text>')
     bench_bottom = by0 + 74 + r + 102
     # footer: appeal bar (tier 1, 2) or case closed (tier 3), then the network line and provenance
     if tier == 3:
@@ -282,13 +284,17 @@ def card(rubric, case_no, a, b, votes, ruling, by, fname, tier=1, stamp=None, te
     fy = 1830
     s.append(f'<rect x="72" y="{fy-38}" width="936" height="2" fill="{C["blue"]}" opacity=".35"/>')
     net = 'Checked by the GenLayer network · {status}' if template else 'Checked by the GenLayer network · Finalized'
-    rc = 'Receipt pkg {digest}' if template else f'Receipt pkg {receipt(rubric, a, b, tier, surface)}'
+    rc = 'Receipt {digest}' if template else f'Receipt {receipt(rubric, a, b, tier, surface)}'
+    rc2 = '' if template else '(example)'   # invented case: the receipt is a sample digest, said under it
     prov = 'Submitted by host' if surface == 'live' else 'Submitted by participants'
+    assert width(net, 'sg500', 26) + width(rc, 'sg500', 26) + 30 <= 1008 - 114, f'{fname}: footer overflow'
     # check mark
     s.append(f'<path d="M74 {fy-12} l9 9 l17 -19" fill="none" stroke="{C["pad"]}" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>')
     s.append(f'<text x="114" y="{fy}" class="sg" font-size="26" fill="{C["docket"]}">{E(net)}</text>')
     s.append(f'<text x="1008" y="{fy}" text-anchor="end" class="sg" font-size="26" fill="{C["blue"]}">{E(rc)}</text>')
     s.append(f'<text x="114" y="{fy+42}" class="sg" font-size="26" fill="{C["blue"]}">{E(prov)}</text>')
+    if rc2:
+        s.append(f'<text x="1008" y="{fy+42}" text-anchor="end" class="sg i" font-size="26" fill="{C["blue"]}">{E(rc2)}</text>')
     s.append('</svg>')
     body = '\n'.join(s)
     used = html.unescape(''.join(re.findall(r'>([^<]+)</text>', body)))
@@ -300,40 +306,42 @@ def card(rubric, case_no, a, b, votes, ruling, by, fname, tier=1, stamp=None, te
 
 
 if __name__ == '__main__':
-    card("Who's right?", '#0000', ('{Name A}', '{Take A, up to 280 characters. Lines wrap on the legal pad.}'),
-         ('{Name B}', '{Take B, up to 280 characters.}'), [], '{One-line ruling from the lead juror, up to 110 characters.}',
+    # Template only: the {placeholders} are the field spec. It is never rendered into a PNG (previews.py skips it).
+    card("Who's right?", '#0000', ('{@handle A}', '{Take A, up to 280 characters. Lines wrap on the legal pad.}'),
+         ('{@handle B}', '{Take B, up to 280 characters.}'), [], '{One-line ruling from the lead juror, up to 110 characters.}',
          '{Juror name}, {seat}', 'verdict-card-template.svg', template=True)
+    # Example cards: invented cases, players shown by @username only (never a real-sounding first name).
     card("Who's right?", '#0417',
-         ('Maya', "He forgot our anniversary but remembered his fantasy draft down to the minute. I'm not mad, I'm just keeping a list."),
-         ('Jordan', "It was a Tuesday. We don't even celebrate the first date, we celebrate the first text. Nobody agreed on a date."),
-         [('judge', 'Maya'), ('romantic', 'Maya'), ('realist', 'Jordan'), ('petty', 'Maya'), ('philo', 'Maya')],
-         "Jordan set a draft alarm and not an anniversary alarm. The court has seen the priorities.",
+         ('@list_keeper', "He forgot our anniversary but remembered his fantasy draft down to the minute. I'm not mad, I'm just keeping a list."),
+         ('@draft_day', "It was a Tuesday. We don't even celebrate the first date, we celebrate the first text. Nobody agreed on a date."),
+         [('judge', '@list_keeper'), ('romantic', '@list_keeper'), ('realist', '@draft_day'), ('petty', '@list_keeper'), ('philo', '@list_keeper')],
+         "@draft_day set a draft alarm and not an anniversary alarm. The court has seen the priorities.",
          'Marlowe, The Judge', 'card-example-relationship.svg')
     # Roasts target takes and habits, never identity, bodies or appearance (brand guide, voice rule 2).
     card('Better roast', '#0952',
-         ('Dre', "Kev has 47 browser tabs open and says he's “getting to them.” That's not a to-do list, that's a hostage situation."),
-         ('Kev', "Dre hits reply-all to say “thanks!” to 300 people. Every time. IT has a folder with his name on it."),
-         [('judge', 'Kev'), ('romantic', 'Dre'), ('realist', 'Dre'), ('petty', 'Dre'), ('philo', 'Dre')],
+         ('@reply_all_hero', "@tab_hoarder has 47 browser tabs open and says he's “getting to them.” That's not a to-do list, that's a hostage situation."),
+         ('@tab_hoarder', "@reply_all_hero hits reply-all to say “thanks!” to 300 people. Every time. IT has a folder just for him."),
+         [('judge', '@tab_hoarder'), ('romantic', '@reply_all_hero'), ('realist', '@reply_all_hero'), ('petty', '@reply_all_hero'), ('philo', '@reply_all_hero')],
          "Forty-seven tabs as a hostage situation had a setup and a payoff. Reply-all was a rerun.",
          'Tiff, The Petty One', 'card-example-roast.svg', surface='live')
-    # The relationship case after Jordan's appeal: the Appeals Court (7 seats) upholds for Maya.
+    # The relationship case after @draft_day's appeal: the Appeals Court (7 seats) upholds for @list_keeper.
     card("Who's right?", '#0417-A',
-         ('Maya', "He forgot our anniversary but remembered his fantasy draft down to the minute. I'm not mad, I'm just keeping a list."),
-         ('Jordan', "It was a Tuesday. We don't even celebrate the first date, we celebrate the first text. Nobody agreed on a date."),
-         [('chief', 'Maya'), ('judge', 'Maya'), ('romantic', 'Maya'), ('realist', 'Jordan'), ('petty', 'Maya'), ('philo', 'Maya'), ('wild', 'Jordan')],
-         "Seven jurors looked again. Same answer. Jordan, it’s time.",
+         ('@list_keeper', "He forgot our anniversary but remembered his fantasy draft down to the minute. I'm not mad, I'm just keeping a list."),
+         ('@draft_day', "It was a Tuesday. We don't even celebrate the first date, we celebrate the first text. Nobody agreed on a date."),
+         [('chief', '@list_keeper'), ('judge', '@list_keeper'), ('romantic', '@list_keeper'), ('realist', '@draft_day'), ('petty', '@list_keeper'), ('philo', '@list_keeper'), ('wild', '@draft_day')],
+         "Seven jurors looked again. Same answer. @draft_day, it’s time.",
          'Augustine, The Chief Justice', 'card-example-relationship-appeals.svg', tier=2, stamp='UPHELD')
     card('Pettiest text', '#1203',
-         ('Ari', "Replied 'noted.' to my roommate's 600-word dishes manifesto. Then did the dishes. Loudly."),
-         ('Sky', "Sent my ex a calendar invite titled 'Return my hoodie' with a 15-minute reminder. Recurring weekly."),
-         [('judge', 'Sky'), ('romantic', 'Ari'), ('realist', 'Sky'), ('petty', 'Sky'), ('philo', 'Sky')],
-         "A recurring calendar invite is not a text, it's a lifestyle. Sky is building a petty empire.",
+         ('@noted', "Replied 'noted.' to my roommate's 600-word dishes manifesto. Then did the dishes. Loudly."),
+         ('@hoodie', "Sent my ex a calendar invite titled 'Return my hoodie' with a 15-minute reminder. Recurring weekly."),
+         [('judge', '@hoodie'), ('romantic', '@noted'), ('realist', '@hoodie'), ('petty', '@hoodie'), ('philo', '@hoodie')],
+         "A recurring calendar invite is not a text, it's a lifestyle. @hoodie is building a petty empire.",
          'Tiff, The Petty One', 'card-example-petty.svg')
-    # Same case after two appeals: Tier 1 and the Appeals Court went to Sky; the Supreme Court (9, final) overturns.
+    # Same case after two appeals: Tier 1 and the Appeals Court went to @hoodie; the Supreme Court (9, final) overturns.
     card('Pettiest text', '#1203-S',
-         ('Ari', "Replied 'noted.' to my roommate's 600-word dishes manifesto. Then did the dishes. Loudly."),
-         ('Sky', "Sent my ex a calendar invite titled 'Return my hoodie' with a 15-minute reminder. Recurring weekly."),
-         [('chief', 'Ari'), ('judge', 'Ari'), ('romantic', 'Ari'), ('realist', 'Sky'), ('petty', 'Ari'),
-          ('philo', 'Sky'), ('wild', 'Ari'), ('hist', 'Ari'), ('contra', 'Sky')],
+         ('@noted', "Replied 'noted.' to my roommate's 600-word dishes manifesto. Then did the dishes. Loudly."),
+         ('@hoodie', "Sent my ex a calendar invite titled 'Return my hoodie' with a 15-minute reminder. Recurring weekly."),
+         [('chief', '@noted'), ('judge', '@noted'), ('romantic', '@noted'), ('realist', '@hoodie'), ('petty', '@noted'),
+          ('philo', '@hoodie'), ('wild', '@noted'), ('hist', '@noted'), ('contra', '@hoodie')],
          "Precedent is clear: a calendar invite is planning. One word, then loud dishes? That is art.",
          'Ines, The Historian', 'card-example-petty-supreme.svg', tier=3, stamp='OVERTURNED')

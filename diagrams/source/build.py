@@ -714,7 +714,7 @@ def d7():
     TX = PX + 590
     t1 = s.node(TX + 24, j4['y'] - 120, 252, 'Re-run opt-in', 'Separate, unticked: the text becomes public and permanent.')
     t2 = s.node(TX + 24, t1['b'] + 120, 252, 'Testnet re-run', 'GenLayer test network re-runs the whole jury. A trick has to work every time.', kind='pub')
-    t3 = s.node(TX + 24, t2['b'] + 40, 252, 'Hall card with receipt', '“Re-checked on GenLayer testnet” and a VR- receipt. The only game card that has one.', kind='pub')
+    t3 = s.node(TX + 24, t2['b'] + 40, 252, 'Hall card with receipt', '“Re-checked on GenLayer testnet” and a short receipt (package digest). The only game card that has one.', kind='pub')
     s.under(m, s.zone, TX, t2['y'] - 46, 300, t3['b'] + 26 - (t2['y'] - 46), 'Testnet', 'no single party', tone='chain')
     ZBb = max(PB + 92 + 44, t3['b'] + 26)
 
@@ -782,7 +782,7 @@ def d8():
          ('Tier 3: Supreme Court', '9 seats plus validator agreement. Final. Case closed.'), 'Target network'),
         ('Jailbreak the Jury', ('Hall finalist opts in', 'Separate unticked consent: the text becomes public and permanent.'),
          ('Clean replay first', 'Replayed in the practice court. Anything that gets through goes to the patch queue instead.'),
-         ('Hall of Contempt re-run', 'The whole jury re-runs on the test network. Card gets a VR- receipt.'), 'Testnet'),
+         ('Hall of Contempt re-run', 'The whole jury re-runs on the test network. Card gets a short receipt (package digest).'), 'Testnet'),
         (None, ('Self-chosen re-check', 'A player picks one caught attempt. 1 a week, resets Monday.'),
          ('Re-check opt-in', 'Unticked: “I understand. Make it public.” Same clean-replay rule.'),
          ('Jailbreak re-check', 'Re-run on the test network. A trick has to work every time.'), 'Testnet'),
@@ -825,10 +825,10 @@ def d8():
     # what comes back out, and what never becomes a decision
     OY = ZB + 56
     s.text(40, OY, 'What the decisions feed', 16, 'sg800')
-    outs = [('Published card', '“Checked by GenLayer · Finalized”, receipt VR-. “The network overruled the preview” when the winner changes.'),
+    outs = [('Published card', '“Checked by GenLayer · Finalized”, short receipt. “The network overruled the preview” if the winner changes.'),
             ('Appeal cards', 'UPHELD or OVERTURNED, same footer and a new receipt.'),
-            ('Hall and re-check cards', '“Re-checked on GenLayer testnet” with a VR- receipt, marked Proof.'),
-            ('Scams going around digest', 'top_patterns_since feeds the weekly digest. Footer: Recorded on GenLayer · Proof tab.')]
+            ('Hall and re-check cards', '“Re-checked on GenLayer testnet” with a short receipt, marked Proof.'),
+            ('Scams going around digest', 'top_patterns_since feeds the weekly digest. Footer: Proof tab: patterns recorded on GenLayer when live.')]
     ow = (1520 - 3 * 20) / 4
     ob = 0
     for i, (t, b) in enumerate(outs):
