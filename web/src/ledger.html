@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Scam Pattern Ledger · VERDICT</title>
+<meta name="description" content="PatternLedger, a GenLayer Intelligent Contract that keeps a public record of scam patterns, never the messages. What it stores, what it never stores, how validators decide, and the live ledger read by your browser from studionet.">
+<meta name="theme-color" content="#1B1340">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@800;900&family=Schibsted+Grotesk:ital,wght@0,500;0,700;0,800;1,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="ledger.css">
+</head>
+<body class="ledgerpage">
+<a class="skip" href="#main">Skip to content</a>
+<div class="netbar" role="note"><b>GenLayer testnet (studionet)</b> · no real value · every summary shown is a public record</div>
+<div class="wrap">
+  <header class="top">
+    <a class="brand" href="./" aria-label="VERDICT live court">
+      <svg viewBox="0 0 128 128" aria-hidden="true"><circle cx="64" cy="64" r="60" fill="#1B1340"/><circle cx="64" cy="64" r="52.8" fill="none" stroke="#F7E26B" stroke-width="2.16"/><circle cx="30.91" cy="91.77" r="4.08" fill="#F7E26B"/><circle cx="45.74" cy="103.15" r="4.08" fill="#F7E26B"/><circle cx="64" cy="107.2" r="4.08" fill="#F7E26B"/><circle cx="82.26" cy="103.15" r="4.08" fill="#F7E26B"/><circle cx="97.09" cy="91.77" r="4.08" fill="#F7E26B"/><path d="M40.38 44.22 L52.19 44.22 L64 73.74 L58.1 87.52 Z" fill="#F7E26B"/><path d="M58.1 87.52 L64 73.74 L79.74 42.26 L85.65 46.19 L65.97 87.52 Z" fill="#F7E26B"/><g transform="translate(82.7 40.29) rotate(27)"><rect x="-14.76" y="-6.4" width="29.52" height="12.79" rx="1.97" fill="#F7E26B"/><rect x="-7.87" y="-6.4" width="2.36" height="12.79" fill="#1B1340"/><rect x="5.51" y="-6.4" width="2.36" height="12.79" fill="#1B1340"/></g></svg>
+      <span class="word">VERDICT</span>
+    </a>
+    <nav class="tabs" aria-label="Sections">
+      <a href="./">Court</a>
+      <a href="rig.html">Try to rig it</a>
+      <a href="ledger.html" aria-current="page">Scam ledger</a>
+    </nav>
+  </header>
+  <main id="main" tabindex="-1">
+
+  <section class="hero">
+    <h1>Scam Pattern<br>Ledger.</h1>
+    <p>PatternLedger is a GenLayer Intelligent Contract that keeps a public list of how scams work, never the scam messages themselves. Before a pattern is stored, every validator asks its own AI model whether the summary identifies anyone and whether it describes a real scam, and the network only stores it when they agree. Everything below the explainer is read live from the contract by your browser.</p>
+    <ul class="legend" aria-label="Proof labels">
+      <li><span class="proof" data-kind="live">Live</span> read by your browser now</li>
+      <li><span class="proof" data-kind="recorded">Recorded</span> from the test run</li>
+      <li><span class="proof" data-kind="tested">Proven by tests</span> link to the test</li>
+    </ul>
+  </section>
+
+  <section class="rigsect" id="explain" aria-labelledby="explain-h">
+    <h2 class="sect" id="explain-h">How it works</h2>
+    <p class="lede">A record is one scam <b>pattern</b>: the trick, in plain words. The same trick reported again, in other words, adds a sighting to the existing record instead of a second copy.</p>
+    <div class="lgrid">
+      <article class="lcard" id="stores" aria-labelledby="stores-h">
+        <h3 id="stores-h">What it stores</h3>
+        <ul class="ticks">
+          <li><b>A category</b>, one of 8 fixed values (delivery, locked account, romance, job, prize, investment, impersonation, other).</li>
+          <li><b>Warning-sign codes</b>, a subset of 16 fixed codes such as "urgency" or "asks for a code".</li>
+          <li><b>A summary</b> of at most 200 characters: an abstract paraphrase of the trick.</li>
+          <li><b>A sighting count</b>, first and last seen times (the transaction's time), and the newest 100 sightings with their codes.</li>
+          <li><b>The request key</b> of each accepted submission, so a retry of the same report is answered without a second review.</li>
+        </ul>
+      </article>
+      <article class="lcard" id="never" aria-labelledby="never-h">
+        <h3 id="never-h">What it never stores</h3>
+        <ul class="ticks no">
+          <li>The message itself, or any hash of it.</li>
+          <li>Who received it or who sent it: no user id, no phone number, no address. The only writer is the VERDICT relayer or the owner.</li>
+          <li>Anything with a digit, an "@", a currency sign, a link or a bare domain: refused before any AI is asked.</li>
+          <li>Refused reports: the transaction reverts, so nothing about it enters the ledger's state.</li>
+        </ul>
+      </article>
+    </div>
+    <article class="lcard wide" id="decide" aria-labelledby="decide-h">
+      <h3 id="decide-h">How validators decide</h3>
+      <ol class="gates">
+        <li><b>Fixed rules first, no AI.</b> Only the relayer or the owner may write. The codes and category must come from the fixed lists, the summary must be 200 characters or fewer, contain no instruction aimed at the reviewer, and pass the identifying-data screen (no digits, "@", currency signs, links or domains). Any failure reverts.</li>
+        <li><b>The leader reviews.</b> One validator asks its AI model three things about the summary: does it contain identifying data, is it a coherent scam pattern, and is it the same pattern as one of the stored records in the same category (up to the configured number, 10 by default, shown below).</li>
+        <li><b>Every other validator re-checks independently.</b> Each one runs the same review with its own model and accepts the leader's answer only if both yes/no answers match exactly, and, when the record would be stored, the same new-or-same decision and the same record id. Rewording does not matter; the decision does.</li>
+        <li><b>Stored only on agreement.</b> If the majority agrees that the summary identifies no one and is a coherent scam, the record is created or its sighting count goes up by one. Otherwise the transaction reverts with <code>[REJECTED]</code>.</li>
+      </ol>
+      <p class="note">This is GenLayer's <code>gl.vm.run_nondet_unsafe</code> with a custom validator function (<a id="src-agree" href="https://github.com/yoyoblair333-wq/verdict/blob/main/contracts/pattern_ledger.py#L326" target="_blank" rel="noopener">the agreement rule</a>, <a id="src-validator" href="https://github.com/yoyoblair333-wq/verdict/blob/main/contracts/pattern_ledger.py#L427" target="_blank" rel="noopener">the validator</a>). A validator whose own AI call fails, or that receives a malformed leader answer, votes to disagree, so an error is never agreed into the ledger.</p>
+      <div id="tested-body"></div>
+    </article>
+  </section>
+
+  <section class="panel rigsect" id="contract" aria-labelledby="contract-h">
+    <div class="panelhead">
+      <h2 id="contract-h">The contract, live</h2>
+      <span class="source" id="ledgersrc" data-state="loading">Connecting…</span>
+    </div>
+    <p class="lede">Read with <code>get_config</code> and <code>gen_getContractCode</code> over the studionet RPC. The code pin hashes the deployed code in your browser and compares it with the hash of <code>contracts/pattern_ledger.py</code>.</p>
+    <div id="pin" aria-live="polite"></div>
+    <dl class="facts" id="ledgerfacts"><dt>Status</dt><dd>Reading the contract over RPC…</dd></dl>
+    <div id="vocab"></div>
+    <button class="btn2 small" id="ledgerrefresh" type="button">Read the ledger again</button>
+  </section>
+
+  <section class="panel rigsect" id="top" aria-labelledby="top-h">
+    <div class="panelhead">
+      <h2 id="top-h">Most-sighted patterns</h2>
+      <span class="proof" data-kind="live" id="topkind">Live</span>
+    </div>
+    <p class="lede">Ranked by sightings inside the window, from <code>top_patterns_since</code>. Counts come from each record's kept history (its newest 100 sightings).</p>
+    <fieldset class="windows">
+      <legend>Window</legend>
+      <input type="radio" name="win" id="win7" value="7"><label for="win7">7 days</label>
+      <input type="radio" name="win" id="win30" value="30" checked><label for="win30">30 days</label>
+      <input type="radio" name="win" id="win365" value="365"><label for="win365">1 year</label>
+    </fieldset>
+    <div id="chart" aria-live="polite"><p class="empty">Loading…</p></div>
+  </section>
+
+  <section class="rigsect" id="recent" aria-labelledby="recent-h">
+    <h2 class="sect" id="recent-h">Newest patterns</h2>
+    <p class="lede">The newest records from <code>list_recent</code>, each with its sighting history from <code>get_pattern</code>. Summaries are shown as text, exactly as stored.</p>
+    <div id="patterns" class="cases" aria-live="polite"><p class="empty">Loading patterns from the network…</p></div>
+  </section>
+
+  <section class="panel rigsect" id="txs" aria-labelledby="txs-h">
+    <div class="panelhead">
+      <h2 id="txs-h">Recorded transactions</h2>
+      <span class="proof" data-kind="recorded">Recorded</span>
+    </div>
+    <p class="lede">The owner deployment and its recorded test submissions: one new pattern, one reworded repeat that the validators agreed was the same pattern, and one summary refused for identifying data. The summaries in these tests are synthetic, written by the project. Check any of them live: your browser asks studionet for the transaction's status and the validators' votes.</p>
+    <ul class="txs" id="ledgertxs"></ul>
+  </section>
+
+  <section class="rigsect" id="build" aria-labelledby="build-h">
+    <h2 class="sect" id="build-h">Build with it</h2>
+    <ul class="links" id="buildlinks">
+      <li><a id="guide-link" href="https://github.com/yoyoblair333-wq/verdict/blob/main/docs/PATTERN_LEDGER.md" target="_blank" rel="noopener">Builder guide</a> <span>docs/PATTERN_LEDGER.md: reading the ledger and reusing the pattern.</span></li>
+      <li><a id="source-link" href="https://github.com/yoyoblair333-wq/verdict/blob/main/contracts/pattern_ledger.py" target="_blank" rel="noopener">Contract source</a> <span>contracts/pattern_ledger.py, the exact file the code pin above compares.</span></li>
+      <li><a href="https://github.com/yoyoblair333-wq/verdict/blob/main/contracts/tests/direct/test_pattern_ledger.py" target="_blank" rel="noopener">Contract tests</a> <span>contracts/tests/direct/test_pattern_ledger.py, run on the GenVM SDK in direct mode.</span></li>
+      <li><a href="https://github.com/yoyoblair333-wq/verdict/blob/main/fixtures/pattern-screen.json" target="_blank" rel="noopener">Identifying-data screen fixture</a> <span>fixtures/pattern-screen.json, shared by the contract and the relayer.</span></li>
+      <li><a href="https://github.com/yoyoblair333-wq/verdict/blob/main/docs/live/pattern-ledger-run.json" target="_blank" rel="noopener">Recorded run</a> <span>docs/live/pattern-ledger-run.json, the source of the transactions above.</span></li>
+      <li><a href="https://docs.genlayer.com/" target="_blank" rel="noopener">GenLayer docs</a> <span>Intelligent Contracts and the equivalence principle.</span></li>
+    </ul>
+  </section>
+
+  <section class="rigsect" id="limits" aria-labelledby="limits-h">
+    <h2 class="sect" id="limits-h">What this does NOT prove</h2>
+    <ul class="claims">
+      <li class="claim"><span class="ctext">"Identifies no one" is the judgement of the validators' AI models plus a fixed screen. Models can be wrong; the fixed screen only catches digits, "@", currency signs, links and domains.</span></li>
+      <li class="claim"><span class="ctext">A refused report leaves no trace in the ledger's state, but the transaction and its inputs are still public on the network, like any transaction. That is why the relayer redacts before it submits.</span></li>
+      <li class="claim"><span class="ctext">A sighting count measures reports the relayer submitted, not how common a scam is in the world.</span></li>
+      <li class="claim"><span class="ctext">This is a testnet with no real value. The relayer writes on users' behalf, so the ledger trusts the relayer to submit only reports users opted in to.</span></li>
+    </ul>
+  </section>
+
+  </main>
+  <footer>
+    <span>VERDICT · Scam Pattern Ledger · testnet only · a pattern list, not advice</span>
+    <span><a href="./">Court record</a> · <a href="https://github.com/yoyoblair333-wq/verdict">Source</a> · <a href="https://docs.genlayer.com/">GenLayer docs</a></span>
+  </footer>
+</div>
+<script type="module" src="ledger.js"></script>
+</body>
+</html>

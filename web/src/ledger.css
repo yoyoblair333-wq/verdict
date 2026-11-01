@@ -1,0 +1,45 @@
+/* Scam Pattern Ledger page (ledger.html). Uses the tokens in styles.css only. */
+.ledgerpage .hero h1{font-size:clamp(44px,13vw,80px)}
+.lgrid{display:grid;gap:12px}
+@media (min-width:640px){.lgrid{grid-template-columns:1fr 1fr}}
+.lcard{border:2px solid var(--fg);border-radius:14px;padding:12px 14px 14px;background:var(--surface);min-width:0}
+.lcard.wide{margin-top:12px}
+.lcard h3{font:900 26px/1 var(--display);margin:0 0 8px;letter-spacing:.01em}
+.ticks{list-style:none;margin:0;padding:0;display:grid;gap:8px;font-size:15px}
+.ticks li{position:relative;padding-left:22px;overflow-wrap:anywhere}
+.ticks li::before{content:"✓";position:absolute;left:0;top:0;font-weight:900;color:var(--ok)}
+.ticks.no li::before{content:"✗";color:var(--stamp-text)}
+.gates{margin:0;padding:0 0 0 22px;display:grid;gap:10px;font-size:15px}
+.gates li{padding-left:4px;overflow-wrap:anywhere}
+.gates li::marker{font:900 20px/1 var(--display)}
+#tested-body{margin-top:10px}
+.vocab{margin:0 0 12px}
+.vocab .vh{margin:10px 0 6px;font-size:12px;font-weight:900;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+.verdictbox .dig{display:block;font-size:12px;overflow-wrap:anywhere}
+.verdictbox small{overflow-wrap:anywhere;font-weight:600}
+/* window picker: same pill look as the court's rubric picker */
+.windows{border:0;padding:0;margin:0 0 12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.windows legend{font-weight:800;font-size:14px;padding:0;margin:0 0 6px;width:100%}
+.windows input{position:absolute;opacity:0;pointer-events:none}
+.windows label{display:block;padding:6px 12px;border:2px solid var(--fg);border-radius:999px;font-weight:700;cursor:pointer;font-size:14px}
+.windows input:checked + label{background:var(--fg);color:var(--bg)}
+.windows input:focus-visible + label{outline:3px solid var(--rule);outline-offset:3px}
+/* most-sighted chart: text carries every value; the bar is decoration */
+.bars{margin:0}
+.bars figcaption{font-weight:700;font-size:15px;margin:0 0 10px}
+.barlist{list-style:none;margin:0;padding:0;display:grid;gap:12px}
+.barlist li{display:grid;grid-template-columns:minmax(0,1fr);gap:4px;min-width:0}
+.bl{font-weight:800;font-size:14px;overflow-wrap:anywhere}
+.bl small{display:block;font-weight:500;color:var(--muted);font-size:13px}
+.bt{display:block;height:14px;border-radius:4px;background:var(--line);overflow:hidden}
+.bf{display:block;height:100%;min-width:4px;background:var(--fg);border-radius:4px}
+.bn{font-size:13px}
+.bn b{font:900 22px/1 var(--display);margin-right:2px}
+.bn small{color:var(--muted);font-size:13px}
+.pattern details.hist{margin-top:8px}
+.pattern .ladder{margin:6px 0 0}
+.txs .intent{color:var(--muted);overflow-wrap:anywhere}
+.links{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.links li{border-left:4px solid var(--fg);padding:2px 10px;min-width:0}
+.links a{font-weight:800}
+.links span{display:block;font-size:14px;color:var(--muted);overflow-wrap:anywhere}
