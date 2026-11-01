@@ -24,29 +24,35 @@ Asking one company's chatbot, or a stranger online, "is this a scam?" means trus
 * Ties in a panel resolve to SUS (the cautious middle).
 * Redaction is best-effort. It can miss a person's name, which is why the panel's refusal gate exists. The design brief originally kept Red Flag Court off-chain and private for this reason. The on-chain version is a separate, consented, redacted path, and the off-chain relayer flow is unchanged.
 
-## Evidence (studionet, throwaway deployment `0xBaF13Ec3fe990868804f69aB2b53558F0ADE81CE`)
+## Evidence (studionet, throwaway deployment `0x5eDbd538e7fc22F07a01d86051c0B82e230C14be`, 2026-11-01)
 
-Full record: [docs/live/red-flag-court-run.json](live/red-flag-court-run.json) and [docs/live/red-flag-court-browser-run.json](live/red-flag-court-browser-run.json). The stored code matches `contracts/red_flag_court.py` (canonical sha256, `code_pin: match`).
+Full record: [docs/live/red-flag-court-run.json](live/red-flag-court-run.json) and [docs/live/red-flag-court-browser-run.json](live/red-flag-court-browser-run.json). The stored code matches `contracts/red_flag_court.py` (canonical sha256 `19d50b70…cf9e`, `code_pin: match`).
+
+This redeploy exists because the source changed: `_INVISIBLE_RE` now lists the zero-width and bidi characters it strips as `\u` escapes instead of literal characters, so GitHub no longer shows a hidden-Unicode warning on this file. The regex is identical (`contracts/tests/static/test_no_hidden_unicode.py` checks both).
 
 | Step | Tx | Result |
 |---|---|---|
-| Deploy (relayer key) | `0x6402a08ed36f2cbd0e6600e80f1c3a4162905d3f5521622c8fe08ef21708613b` | FINALIZED · SUCCESS |
-| 1. Redacted parcel-fee message | `0xaba4140bbfd5c7a63f9caff373e25584d8dbcfd50fe33f313ff4e4bfa6ac711c` | FINALIZED · SUCCESS, **SCAM**, validators agree 3 / idle 2 |
-| 2. Ordinary message between friends | `0xb5da0e9736471f8009ece660e5318f6c9a6d0457b50a49fdc879212b671412af` | FINALIZED · SUCCESS, **LEGIT** |
-| 3. Unredacted message (digits and a domain) | `0x68ed1308bed4919ddccb4bca67ca7117e41f101d55b818b04b40aee925db4a63` | FINALIZED · ERROR, `[REJECTED] text is not redacted (digits)`, as designed |
-| 4. Appeal of check 1 to 3 analysts | `0x90b427731df32f185dd45db0da3ba7e537ecd5ab6baade67e5ecd1b650c56d3a` | FINALIZED · SUCCESS, **SCAM 3-0** |
-| 5. Opt-in share (creator) | `0xb4a8e744fb5d09c05c8f1dc83c60a54b96711d91b5b8648a4138a6fc333bb1fb` | FINALIZED · SUCCESS |
-| 6. Relayer submits the abstract pattern to the owner PatternLedger `0x59C6…aE4D` | `0x0281b4d7cc547dd35e3e10bbf144d37c08a47cf391e510cff98eedd319c2b0a2` | FINALIZED · SUCCESS; PatternLedger's validators judged it the same pattern as #1, so it counted as a **sighting of pattern #1** |
-| 7. `mark_shared(1, 1)` | `0x4b1980174e885ce97e485cfa3a847a79000e42ec9c2928bda1172fc3fe5089af` | FINALIZED · SUCCESS, check 1 now links to ledger pattern #1 |
-| Browser-signed check (visitor burner, `?redflag=1`, Playwright) | `0x0fe86098a425ad7925df8591667688abc37d9a5fd1c9bfb5cfb02bf30c114d67` | **SCAM**, check #3 |
+| Deploy (relayer key) | `0xd9be31214f49bb82687f0e4d1c750a976a9ffe12b2370554bd6be9cfac636dae` | FINALIZED · SUCCESS |
+| 1. Redacted parcel-fee message | `0xdd4cbe199ec2ac28f87d747899efe66ed688258386d16db1f45728c217524c3b` | FINALIZED · SUCCESS, **SCAM**, validators agree 4 / idle 1 |
+| 2. Ordinary message between friends | `0x554c497106445bdf7af510ed196927641548957dfa19f99ccad033c84b686fe6` | FINALIZED · SUCCESS, **LEGIT** |
+| 3. Unredacted message (digits and a domain) | `0x471245103b36340c9e9aa5df28cbe99fc3b35c836ef3c70c13a37768455be19e` | FINALIZED · ERROR, `[REJECTED] text is not redacted (digits); redact it first`, as designed |
+| 4. Appeal of check 1 to 3 analysts | `0xf495737edb9f712fc7945b229dea523b08e359547a1136bac0e052a8bc52bb2d` | FINALIZED · SUCCESS, **SCAM 3-0**; validators agree 3 / disagree 1 / idle 1 |
+| 5. Opt-in share (creator) | `0xa60d9028beb7a863df7a0cceeb60c72b1c2b4130e9127ad56eee8ca78acbf485` | FINALIZED · SUCCESS |
+| 6. Relayer submits the abstract pattern to the owner PatternLedger `0x59C6…aE4D` | `0x47b6b0e3248d9c28bdb6f52914e2b372010f67b5f31d9b1734feb8e5970221bc` | FINALIZED · SUCCESS; counted as a **sighting of pattern #1** |
+| 7. `mark_shared(1, 1)` | `0xd12332d0952f9e7643edfa91f56d4cf16d7be291b021f1d82ce3e2d082b2858d` | FINALIZED · SUCCESS, check 1 now links to ledger pattern #1 |
+| Browser-signed check (visitor burner, `?redflag=1`, Playwright) | `0x6a26150cfce0977aba57665f5ac02c60696e2414ce5fbdeffe46289887474203` | **SCAM**; the page's status rail ended on Final |
 
 Note: step 6 wrote to the **owner** PatternLedger with the relayer key, the role that contract gives the relayer. Pattern #1's sighting count went up by one.
 
+### Earlier throwaway deployment `0xBaF13Ec3fe990868804f69aB2b53558F0ADE81CE` (2026-11-01, superseded)
+
+Same 8-step run on the previous source (literal characters in `_INVISIBLE_RE`): deploy `0x6402a08e…613b`; SCAM `0xaba4140b…711c`; LEGIT `0xb5da0e97…12af`; refused unredacted `0x68ed1308…4a63`; appeal SCAM 3-0 `0x90b42773…6d3a`; opt-in `0xb4a8e744…b1fb`; ledger sighting `0x0281b4d7…a0a2`; mark_shared `0x4b198017…89af`; browser check `0x0fe86098…4d67`. Records: [red-flag-court-run-0xBaF13Ec3.json](live/red-flag-court-run-0xBaF13Ec3.json), [red-flag-court-browser-run-0xBaF13Ec3.json](live/red-flag-court-browser-run-0xBaF13Ec3.json).
+
 ## How to verify
 
-1. Source and tests: `git checkout milestone-1 && bash scripts/verify.sh`. It runs genvm-lint check and typecheck on all three contracts, and the direct-mode suite against the real GenVM SDK with the LLM mocked. That suite includes `contracts/tests/direct/test_red_flag_court.py`: 34 tests covering consensus agree and disagree, the privacy gates, appeals, ties and opt-in.
+1. Source and tests: `git checkout milestone-1 && bash scripts/verify.sh`. It runs genvm-lint check and typecheck on all three contracts, and the direct-mode suite against the real GenVM SDK with the LLM mocked. That suite includes `contracts/tests/direct/test_red_flag_court.py`: 34 tests covering consensus agree and disagree, the privacy gates, appeals, ties and opt-in. `contracts/tests/static/test_no_hidden_unicode.py` checks that the file has no hidden or bidirectional Unicode characters.
 2. Web: build the branch and open `web/dist/index.html?redflag=1` (or the Pages site once merged). Click "Fill in a sample message". The preview shows the exact redacted text. Tick both boxes and click "Ask the court".
-3. Chain: call `get_check(1)`, `list_recent(10)` and `get_config` on `0xBaF13Ec3fe990868804f69aB2b53558F0ADE81CE` in GenLayer Studio, and `get_pattern(1)` on PatternLedger `0x59C6047571bCE66828C733330fc9B5C88afEaE4D`.
+3. Chain: call `get_check(1)`, `list_recent(10)` and `get_config` on `0x5eDbd538e7fc22F07a01d86051c0B82e230C14be` in GenLayer Studio, and `get_pattern(1)` on PatternLedger `0x59C6047571bCE66828C733330fc9B5C88afEaE4D`.
 
 ## Still to do before submitting as a Milestone
 

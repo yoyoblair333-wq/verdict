@@ -742,6 +742,9 @@ test("browser (offline): flag on -> scam check redacts before sending, says what
   assert.match(preview, /\[AMOUNT\]|\[NUMBER\]/);
   assert.match(await page.locator("#rf-removed").textContent(), /removed/);
   assert.equal(await page.locator("#rf-issue").textContent(), "");
+  assert.match(await page.locator("#rf-count").textContent(), /^\d+ \/ 600 characters after redaction$/);
+  assert.match(await page.locator("#rf-burner").textContent(), /testnet account 0x/);
+  assert.equal(await page.locator("#rf-rail").isHidden(), true, "status rail stays hidden until something is sent");
   // Unticked consent is caught before anything is signed.
   await page.click("#rf-send");
   assert.match(await page.locator("#rf-formerr").textContent(), /consent/);
@@ -750,6 +753,29 @@ test("browser (offline): flag on -> scam check redacts before sending, says what
   assert.deepEqual(ax, [], ax.join("; "));
   const { sw, iw } = await page.evaluate(() => ({ sw: document.documentElement.scrollWidth, iw: window.innerWidth }));
   assert.ok(sw <= iw, `scrollWidth ${sw} > ${iw}`);
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test("browser (offline): Red Flag Court preview passes axe in dark mode at 375px and flags an over-long message", async () => {
+  const ctx = await browser.newContext({ viewport: { width: 375, height: 812 }, serviceWorkers: "block", colorScheme: "dark" });
+  const page = await ctx.newPage();
+  const errors = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  await ctx.route((u) => !u.href.startsWith(url), (r) => r.abort());
+  await page.route("**/verdict/snapshot.json", (r) => r.fulfill({ contentType: "application/json", body: JSON.stringify(stub) }));
+  await page.goto(`${url}?redflag=1`, { waitUntil: "domcontentloaded" });
+  await page.waitForSelector("#redflag:not([hidden])", { timeout: 30_000 });
+  await page.fill("#rf-text", "Your account is locked. ".repeat(40));
+  assert.equal(await page.locator("#rf-count").getAttribute("data-over"), "true");
+  await page.check("#rf-consent");
+  await page.check("#rf-adult");
+  await page.click("#rf-send");
+  assert.match(await page.locator("#rf-formerr").textContent(), /Too long: 600 characters/);
+  assert.equal(await page.locator("#rf-rail").isHidden(), true, "nothing was sent");
+  await page.locator('#rf-recent .errbox[role="alert"]').waitFor({ timeout: 30_000 });
+  const ax = await axeScan(page);
+  assert.deepEqual(ax, [], ax.join("; "));
   assert.deepEqual(errors, []);
   await ctx.close();
 });

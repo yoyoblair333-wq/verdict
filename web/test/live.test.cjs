@@ -237,6 +237,7 @@ async function main() {
       await page.waitForSelector("#rf-result .rfcheck", { timeout: 15 * 60_000 });
       const label = await page.locator("#rf-result .rfcheck").getAttribute("data-label");
       assert.ok(["SCAM", "SUS", "LEGIT"].includes(label), label);
+      assert.equal(await page.locator('#rf-rail li[data-k="final"]').getAttribute("class"), "done", "the status rail ends on Final");
       console.log(`      label ${label}; ${(await page.locator("#rf-log").innerText()).replace(/\n/g, " | ")}`);
       await page.locator("#redflag").screenshot({ path: path.join(OUT, "redflag-375.png") });
       const hashes = await page.$$eval("#rf-log a code", (els) => els.map((e) => e.closest("a").href.split("/").pop()));

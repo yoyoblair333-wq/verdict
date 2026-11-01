@@ -4,7 +4,7 @@
 // page's own testnet burner. The pasted message is redacted HERE, the visitor
 // sees the exact text that will be published, and only that text is sent.
 
-import { createAccount, createClient } from "genlayer-js";
+import { createAccount, createClient, generatePrivateKey } from "genlayer-js";
 import { studionet } from "genlayer-js/chains";
 import { transactionsStatusNumberToName } from "genlayer-js/types";
 import * as C from "./config.js";
@@ -27,6 +27,31 @@ let write;
 let account;
 let busy = false;
 let lastId = 0;
+let burnerPersisted = true;
+// A sent transaction the network has not finalized yet. "Check again" re-tracks
+// THIS hash instead of sending a second transaction.
+let pending = null;
+const MAX_CHARS = 600;
+const STAGES = ["submitted", "judging", "agreeing", "final"];
+
+function setRail(stage, bad = false) {
+  const rail = $("rf-rail");
+  if (!rail) return;
+  rail.hidden = false;
+  const idx = STAGES.indexOf(stage);
+  for (const li of rail.children) {
+    const i = STAGES.indexOf(li.dataset.k);
+    li.className = i < idx || (i === idx && stage === "final" && !bad) ? "done" : i === idx ? (bad ? "bad" : "now") : "";
+  }
+}
+
+/** Map a tracked status to a rail stage. */
+function stageOf(c) {
+  if (c.finality === "FINALIZED_SUCCESS") return "final";
+  if (c.chainStatus === "ACCEPTED" || c.chainStatus === "FINALIZED") return "agreeing";
+  if (["PROPOSING", "COMMITTING", "REVEALING", "PENDING"].includes(c.chainStatus)) return "judging";
+  return "submitted";
+}
 
 /** Re-draw the visitor's own result once nothing is in flight (shows its actions). */
 async function redrawResult() {
@@ -45,12 +70,19 @@ function plain(v) {
 }
 const view = async (fn, args = []) => plain(await withTimeout(read.readContract({ address: C.REDFLAG_ADDRESS, functionName: fn, args }), readTimeoutMs(), "Reading the court"));
 
+/** The page's shared testnet burner (same storage format as app.js); made here if missing. */
 function burnerAccount() {
   try {
     const b = JSON.parse(localStorage.getItem(C.BURNER_KEY) ?? "null");
     if (b && /^0x[0-9a-fA-F]{64}$/.test(b.privateKey)) return createAccount(b.privateKey);
   } catch { /* storage unavailable */ }
-  return null;
+  const fresh = { privateKey: generatePrivateKey(), label: "testnet only, no value", network: C.NETWORK, createdAt: new Date().toISOString() };
+  try {
+    localStorage.setItem(C.BURNER_KEY, JSON.stringify(fresh));
+  } catch {
+    burnerPersisted = false; // works for this tab only
+  }
+  return createAccount(fresh.privateKey);
 }
 
 function errBox(info, onRetry) {
@@ -80,18 +112,54 @@ function status(msg) {
   $("rf-status").textContent = msg;
 }
 
-async function sendAndWait(fn, args, what) {
-  const hash = await write.writeContract({ address: C.REDFLAG_ADDRESS, functionName: fn, args, value: 0n });
-  $("rf-log").append(h("li", {}, `${what}: sent `, h("a", { href: C.EXPLORER_TX(hash), target: "_blank", rel: "noopener" }, h("code", {}, short(hash)))));
-  const { c, tx } = await track(hash, (s) => status(`${what}: ${s.chainStatus.toLowerCase()}…`));
+async function waitFor(hash, what) {
+  const { c, tx } = await track(hash, (s) => {
+    setRail(stageOf(s));
+    status(`${what}: ${s.chainStatus.toLowerCase()}…`);
+  });
+  if (c.finality === "STALE") pending = { hash, what };
+  else pending = null;
   if (c.finality !== "FINALIZED_SUCCESS") {
-    const e = new Error(`${fn} ${c.chainStatus}`);
+    setRail(stageOf(c), c.finality !== "STALE");
+    const e = new Error(`${what}: ${c.chainStatus}`);
     e.outcome = { finality: c.finality, execution: c.execution, reason: c.execution === "ERROR" ? revertReason(tx) : "" };
     throw e;
   }
   const v = voteSummary(tx);
+  setRail("final");
   status(`${what}: final${v ? ` · validators ${v}` : ""}`);
   return hash;
+}
+
+async function sendAndWait(fn, args, what) {
+  setRail("submitted");
+  const hash = await write.writeContract({ address: C.REDFLAG_ADDRESS, functionName: fn, args, value: 0n });
+  $("rf-log").append(h("li", {}, `${what}: sent `, h("a", { href: C.EXPLORER_TX(hash), target: "_blank", rel: "noopener" }, h("code", {}, short(hash)))));
+  return waitFor(hash, what);
+}
+
+/** Re-check a stale transaction without sending a new one. */
+async function recheck(after) {
+  if (busy || !pending) return;
+  busy = true;
+  $("rf-err").replaceChildren();
+  const p = pending;
+  try {
+    await waitFor(p.hash, p.what);
+    await after?.();
+  } catch (e) {
+    $("rf-err").replaceChildren(errBox(classifyError(e, e.outcome ?? {}), retryFor(e, () => recheck(after), after)));
+  } finally {
+    busy = false;
+    $("rf-send").disabled = false;
+    await redrawResult();
+    renderRecent();
+  }
+}
+
+/** Stale -> re-track the same hash; anything else -> the caller's retry. */
+function retryFor(e, onRetry, after) {
+  return e.outcome?.finality === "STALE" ? () => recheck(after) : onRetry;
 }
 
 function checkCard(c, mine) {
@@ -127,7 +195,7 @@ async function act(fn, args, what, id) {
     await sendAndWait(fn, args, what);
     lastId = id;
   } catch (e) {
-    $("rf-err").replaceChildren(errBox(classifyError(e, e.outcome ?? {}), () => act(fn, args, what, id)));
+    $("rf-err").replaceChildren(errBox(classifyError(e, e.outcome ?? {}), retryFor(e, () => act(fn, args, what, id), async () => { lastId = id; })));
   } finally {
     busy = false;
     await redrawResult();
@@ -141,6 +209,12 @@ function updatePreview() {
   $("rf-removed").textContent = r.text ? `${r.removed} detail${r.removed === 1 ? "" : "s"} removed${r.warning ? `. ${r.warning}` : ""}` : "";
   const bad = r.issue ? `This text would still be refused (${r.issue}). Edit it and remove the detail by hand.` : "";
   $("rf-issue").textContent = bad;
+  const n = [...r.text].length;
+  const cnt = $("rf-count");
+  if (cnt) {
+    cnt.textContent = `${n} / ${MAX_CHARS} characters after redaction`;
+    cnt.dataset.over = String(n > MAX_CHARS);
+  }
   return r;
 }
 
@@ -154,19 +228,22 @@ async function onSend(ev) {
   if (!$("rf-consent").checked) return (formErr.textContent = "Please tick the publishing consent box.");
   if (!$("rf-adult").checked) return (formErr.textContent = "18+ only.");
   if ([...r.text].length < 10) return (formErr.textContent = "Paste a longer message (at least 10 characters).");
-  if ([...r.text].length > 600) return (formErr.textContent = "Too long: 600 characters at most after redaction.");
+  if ([...r.text].length > MAX_CHARS) return (formErr.textContent = `Too long: ${MAX_CHARS} characters at most after redaction.`);
   if (r.issue) return (formErr.textContent = $("rf-issue").textContent);
   busy = true;
   $("rf-send").disabled = true;
   $("rf-log").replaceChildren();
   const requestKey = `web_${crypto.getRandomValues(new Uint8Array(12)).reduce((s, b) => s + b.toString(16).padStart(2, "0"), "")}`;
-  try {
-    await sendAndWait("open_check", [r.text, requestKey, true, true], "Ask the court");
+  const lookup = async () => {
     const found = await view("get_check_by_request_key", [account.address, requestKey]);
     if (!found.check_id) throw new Error("the new check is not visible yet; try again in a minute");
     lastId = found.check_id;
+  };
+  try {
+    await sendAndWait("open_check", [r.text, requestKey, true, true], "Ask the court");
+    await lookup();
   } catch (e) {
-    $("rf-err").replaceChildren(errBox(classifyError(e, e.outcome ?? {}), () => $("rf-form").requestSubmit()));
+    $("rf-err").replaceChildren(errBox(classifyError(e, e.outcome ?? {}), retryFor(e, () => $("rf-form").requestSubmit(), lookup)));
   } finally {
     busy = false;
     $("rf-send").disabled = false;
@@ -197,7 +274,9 @@ export function init() {
   $("rf-text").addEventListener("input", updatePreview);
   $("rf-sample").addEventListener("click", () => { $("rf-text").value = SAMPLE; updatePreview(); });
   $("rf-form").addEventListener("submit", onSend);
-  if (!account) $("rf-send").disabled = true;
+  $("rf-burner").textContent = burnerPersisted
+    ? `Signed by this browser's testnet account ${short(account.address)} (no real value).`
+    : "Browser storage is off, so this tab uses a temporary testnet account that disappears when you close it.";
   updatePreview();
   renderRecent();
 }

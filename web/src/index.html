@@ -98,11 +98,19 @@
         <p class="quote" id="rf-preview"></p>
         <p class="meta" id="rf-removed"></p>
         <p class="err" id="rf-issue"></p>
+        <p class="sub count" id="rf-count" aria-live="polite"></p>
       </div>
       <label class="check"><input type="checkbox" id="rf-consent"> <span>I understand the <b>redacted</b> text above will be published on a <b>public test blockchain</b> and <b>cannot be erased</b>. It names no private person.</span></label>
       <label class="check"><input type="checkbox" id="rf-adult"> <span>I am <b>18 or older</b>.</span></label>
       <p class="err" id="rf-formerr" role="alert"></p>
       <button class="cta" id="rf-send" type="submit">Ask the court</button>
+      <p class="sub" id="rf-burner"></p>
+      <ol class="rail" id="rf-rail" aria-label="Scam check status" hidden>
+        <li data-k="submitted"><i></i>Submitted</li>
+        <li data-k="judging"><i></i>Analyst judging</li>
+        <li data-k="agreeing"><i></i>Network agreeing</li>
+        <li data-k="final"><i></i>Final</li>
+      </ol>
       <p class="sub" id="rf-status" aria-live="polite"></p>
     </form>
     <ul class="log" id="rf-log" aria-live="polite"></ul>

@@ -59,5 +59,5 @@ export const MY_CASES_KEY = "verdict.my-cases.v1";
 // test deployment from the relayer key; the owner deployment is a later step
 // (deploy/OWNER_DEPLOY.md). The section is off unless REDFLAG_ENABLED or the
 // page URL carries ?redflag=1.
-export const REDFLAG_ADDRESS = "0xBaF13Ec3fe990868804f69aB2b53558F0ADE81CE";
+export const REDFLAG_ADDRESS = "0x5eDbd538e7fc22F07a01d86051c0B82e230C14be";
 export const REDFLAG_ENABLED = false;

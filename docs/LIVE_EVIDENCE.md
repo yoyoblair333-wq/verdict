@@ -151,7 +151,9 @@ The earlier PatternLedger `0x8af622094205440f120F4096151F0aaBBcf14fDF` (owned by
 
 ## Red Flag Court (Milestone 1 candidate, throwaway deployment)
 
-`contracts/red_flag_court.py` at `0xBaF13Ec3fe990868804f69aB2b53558F0ADE81CE`, deployed from the relayer key as a **test** deployment (deploy tx `0x6402a08ed36f2cbd0e6600e80f1c3a4162905d3f5521622c8fe08ef21708613b`, FINALIZED). Code pin: match. Eight transactions: SCAM, LEGIT, an unredacted text refused on-chain, an appeal to 3 analysts (SCAM 3-0), an opt-in, the relayer sharing the abstract pattern to the owner PatternLedger (counted as a sighting of pattern #1), and `mark_shared`. Plus one browser-signed check. All are listed with hashes and results in [docs/MILESTONE_1.md](MILESTONE_1.md). Raw record: [docs/live/red-flag-court-run.json](live/red-flag-court-run.json).
+`contracts/red_flag_court.py` at `0x5eDbd538e7fc22F07a01d86051c0B82e230C14be`, deployed from the relayer key as a **test** deployment (deploy tx `0xd9be31214f49bb82687f0e4d1c750a976a9ffe12b2370554bd6be9cfac636dae`, FINALIZED). Code pin: match. Eight transactions: SCAM, LEGIT, an unredacted text refused on-chain, an appeal to 3 analysts (SCAM 3-0), an opt-in, the relayer sharing the abstract pattern to the owner PatternLedger (counted as a sighting of pattern #1), and `mark_shared`. Plus one browser-signed check (SCAM). All are listed with hashes and results in [docs/MILESTONE_1.md](MILESTONE_1.md). Raw record: [docs/live/red-flag-court-run.json](live/red-flag-court-run.json).
+
+It replaces the first test deployment `0xBaF13Ec3fe990868804f69aB2b53558F0ADE81CE`. The only source change is that the zero-width and bidi characters `_INVISIBLE_RE` strips are now written as `\u` escapes, so GitHub shows no hidden-Unicode warning on this file. The earlier run is kept in `docs/live/red-flag-court-run-0xBaF13Ec3.json`.
 
 ## Earlier deployment (2026-10-31, `0x3f867934247d88Aa3134d897a9246cfB1324B1Fa`)
 
