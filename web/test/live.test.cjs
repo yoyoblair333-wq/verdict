@@ -221,6 +221,30 @@ async function main() {
     await ctx.close();
   }
 
+  if (process.env.VERDICT_REDFLAG_WRITE === "1") {
+    const ctx = await browser.newContext({ viewport: { width: 375, height: 812 }, deviceScaleFactor: 2 });
+    const page = await ctx.newPage();
+    page.on("pageerror", (e) => errors.push(`redflag: ${e.message}`));
+    await step("redflag (flag on): visitor-signed scam check runs end to end on studionet", async () => {
+      await page.goto(url + "?redflag=1#redflag", { waitUntil: "domcontentloaded" });
+      await page.waitForSelector("#redflag:not([hidden])", { timeout: 30_000 });
+      await page.click("#rf-sample");
+      const preview = await page.locator("#rf-preview").textContent();
+      assert.doesNotMatch(preview, /\d|@|parcel-help/, "the preview must already be redacted");
+      await page.check("#rf-consent");
+      await page.check("#rf-adult");
+      await page.click("#rf-send");
+      await page.waitForSelector("#rf-result .rfcheck", { timeout: 15 * 60_000 });
+      const label = await page.locator("#rf-result .rfcheck").getAttribute("data-label");
+      assert.ok(["SCAM", "SUS", "LEGIT"].includes(label), label);
+      console.log(`      label ${label}; ${(await page.locator("#rf-log").innerText()).replace(/\n/g, " | ")}`);
+      await page.locator("#redflag").screenshot({ path: path.join(OUT, "redflag-375.png") });
+      const hashes = await page.$$eval("#rf-log a code", (els) => els.map((e) => e.closest("a").href.split("/").pop()));
+      fs.writeFileSync(path.join(OUT, "redflag-browser-run.json"), JSON.stringify({ label, txs: hashes, at: new Date().toISOString() }, null, 1));
+    });
+    await ctx.close();
+  }
+
   await step("no uncaught page errors", async () => assert.deepEqual(errors, []));
   await browser.close();
   srv.close();

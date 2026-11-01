@@ -17,7 +17,7 @@ import { test, before, after } from "node:test";
 import { fileURLToPath } from "node:url";
 import pw from "playwright";
 import { CONTRACT_ADDRESS, CONTRACT_CODE_DIGEST, LEDGER_ADDRESS, OWNER_ADDRESS as OWNER, RELAYER_ADDRESS } from "../src/config.js";
-import { hideDecision } from "../src/lib/display.js"; import { classifyError, withTimeout, SlowError } from "../src/lib/errors.js"; import { pickProof, proofSentence, proofVotes } from "../src/lib/proof.js"; import { categoryLabel, flagLabel, sinceIso, submissionLabel, writersLine } from "../src/lib/ledger.js";
+import { hideDecision } from "../src/lib/display.js"; import { classifyError, withTimeout, SlowError } from "../src/lib/errors.js"; import { redactForChain, screen as chainScreen } from "../src/lib/chainredact.js"; import { pickProof, proofSentence, proofVotes } from "../src/lib/proof.js"; import { categoryLabel, flagLabel, sinceIso, submissionLabel, writersLine } from "../src/lib/ledger.js";
 import { groupCases, idsToFetch, isRelayerCase, provenanceLabel, receiptDisplay, tierStatus, VISITOR_LINE } from "../src/lib/gallery.js";
 import { buildPackage, canonicalCodeText, canonicalize, codeDigest, sanitiseText, sha256Hex } from "../src/lib/package.js";
 import { ALL_TEST_REFS, BANNED, compareCode, juryChecks, NOT_YET, revokeChecks, summarizeTx, tally, trustPlan } from "../src/lib/trust.js";
@@ -688,5 +688,68 @@ test("a11y: keyboard - first Tab lands on 'Skip to content', which moves focus i
     .filter((el) => !(el.labels?.length || el.getAttribute("aria-label") || el.textContent.trim()))
     .map((el) => el.id || el.name));
   assert.deepEqual(unlabeled, []);
+  await ctx.close();
+});
+
+
+// ------------------------------------------- Red Flag Court preview (Milestone 1)
+
+test("redflag: the browser screen is the contract's screen (fixtures/pattern-screen.json)", () => {
+  const fx = JSON.parse(fs.readFileSync(path.join(ROOT, "fixtures/pattern-screen.json"), "utf8"));
+  for (const c of fx.cases) assert.equal(chainScreen(c.clean ?? c.input), c.reason, c.name);
+});
+
+test("redflag: chain redaction leaves nothing the contract would refuse (redaction fixtures + hostile samples)", () => {
+  const fx = JSON.parse(fs.readFileSync(path.join(ROOT, "fixtures/redaction.json"), "utf8"));
+  const inputs = (fx.cases ?? fx).map((c) => c.input ?? c.in ?? c.text).filter(Boolean);
+  inputs.push(
+    "URGENT: your parcel is on hold. Pay the 1.99 redelivery fee at parcel-help.co/pay within 1 hour.",
+    "Pay $49 at https://x.co/a or call 555-123-4567, mail bob@x.com, 2 euros, ref A1B2, ٣ days, www.example.org",
+    "Send 0.5 BTC to win €1,000,000 dot com support",
+  );
+  for (const i of inputs) {
+    const r = redactForChain(i);
+    assert.equal(r.issue, "", `${i} -> ${r.text}`);
+    assert.equal(chainScreen(r.text), "");
+  }
+  const r = redactForChain("Pay $49 at https://x.co/a or call 555-123-4567, mail bob@x.com");
+  assert.match(r.text, /\[AMOUNT\]/);
+  assert.match(r.text, /\[LINK\]/);
+  assert.match(r.text, /\[EMAIL\]/);
+  assert.ok(r.removed >= 4);
+});
+
+test("browser (offline): Red Flag Court preview stays hidden unless the flag is on", async () => {
+  const { ctx, page, errors } = await stubbedPage();
+  assert.equal(await page.locator("#redflag").isHidden(), true);
+  assert.equal(await page.locator("#nav-redflag").isHidden(), true);
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test("browser (offline): flag on -> scam check redacts before sending, says what is published, admits the network is down", async () => {
+  const ctx = await browser.newContext({ viewport: { width: 375, height: 812 }, serviceWorkers: "block" });
+  const page = await ctx.newPage();
+  const errors = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  await ctx.route((u) => !u.href.startsWith(url), (r) => r.abort());
+  await page.route("**/verdict/snapshot.json", (r) => r.fulfill({ contentType: "application/json", body: JSON.stringify(stub) }));
+  await page.goto(`${url}?redflag=1`, { waitUntil: "domcontentloaded" });
+  await page.waitForSelector("#redflag:not([hidden])", { timeout: 30_000 });
+  await page.click("#rf-sample");
+  const preview = await page.locator("#rf-preview").textContent();
+  assert.doesNotMatch(preview, /\d|@|parcel-help/);
+  assert.match(preview, /\[AMOUNT\]|\[NUMBER\]/);
+  assert.match(await page.locator("#rf-removed").textContent(), /removed/);
+  assert.equal(await page.locator("#rf-issue").textContent(), "");
+  // Unticked consent is caught before anything is signed.
+  await page.click("#rf-send");
+  assert.match(await page.locator("#rf-formerr").textContent(), /consent/);
+  await page.locator('#rf-recent .errbox[role="alert"]').waitFor({ timeout: 30_000 });
+  const ax = await axeScan(page);
+  assert.deepEqual(ax, [], ax.join("; "));
+  const { sw, iw } = await page.evaluate(() => ({ sw: document.documentElement.scrollWidth, iw: window.innerWidth }));
+  assert.ok(sw <= iw, `scrollWidth ${sw} > ${iw}`);
+  assert.deepEqual(errors, []);
   await ctx.close();
 });

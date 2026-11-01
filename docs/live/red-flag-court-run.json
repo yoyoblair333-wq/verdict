@@ -1,0 +1,476 @@
+{
+ "network": "studionet",
+ "contract_file": "contracts/red_flag_court.py",
+ "contract_code_sha256": "1691108ad0e62672f97827a69837266bfe3d974da016492e46f9def4ca5b67a7",
+ "deployer": "0x34653Fb290480a8C99B4D92D4857123B5624c37d",
+ "note": "THROWAWAY test deployment from the relayer key. The owner deployment (from the owner's wallet) is a later step: deploy/OWNER_DEPLOY.md.",
+ "pattern_ledger": "0x59C6047571bCE66828C733330fc9B5C88afEaE4D",
+ "startedAt": "2026-11-01T04:31:31.421Z",
+ "deploy": {
+  "tx": "0x6402a08ed36f2cbd0e6600e80f1c3a4162905d3f5521622c8fe08ef21708613b",
+  "status": "ACCEPTED",
+  "execution": "SUCCESS",
+  "final_status": "FINALIZED",
+  "final_execution": "SUCCESS"
+ },
+ "steps": [
+  {
+   "label": "1-scam",
+   "intent": "redacted parcel-fee message (expect SCAM or SUS)",
+   "fn": "open_check",
+   "contract": "0xBaF13Ec3fe990868804f69aB2b53558F0ADE81CE",
+   "tx": "0xaba4140bbfd5c7a63f9caff373e25584d8dbcfd50fe33f313ff4e4bfa6ac711c",
+   "status": "ACCEPTED",
+   "execution": "SUCCESS",
+   "revert": null,
+   "votes": {
+    "idle": 2,
+    "agree": 3
+   },
+   "at": "2026-11-01T04:31:50.995Z",
+   "final_status": "FINALIZED",
+   "final_execution": "SUCCESS",
+   "finality": "FINALIZED_SUCCESS"
+  },
+  {
+   "label": "2-legit",
+   "intent": "ordinary message between friends (expect LEGIT)",
+   "fn": "open_check",
+   "contract": "0xBaF13Ec3fe990868804f69aB2b53558F0ADE81CE",
+   "tx": "0xb5da0e9736471f8009ece660e5318f6c9a6d0457b50a49fdc879212b671412af",
+   "status": "ACCEPTED",
+   "execution": "SUCCESS",
+   "revert": null,
+   "votes": {
+    "idle": 2,
+    "agree": 3
+   },
+   "at": "2026-11-01T04:32:05.735Z",
+   "final_status": "FINALIZED",
+   "final_execution": "SUCCESS",
+   "finality": "FINALIZED_SUCCESS"
+  },
+  {
+   "label": "3-unredacted",
+   "intent": "unredacted message with digits and a domain (expect [REJECTED])",
+   "fn": "open_check",
+   "contract": "0xBaF13Ec3fe990868804f69aB2b53558F0ADE81CE",
+   "tx": "0x68ed1308bed4919ddccb4bca67ca7117e41f101d55b818b04b40aee925db4a63",
+   "status": "ACCEPTED",
+   "execution": "ERROR",
+   "revert": "[REJECTED] text is not redacted (digits); redact it first",
+   "votes": {
+    "agree": 3,
+    "idle": 2
+   },
+   "at": "2026-11-01T04:32:11.614Z",
+   "final_status": "FINALIZED",
+   "final_execution": "ERROR",
+   "finality": "FINALIZED_ERROR"
+  },
+  {
+   "label": "4-appeal",
+   "intent": "appeal check 1 to the 3-analyst panel",
+   "fn": "appeal",
+   "contract": "0xBaF13Ec3fe990868804f69aB2b53558F0ADE81CE",
+   "tx": "0x90b427731df32f185dd45db0da3ba7e537ecd5ab6baade67e5ecd1b650c56d3a",
+   "status": "ACCEPTED",
+   "execution": "SUCCESS",
+   "revert": null,
+   "votes": {
+    "idle": 2,
+    "agree": 3
+   },
+   "at": "2026-11-01T04:32:38.094Z",
+   "final_status": "FINALIZED",
+   "final_execution": "SUCCESS",
+   "finality": "FINALIZED_SUCCESS"
+  },
+  {
+   "label": "5-share-optin",
+   "intent": "creator opts in to share the abstract pattern",
+   "fn": "set_share",
+   "contract": "0xBaF13Ec3fe990868804f69aB2b53558F0ADE81CE",
+   "tx": "0xb4a8e744fb5d09c05c8f1dc83c60a54b96711d91b5b8648a4138a6fc333bb1fb",
+   "status": "ACCEPTED",
+   "execution": "SUCCESS",
+   "revert": null,
+   "votes": {
+    "agree": 3,
+    "idle": 2
+   },
+   "at": "2026-11-01T04:32:44.056Z",
+   "final_status": "FINALIZED",
+   "final_execution": "SUCCESS",
+   "finality": "FINALIZED_SUCCESS"
+  },
+  {
+   "label": "6-ledger-submit",
+   "intent": "relayer submits the abstract pattern to the owner PatternLedger",
+   "fn": "submit_pattern",
+   "contract": "0x59C6047571bCE66828C733330fc9B5C88afEaE4D",
+   "tx": "0x0281b4d7cc547dd35e3e10bbf144d37c08a47cf391e510cff98eedd319c2b0a2",
+   "status": "ACCEPTED",
+   "execution": "SUCCESS",
+   "revert": null,
+   "votes": {
+    "agree": 3,
+    "idle": 2
+   },
+   "at": "2026-11-01T04:32:54.479Z",
+   "final_status": "FINALIZED",
+   "final_execution": "SUCCESS",
+   "finality": "FINALIZED_SUCCESS"
+  },
+  {
+   "label": "7-mark-shared",
+   "intent": "link the check to its PatternLedger id",
+   "fn": "mark_shared",
+   "contract": "0xBaF13Ec3fe990868804f69aB2b53558F0ADE81CE",
+   "tx": "0x4b1980174e885ce97e485cfa3a847a79000e42ec9c2928bda1172fc3fe5089af",
+   "status": "ACCEPTED",
+   "execution": "SUCCESS",
+   "revert": null,
+   "votes": {
+    "agree": 4,
+    "idle": 1
+   },
+   "at": "2026-11-01T04:33:04.741Z",
+   "final_status": "FINALIZED",
+   "final_execution": "SUCCESS",
+   "finality": "FINALIZED_SUCCESS"
+  }
+ ],
+ "reads": {
+  "check_1_tier1": {
+   "analysts": 1,
+   "category": "delivery",
+   "created_at": "2026-11-01T04:31:37Z",
+   "creator": "0x34653Fb290480a8C99B4D92D4857123B5624c37d",
+   "flag_codes": [
+    "urgency",
+    "upfront_payment",
+    "link_pressure",
+    "impersonation_claim",
+    "threat_of_loss"
+   ],
+   "history": [
+    {
+     "at": "2026-11-01T04:31:37Z",
+     "label": "SCAM",
+     "tier": 1,
+     "votes": [
+      "SCAM"
+     ]
+    }
+   ],
+   "id": 1,
+   "label": "SCAM",
+   "pattern_summary": "Impersonates a delivery service to pressure victims into paying a small fee via a link under an urgent deadline, harvesting payment details.",
+   "reason": "Fake delivery notice demands a small fee via a link under tight time pressure, a classic parcel phishing technique.",
+   "request_key": "live_0ffea72d3615dea10e025b09",
+   "share_opt_in": false,
+   "shared_pattern_id": 0,
+   "status": "judged",
+   "text": "Your parcel is on hold. Pay the small redelivery fee of [AMOUNT] at [LINK] within the hour or it goes back to the sender.",
+   "tier": 1,
+   "updated_at": "2026-11-01T04:31:37Z",
+   "votes": [
+    "SCAM"
+   ]
+  },
+  "check_2": {
+   "analysts": 1,
+   "category": "other",
+   "created_at": "2026-11-01T04:31:52Z",
+   "creator": "0x34653Fb290480a8C99B4D92D4857123B5624c37d",
+   "flag_codes": [],
+   "history": [
+    {
+     "at": "2026-11-01T04:31:52Z",
+     "label": "LEGIT",
+     "tier": 1,
+     "votes": [
+      "LEGIT"
+     ]
+    }
+   ],
+   "id": 2,
+   "label": "LEGIT",
+   "pattern_summary": "",
+   "reason": "This is a normal logistical message with no meaningful scam indicators.",
+   "request_key": "live_c5e061dd7117daa177b97794",
+   "share_opt_in": false,
+   "shared_pattern_id": 0,
+   "status": "judged",
+   "text": "Hey, running late, see you at the cafe in ten minutes. Save me a seat please.",
+   "tier": 1,
+   "updated_at": "2026-11-01T04:31:52Z",
+   "votes": [
+    "LEGIT"
+   ]
+  },
+  "check_1_tier2": {
+   "analysts": 3,
+   "category": "delivery",
+   "created_at": "2026-11-01T04:31:37Z",
+   "creator": "0x34653Fb290480a8C99B4D92D4857123B5624c37d",
+   "flag_codes": [
+    "urgency",
+    "upfront_payment",
+    "link_pressure",
+    "threat_of_loss"
+   ],
+   "history": [
+    {
+     "at": "2026-11-01T04:31:37Z",
+     "label": "SCAM",
+     "tier": 1,
+     "votes": [
+      "SCAM"
+     ]
+    },
+    {
+     "at": "2026-11-01T04:32:11Z",
+     "label": "SCAM",
+     "tier": 2,
+     "votes": [
+      "SCAM",
+      "SCAM",
+      "SCAM"
+     ]
+    }
+   ],
+   "id": 1,
+   "label": "SCAM",
+   "pattern_summary": "A fake delivery problem is used to rush the reader into paying a small fee through a link to avoid losing a parcel.",
+   "reason": "It uses delivery trouble, a rushed deadline, a payment demand, and a link to pressure the reader.",
+   "request_key": "live_0ffea72d3615dea10e025b09",
+   "share_opt_in": false,
+   "shared_pattern_id": 0,
+   "status": "judged",
+   "text": "Your parcel is on hold. Pay the small redelivery fee of [AMOUNT] at [LINK] within the hour or it goes back to the sender.",
+   "tier": 2,
+   "updated_at": "2026-11-01T04:32:11Z",
+   "votes": [
+    "SCAM",
+    "SCAM",
+    "SCAM"
+   ]
+  },
+  "list_shareable": [
+   {
+    "category": "delivery",
+    "flag_codes": [
+     "urgency",
+     "upfront_payment",
+     "link_pressure",
+     "threat_of_loss"
+    ],
+    "id": 1,
+    "pattern_summary": "A fake delivery problem is used to rush the reader into paying a small fee through a link to avoid losing a parcel."
+   }
+  ],
+  "ledger_by_request_key": {
+   "outcome": "sighting",
+   "pattern_id": 1
+  },
+  "check_1_shared": {
+   "analysts": 3,
+   "category": "delivery",
+   "created_at": "2026-11-01T04:31:37Z",
+   "creator": "0x34653Fb290480a8C99B4D92D4857123B5624c37d",
+   "flag_codes": [
+    "urgency",
+    "upfront_payment",
+    "link_pressure",
+    "threat_of_loss"
+   ],
+   "history": [
+    {
+     "at": "2026-11-01T04:31:37Z",
+     "label": "SCAM",
+     "tier": 1,
+     "votes": [
+      "SCAM"
+     ]
+    },
+    {
+     "at": "2026-11-01T04:32:11Z",
+     "label": "SCAM",
+     "tier": 2,
+     "votes": [
+      "SCAM",
+      "SCAM",
+      "SCAM"
+     ]
+    }
+   ],
+   "id": 1,
+   "label": "SCAM",
+   "pattern_summary": "A fake delivery problem is used to rush the reader into paying a small fee through a link to avoid losing a parcel.",
+   "reason": "It uses delivery trouble, a rushed deadline, a payment demand, and a link to pressure the reader.",
+   "request_key": "live_0ffea72d3615dea10e025b09",
+   "share_opt_in": true,
+   "shared_pattern_id": 1,
+   "status": "judged",
+   "text": "Your parcel is on hold. Pay the small redelivery fee of [AMOUNT] at [LINK] within the hour or it goes back to the sender.",
+   "tier": 2,
+   "updated_at": "2026-11-01T04:32:55Z",
+   "votes": [
+    "SCAM",
+    "SCAM",
+    "SCAM"
+   ]
+  },
+  "get_config": {
+   "analyst_names": [
+    "Ines",
+    "Kofi",
+    "Mara",
+    "Theo",
+    "Ravi"
+   ],
+   "categories": [
+    "delivery",
+    "account-lock",
+    "romance",
+    "job",
+    "prize",
+    "investment",
+    "impersonation",
+    "other"
+   ],
+   "flag_codes": [
+    "urgency",
+    "too_good_to_be_true",
+    "upfront_payment",
+    "crypto_only",
+    "off_platform_move",
+    "link_pressure",
+    "code_request",
+    "stranger_friendly",
+    "pay_to_get_paid",
+    "impersonation_claim",
+    "secrecy",
+    "guaranteed_returns",
+    "cant_meet",
+    "threat_of_loss",
+    "talks_to_the_ai",
+    "money_offer"
+   ],
+   "labels": [
+    "SCAM",
+    "SUS",
+    "LEGIT"
+   ],
+   "max_text_chars": 600,
+   "next_id": 3,
+   "owner": "0x34653Fb290480a8C99B4D92D4857123B5624c37d",
+   "paused": false,
+   "placeholders": [
+    "[LINK]",
+    "[NUMBER]",
+    "[AMOUNT]",
+    "[EMAIL]",
+    "[HANDLE]",
+    "[NAME]"
+   ],
+   "relayer": "0x34653Fb290480a8C99B4D92D4857123B5624c37d",
+   "schema": "verdict.red-flag-court.v1",
+   "tier_analysts": {
+    "1": 1,
+    "2": 3,
+    "3": 5
+   }
+  },
+  "list_recent": [
+   {
+    "analysts": 1,
+    "category": "other",
+    "created_at": "2026-11-01T04:31:52Z",
+    "creator": "0x34653Fb290480a8C99B4D92D4857123B5624c37d",
+    "flag_codes": [],
+    "history": [
+     {
+      "at": "2026-11-01T04:31:52Z",
+      "label": "LEGIT",
+      "tier": 1,
+      "votes": [
+       "LEGIT"
+      ]
+     }
+    ],
+    "id": 2,
+    "label": "LEGIT",
+    "pattern_summary": "",
+    "reason": "This is a normal logistical message with no meaningful scam indicators.",
+    "request_key": "live_c5e061dd7117daa177b97794",
+    "share_opt_in": false,
+    "shared_pattern_id": 0,
+    "status": "judged",
+    "text": "Hey, running late, see you at the cafe in ten minutes. Save me a seat please.",
+    "tier": 1,
+    "updated_at": "2026-11-01T04:31:52Z",
+    "votes": [
+     "LEGIT"
+    ]
+   },
+   {
+    "analysts": 3,
+    "category": "delivery",
+    "created_at": "2026-11-01T04:31:37Z",
+    "creator": "0x34653Fb290480a8C99B4D92D4857123B5624c37d",
+    "flag_codes": [
+     "urgency",
+     "upfront_payment",
+     "link_pressure",
+     "threat_of_loss"
+    ],
+    "history": [
+     {
+      "at": "2026-11-01T04:31:37Z",
+      "label": "SCAM",
+      "tier": 1,
+      "votes": [
+       "SCAM"
+      ]
+     },
+     {
+      "at": "2026-11-01T04:32:11Z",
+      "label": "SCAM",
+      "tier": 2,
+      "votes": [
+       "SCAM",
+       "SCAM",
+       "SCAM"
+      ]
+     }
+    ],
+    "id": 1,
+    "label": "SCAM",
+    "pattern_summary": "A fake delivery problem is used to rush the reader into paying a small fee through a link to avoid losing a parcel.",
+    "reason": "It uses delivery trouble, a rushed deadline, a payment demand, and a link to pressure the reader.",
+    "request_key": "live_0ffea72d3615dea10e025b09",
+    "share_opt_in": true,
+    "shared_pattern_id": 1,
+    "status": "judged",
+    "text": "Your parcel is on hold. Pay the small redelivery fee of [AMOUNT] at [LINK] within the hour or it goes back to the sender.",
+    "tier": 2,
+    "updated_at": "2026-11-01T04:32:55Z",
+    "votes": [
+     "SCAM",
+     "SCAM",
+     "SCAM"
+    ]
+   }
+  ]
+ },
+ "contract": "0xBaF13Ec3fe990868804f69aB2b53558F0ADE81CE",
+ "code_pin": {
+  "canonical_sha256": "1691108ad0e62672f97827a69837266bfe3d974da016492e46f9def4ca5b67a7",
+  "source_sha256": "1691108ad0e62672f97827a69837266bfe3d974da016492e46f9def4ca5b67a7",
+  "state": "match"
+ },
+ "finishedAt": "2026-11-01T04:33:34.885Z"
+}

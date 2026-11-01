@@ -92,6 +92,18 @@ If you left `relayer` empty at deploy time:
 1. Send the lead your note: both contract addresses, both deploy transaction hashes, the OWNER ADDRESS, the RELAYER ADDRESS and the digest.
 2. The lead updates `relayer/.env.example`, `docs/LIVE_EVIDENCE.md` and the README contract table from it.
 
+## I. (Milestone 1) Deploy RedFlagCourt from your wallet
+
+RedFlagCourt (`contracts/red_flag_court.py`) is live today only as a THROWAWAY test deployment from the relayer key (`0xBaF13Ec3fe990868804f69aB2b53558F0ADE81CE`, docs/LIVE_EVIDENCE.md). To make your wallet the owner and creator:
+
+1. In GenLayer Studio, with your wallet connected on the GenLayer Studio network, click the new-file icon next to "Your Contracts".
+2. Open https://raw.githubusercontent.com/yoyoblair333-wq/verdict/milestone-1/contracts/red_flag_court.py , press Ctrl+A, then Ctrl+C.
+3. Click inside the new file in Studio, press Ctrl+A, then Ctrl+V.
+4. Click the Run and Debug icon.
+5. In `relayer`, paste `0x34653Fb290480a8C99B4D92D4857123B5624c37d`.
+6. Click Deploy, then Confirm in MetaMask.
+7. Tell Claude "deployed". Claude finds the address from your wallet's transactions, checks `get_config` (owner = your wallet, relayer = the relayer key), points `web/src/config.js` `REDFLAG_ADDRESS` at it and re-runs `scripts/redflag_live.mjs` against it.
+
 ## If the relayer key is ever exposed
 
 1. In Studio, with your own wallet active, call `set_relayer` on JudgeRouter with a new relayer address.

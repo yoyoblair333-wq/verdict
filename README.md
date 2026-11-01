@@ -138,6 +138,10 @@ Three ways in:
 
 ---
 
+## Milestone 1 candidate: Red Flag Court on-chain (branch `milestone-1`)
+
+"Is this message a scam?" as a third Intelligent Contract. The browser redacts the message first, an AI analyst panel rules SCAM, SUS or LEGIT, validators must agree on the label, and the person can appeal to 3, then 5 analysts. They can also opt in to share the abstract pattern with PatternLedger. It is live as a test deployment, and the web section sits behind `?redflag=1`. Details, evidence and honest scope: [docs/MILESTONE_1.md](docs/MILESTONE_1.md).
+
 ## Where VERDICT fits on GenLayer
 
 **Internet Court is for AI agents. VERDICT is the people's court.** It is a consumer app built on GenLayer by an independent developer: free private play stays off-chain and cheap, and every verdict that circulates in public is decided on GenLayer. VERDICT is not affiliated with or endorsed by GenLayer.

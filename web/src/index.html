@@ -25,6 +25,7 @@
       <a href="#record">Record</a>
       <a href="#ledger">Scam ledger</a>
       <a href="#try">Try it</a>
+      <a href="#redflag" id="nav-redflag" hidden>Scam check</a>
       <a href="rig.html" id="nav-rig">Try to rig it</a>
       <a href="ledger.html" id="nav-ledger">Ledger explorer</a>
     </nav>
@@ -81,6 +82,34 @@
       <p class="lede">The owner deployment's test run, written by the relayer. Check each one live: the third was refused on-chain because its summary contained digits.</p>
       <ul class="txs" id="ledgertxs"></ul>
     </details>
+  </section>
+
+  <section id="redflag" class="try" aria-labelledby="redflag-h" hidden>
+    <h2 class="sect" id="redflag-h">Is this message a scam?</h2>
+    <p class="lede"><b>Preview (Milestone 1).</b> Paste a message you received. Your browser removes links, numbers, amounts, emails and handles first; you see the exact text that will be published. Then an AI analyst gives a verdict (Scam, Suspicious or Looks legit), and GenLayer validators re-run the analysis with their own AI models. The verdict is written only if they agree. Not sure? Appeal to a panel of 3, then 5.</p>
+    <p class="sub">Contract: <span id="rf-addr"></span> · a test deployment on studionet, no real value.</p>
+    <form id="rf-form" class="caseform" novalidate>
+      <button class="link" id="rf-sample" type="button">Fill in a sample message</button>
+      <label class="slip"><span class="tag">The message you got</span>
+        <textarea id="rf-text" rows="4" maxlength="1200" placeholder="Paste the message here. It is redacted before anything is sent."></textarea>
+      </label>
+      <div class="panel rfpreview" aria-live="polite">
+        <p class="meta"><b>This exact text will be published:</b></p>
+        <p class="quote" id="rf-preview"></p>
+        <p class="meta" id="rf-removed"></p>
+        <p class="err" id="rf-issue"></p>
+      </div>
+      <label class="check"><input type="checkbox" id="rf-consent"> <span>I understand the <b>redacted</b> text above will be published on a <b>public test blockchain</b> and <b>cannot be erased</b>. It names no private person.</span></label>
+      <label class="check"><input type="checkbox" id="rf-adult"> <span>I am <b>18 or older</b>.</span></label>
+      <p class="err" id="rf-formerr" role="alert"></p>
+      <button class="cta" id="rf-send" type="submit">Ask the court</button>
+      <p class="sub" id="rf-status" aria-live="polite"></p>
+    </form>
+    <ul class="log" id="rf-log" aria-live="polite"></ul>
+    <div id="rf-err"></div>
+    <div id="rf-result"></div>
+    <h3 class="group">Recent checks</h3>
+    <div id="rf-recent" class="cases" aria-live="polite"><p class="empty">Loading…</p></div>
   </section>
 
   <section id="try" class="try" aria-labelledby="try-h">
