@@ -343,3 +343,18 @@ Deployed through GenLayer Studio from the owner's own wallet (MetaMask), with th
 | Code check | The stored code is `contracts/judge_router.py` with Windows line endings (CRLF) and no final newline, because it was pasted in the Studio editor on Windows. After normalising line endings and the trailing newline, it is byte-identical to the source. Raw sha256 of the stored code: `6bfe51a77be80254a1572899044403bc54d193e32679226c7d6eabb33753f4da`. |
 
 The 3-case evidence run above still uses the throwaway-key deployment `0x3f867934247d88Aa3134d897a9246cfB1324B1Fa`, whose stored code matches the source byte for byte. This owner deployment has had no cases run against it yet.
+
+## Owner deployment (PatternLedger), 2026-10-31
+
+Deployed the same way: GenLayer Studio, the owner's own wallet (MetaMask), relayer key passed as the `relayer` constructor role.
+
+| Item | Value |
+|---|---|
+| Contract | `0x59C6047571bCE66828C733330fc9B5C88afEaE4D` |
+| Deploy tx | `0x89a0c790e7bc0db5730d2b88e57d10c05e02da0d7f54cb6ae445c33ed03a435e` (FINALIZED) |
+| Owner (creator) | `0x920fbbCf2106B693A857D1995c198e341220a46A` (read live from `get_config`) |
+| Relayer | `0x34653Fb290480a8C99B4D92D4857123B5624c37d` (read live from `get_config`) |
+| Live config | schema `verdict.pattern-ledger.v1`, `paused = false`, `next_id = 1`, 16 flag codes, 8 categories, `max_summary_chars = 200`, `history_cap = 100`, `dedup_candidates = 10` |
+| Code check | Stored code is `contracts/pattern_ledger.py` with CRLF line endings (pasted in Studio on Windows). After normalising line endings and the trailing newline, it is byte-identical to the source. Raw sha256 of the stored code: `816b0be383a291d37682e7bbed2e4606b150209c52ad786720b0347a2ce809b6`. |
+
+The PatternLedger evidence run above still uses the throwaway-key deployment `0x8af622094205440f120F4096151F0aaBBcf14fDF`. No patterns have been submitted to this owner deployment yet.
