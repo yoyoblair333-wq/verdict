@@ -10,6 +10,8 @@
 
 > **About GitHub's "hidden or bidirectional Unicode" warning on `contracts/judge_router.py` and `contracts/pattern_ledger.py`:** it is expected and harmless. Each file has one regex, `_INVISIBLE_RE` (line 148 in judge_router.py, line 131 in pattern_ledger.py), whose character class lists zero-width and bidi control characters so the contract can **strip them from user input**, which is a defence against exactly the "Trojan Source" trick the warning is about. Click "Show hidden characters" to see them: they appear only inside that one character class, never in code logic. They stay as literal characters so the deployed code keeps matching the repo byte for byte (the code pin); a future redeploy will switch them to `\u` escapes.
 
+> **Building on PatternLedger?** [docs/PATTERN_LEDGER.md](docs/PATTERN_LEDGER.md) is a standalone builder's guide to the scam-pattern ledger contract: state design, API, how consensus and the validator rule work, limits, and how to adapt it to other crowd-reported data.
+
 ## Verify in 5 minutes (for GenLayer stewards)
 
 **Two-minute path:** the [review guide](https://yoyoblair333-wq.github.io/verdict/review.html) maps each Projects quality-bar item to the link or transaction that shows it.
