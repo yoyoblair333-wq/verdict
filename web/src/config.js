@@ -54,3 +54,10 @@ export const TX_TIMEOUT_MS = 15 * 60 * 1000;
 
 export const BURNER_KEY = "verdict.testnet-burner.v1";
 export const MY_CASES_KEY = "verdict.my-cases.v1";
+
+// Red Flag Court (Milestone 1 candidate, contracts/red_flag_court.py). THROWAWAY
+// test deployment from the relayer key; the owner deployment is a later step
+// (deploy/OWNER_DEPLOY.md). The section is off unless REDFLAG_ENABLED or the
+// page URL carries ?redflag=1.
+export const REDFLAG_ADDRESS = "0xBaF13Ec3fe990868804f69aB2b53558F0ADE81CE";
+export const REDFLAG_ENABLED = false;

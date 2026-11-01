@@ -911,4 +911,8 @@ loadEvidence().then(() => {
   refresh();
   renderLedger();
 });
+// Feature flag: the on-chain Red Flag Court preview (Milestone 1).
+if (C.REDFLAG_ENABLED || new URLSearchParams(location.search).get("redflag") === "1") {
+  import("./redflag.js").then((m) => m.init()).catch((e) => console.warn("red flag court preview failed to load", e));
+}
 $("ledgerrefresh")?.addEventListener("click", () => renderLedger());

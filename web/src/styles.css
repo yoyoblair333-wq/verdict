@@ -281,3 +281,13 @@ a.plain{font-size:13px;font-weight:700}
 .skip{position:absolute;left:-9999px;top:0;background:var(--pad);color:var(--robe);padding:8px 14px;border-radius:0 0 8px 0;font-weight:800;z-index:10}
 .skip:focus{left:0}
 @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+
+/* Red Flag Court preview (Milestone 1) */
+.rfpreview{margin:12px 0}
+.rfpreview .quote,.rfcheck .quote{font-family:var(--mono);font-size:14px;overflow-wrap:anywhere;margin:4px 0}
+.rfbody{padding:12px 14px}
+.rflabel{font:900 34px/1 var(--display);margin:0 0 6px;letter-spacing:.03em}
+.rf-SCAM{color:var(--stamp-text)}
+.rf-SUS{color:var(--warn)}
+.rf-LEGIT{color:var(--ok)}
+.rfacts{display:grid;gap:8px;padding:0 14px 14px}
