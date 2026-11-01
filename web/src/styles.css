@@ -246,3 +246,14 @@ pre.cmd{margin:4px 0 0;padding:10px 12px;border-radius:10px;background:var(--rob
 .ny b{overflow-wrap:anywhere}
 .tryit .cta{text-align:center;text-decoration:none}
 a.plain{font-size:13px;font-weight:700}
+
+/* Trust-first landing: the problem, then live proof (lib/proof.js). */
+.hero .problem{color:var(--fg)}
+.proofpanel{border-color:var(--ok)}
+.proofline{margin:12px 0 8px;font-size:16px;font-weight:700;max-width:62ch}
+.proofvotes{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 8px}
+.vote{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:50%;font-weight:900;border:2px solid currentColor}
+.vote.agree{color:var(--ok)}
+.vote.disagree{color:var(--stamp)}
+.vote.idle{color:var(--muted);border-style:dashed}
+.proofpanel .sub{text-align:left;font-size:13px;color:var(--muted);margin:0;overflow-wrap:anywhere}

@@ -9,6 +9,7 @@ import * as C from "./config.js";
 import { buildPackage, codeDigest, localCheck, preflight, randomRequestKey, sha256Hex } from "./lib/package.js";
 import { classifyTx, revertReason, voteSummary } from "./lib/finality.js";
 import { hideDecision } from "./lib/display.js";
+import { pickProof, proofSentence, proofVotes } from "./lib/proof.js";
 import { h } from "./lib/dom.js";
 import { groupCases, idsToFetch, isRelayerCase, provenanceLabel, receiptDisplay, RELAYER_CHIP, tierStatus, VISITOR_CHIP } from "./lib/gallery.js";
 
@@ -191,6 +192,48 @@ async function refresh() {
   renderFacts();
   renderCases();
   renderWriteGate();
+  renderProof();
+}
+
+/** Trust-first proof strip: one recorded ruling, its validator votes read live. */
+async function renderProof() {
+  const line = $("proofline");
+  const src = $("proofsrc");
+  const votesEl = $("proofvotes");
+  const links = $("prooflinks");
+  const p = pickProof(state.evidence, state.cases);
+  if (!p) {
+    src.dataset.state = "error";
+    src.textContent = "No recorded ruling";
+    line.textContent = "No recorded ruling is available to check right now.";
+    return;
+  }
+  links.replaceChildren(
+    "Transaction ",
+    h("code", {}, short(p.hash, 10)),
+    " · ",
+    h("a", { href: C.EXPLORER_TX(p.hash), target: "_blank", rel: "noopener" }, "Explorer"),
+    " · ",
+    h("a", { href: `#case-${p.caseId}` }, `See case #${p.caseId}`),
+    " · ",
+    h("a", { href: "rig.html" }, "More checks: Try to rig it"),
+  );
+  try {
+    const v = proofVotes(await read.getTransaction({ hash: p.hash }), NUM_TO_NAME);
+    src.dataset.state = "live";
+    src.textContent = `Live · ${new Date().toLocaleTimeString()}`;
+    src.title = `getTransaction over ${C.RPC_URL}, by this browser`;
+    line.textContent = proofSentence(p, v);
+    votesEl.replaceChildren(
+      ...Array.from({ length: v.agree }, () => h("span", { class: "vote agree", title: "agreed" }, "✓")),
+      ...Array.from({ length: v.disagree }, () => h("span", { class: "vote disagree", title: "disagreed" }, "✗")),
+      ...Array.from({ length: v.idle + v.other }, () => h("span", { class: "vote idle", title: "did not vote" }, "–")),
+    );
+  } catch (e) {
+    src.dataset.state = "error";
+    src.textContent = "Network unreachable";
+    line.textContent = `Case #${p.caseId} was ruled ${p.split} by ${p.jurors} AI jurors. This browser could not reach the network to show the validators' votes (${e.message}); use the Explorer link to check them.`;
+  }
 }
 
 function renderSource() {
@@ -368,7 +411,7 @@ function caseCard(c) {
   }
   body.append(det);
 
-  const card = h("article", { class: `case ${relayerCase ? "" : "visitorcase"}`, "data-case-id": c.id, "data-origin": relayerCase ? "relayer" : "visitor" },
+  const card = h("article", { id: `case-${c.id}`, class: `case ${relayerCase ? "" : "visitorcase"}`, "data-case-id": c.id, "data-origin": relayerCase ? "relayer" : "visitor" },
     h("div", { class: "casehead" }, h("span", { class: "no" }, `Case #${c.id}`), h("span", { class: "chips" }, hide ? h("span", { class: "chip" }, "hidden") : null, statusChips(c, relayerCase))),
     body,
   );

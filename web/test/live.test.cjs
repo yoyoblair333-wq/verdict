@@ -91,6 +91,17 @@ async function main() {
       await page.waitForFunction(() => [...document.querySelectorAll('.case[data-case-id="1"] .txs .st')].some((e) => /FINALIZED/.test(e.textContent)), null, { timeout: 60_000 });
     });
 
+    await step(`${w}px: trust-first proof strip reads real validator votes live`, async () => {
+      await page.waitForSelector('#proofsrc[data-state="live"], #proofsrc[data-state="error"]', { timeout: 60_000 });
+      assert.equal(await page.getAttribute("#proofsrc", "data-state"), "live", await page.locator("#proofline").innerText());
+      const line = await page.locator("#proofline").innerText();
+      assert.match(line, /AI jurors ruled \d+-\d+ for Take [A-Z]/);
+      assert.match(line, /re-run with their own AI models: \d+ agreed/);
+      assert.match(line, /final on the network/);
+      assert.ok(rpcCalls.includes("eth_getTransactionByHash") || rpcCalls.some((m) => /Transaction/i.test(m ?? "")), `no tx read: ${[...new Set(rpcCalls)].join(",")}`);
+      assert.ok((await page.locator("#proofvotes .vote.agree").count()) >= 1);
+    });
+
     await step(`${w}px: no horizontal scroll`, async () => {
       const { sw, iw } = await page.evaluate(() => ({ sw: document.documentElement.scrollWidth, iw: window.innerWidth }));
       assert.ok(sw <= iw, `scrollWidth ${sw} > innerWidth ${iw}`);

@@ -17,7 +17,7 @@ import { test, before, after } from "node:test";
 import { fileURLToPath } from "node:url";
 import pw from "playwright";
 import { CONTRACT_ADDRESS, CONTRACT_CODE_DIGEST, RELAYER_ADDRESS } from "../src/config.js";
-import { hideDecision } from "../src/lib/display.js";
+import { hideDecision } from "../src/lib/display.js"; import { pickProof, proofSentence, proofVotes } from "../src/lib/proof.js";
 import { groupCases, idsToFetch, isRelayerCase, provenanceLabel, receiptDisplay, tierStatus, VISITOR_LINE } from "../src/lib/gallery.js";
 import { buildPackage, canonicalCodeText, canonicalize, codeDigest, sanitiseText, sha256Hex } from "../src/lib/package.js";
 import { ALL_TEST_REFS, BANNED, compareCode, juryChecks, NOT_YET, revokeChecks, summarizeTx, tally, trustPlan } from "../src/lib/trust.js";
@@ -485,4 +485,38 @@ test("browser (offline): trust page and main header have no horizontal scroll at
     assert.ok(r2 <= w, `${w}px: main page header overflows to ${r2}px`);
     await m.ctx.close();
   }
+});
+
+test("proof strip: picks the highest-tier evidence ruling and its last jury tx; counts votes honestly", () => {
+  const ev = { 1: [{ fn: "open_case_package", hash: "0x01" }, { fn: "judge", hash: "0x02" }, { fn: "appeal", hash: "0x03" }, { fn: "appeal", hash: "0x04" }], 2: [{ fn: "judge", hash: "0x05" }] };
+  const cases = [
+    { id: 2, tier: 1, jurors: 5, split: "4-1", winner_index: 1, status: "final" },
+    { id: 1, tier: 3, jurors: 9, split: "9-0", winner_index: 0, status: "final" },
+    { id: 3, tier: 3, jurors: 9, split: "5-4", winner_index: 0, status: "revoked" },
+  ];
+  const p = pickProof(ev, cases);
+  assert.deepEqual([p.caseId, p.hash, p.tierName, p.winner], [1, "0x04", "Supreme Court", "A"]);
+  assert.equal(pickProof({}, cases), null);
+  const tx = { statusName: "FINALIZED", txExecutionResultName: "FINISHED_WITH_RETURN", consensus_data: { votes: { a: "agree", b: "agree", c: "agree", d: "disagree", e: "idle" } } };
+  const v = proofVotes(tx, {});
+  assert.deepEqual([v.selected, v.agree, v.disagree, v.idle, v.finality], [5, 3, 1, 1, "FINALIZED_SUCCESS"]);
+  const line = proofSentence(p, v);
+  assert.match(line, /9 AI jurors ruled 9-0 for Take A/);
+  assert.match(line, /5 independent validators/);
+  assert.match(line, /3 agreed, 1 disagreed, 1 did not vote/);
+  assert.match(line, /final on the network/);
+  const pending = proofVotes({ statusName: "ACCEPTED", consensus_data: { votes: {} } }, {});
+  assert.doesNotMatch(proofSentence(p, pending), /final on the network/);
+});
+
+test("browser (offline): trust-first landing states the problem and the proof strip admits it cannot reach the network", async () => {
+  const { ctx, page, errors } = await stubbedPage();
+  assert.match(await page.locator(".hero .problem").textContent(), /trust that company's model/);
+  await page.waitForFunction(() => document.getElementById("proofsrc")?.dataset.state !== "loading", null, { timeout: 30_000 });
+  const src = await page.locator("#proofsrc").textContent();
+  const line = await page.locator("#proofline").textContent();
+  assert.ok(/Network unreachable|No recorded ruling/.test(src), src);
+  assert.doesNotMatch(line, /agreed/, "must not claim validator votes it could not read");
+  assert.deepEqual(errors, []);
+  await ctx.close();
 });

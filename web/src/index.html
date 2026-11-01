@@ -28,8 +28,19 @@
   </header>
 
   <section class="hero">
-    <h1>The live<br>court record.</h1>
-    <p>Every case on this page is read from the JudgeRouter Intelligent Contract on GenLayer, by your browser, right now. Five AI jurors decide; independent validators re-run the panel and must agree. Nothing here is computed by this page.</p>
+    <h1>AI rulings you<br>don't take on faith.</h1>
+    <p class="problem"><b>The problem:</b> when one company's AI settles an argument, both sides have to trust that company's model, prompt and servers, and nobody can check or appeal the call.</p>
+    <p><b>VERDICT:</b> five AI jurors rule, then independent GenLayer validators re-run the same jury with their own AI models. The ruling only stands if they agree, and the losing side can appeal to 7, then 9 jurors. Everything below is read from the contract by your browser, right now.</p>
+  </section>
+
+  <section class="panel proofpanel" id="proof" aria-labelledby="proof-h">
+    <div class="panelhead">
+      <h2 id="proof-h">Proof, live</h2>
+      <span class="source" id="proofsrc" data-state="loading">Checking…</span>
+    </div>
+    <p class="proofline" id="proofline">Reading a recorded ruling and asking the network how its validators voted…</p>
+    <div class="proofvotes" id="proofvotes" aria-hidden="true"></div>
+    <p class="sub" id="prooflinks"></p>
   </section>
 
   <section class="panel" id="contract" aria-labelledby="contract-h">
