@@ -2,6 +2,8 @@
 
 **Five AI jurors. Checked by a network nobody controls. Appeal to a higher court.** VERDICT is a consumer app on [GenLayer](https://docs.genlayer.com/) where one Intelligent Contract, `JudgeRouter`, judges subjective text contests such as "Who's right?", "Better roast", "Pettiest text" and "Better comeback". Rubrics judge takes, never people.
 
+**Demo:** [Watch the 90-second demo](https://yoyoblair333-wq.github.io/verdict/demo/verdict-demo.mp4) (screen recording against the owner-deployed JudgeRouter `0xEe9AB3e45005E97dA53BFE570412f30D6F2C1e64`; also in the repo as [docs/demo/verdict-demo.mp4](docs/demo/verdict-demo.mp4), captions in [docs/demo/verdict-demo.srt](docs/demo/verdict-demo.srt)).
+
 > Entertainment only. No money, tokens or value are ever attached to a verdict: the contract has no payable methods and the relayer always sends `value: 0`. VERDICT is not arbitration and not a wagering product. 18+ only. Text only.
 
 ---

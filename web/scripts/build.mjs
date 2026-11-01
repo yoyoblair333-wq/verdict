@@ -39,6 +39,12 @@ await build({
 
 for (const f of ["index.html", "rig.html", "styles.css"]) await copyFile(path.join(web, "src", f), path.join(dist, f));
 await copyFile(path.join(root, "brand/logo-mark.svg"), path.join(dist, "favicon.svg"));
+// Demo video (docs/demo/verdict-demo.mp4), served at <site>/demo/verdict-demo.mp4.
+const demoVideo = path.join(root, "docs/demo/verdict-demo.mp4");
+if (existsSync(demoVideo)) {
+  await mkdir(path.join(dist, "demo"), { recursive: true });
+  await copyFile(demoVideo, path.join(dist, "demo/verdict-demo.mp4"));
+}
 await writeFile(path.join(dist, ".nojekyll"), "");
 
 // Evidence index: caseId -> ordered [{fn, hash}], from the recorded live run.

@@ -1,0 +1,75 @@
+1
+00:00:00,000 --> 00:00:03,500
+VERDICT: the people's court on GenLayer
+Five AI jurors decide. A verdict stands only when GenLayer validators agree.
+
+2
+00:00:03,500 --> 00:00:08,500
+[Live screen recording, real time] The web app reads the contract live from the browser
+genlayer-js calls studio.genlayer.com/api · nothing is computed by the page
+
+3
+00:00:08,500 --> 00:00:12,900
+[Live screen recording, real time] Code pin: Match
+sha256 of the deployed code (line endings normalised) = sha256 of contracts/judge_router.py
+
+4
+00:00:12,900 --> 00:00:16,600
+[Live screen recording, real time] Case #1: five jurors, then appeals to 7, then 9
+Verdict 5-0, then Appeals Court 7-0, then Supreme Court 9-0
+
+5
+00:00:16,600 --> 00:00:21,300
+[Live screen recording, real time] Each juror's vote, read from get_case
+
+6
+00:00:21,300 --> 00:00:27,500
+[Live screen recording, real time] “Check status live” asks the network about the jury tx
+FINALIZED · SUCCESS · validators agree 3, idle 2
+
+7
+00:00:27,500 --> 00:00:35,500
+[Live screen recording, real time] A new case, signed by this browser's testnet burner
+Tick both consent boxes, then Send to the jury
+
+8
+00:00:35,500 --> 00:00:38,500
+[Live screen recording, sped up 4×] Submitted: open_case_package sent, then judge signed
+status rail driven by the real transaction status
+
+9
+00:00:38,500 --> 00:00:42,770
+[Live screen recording, sped up 4×] Jury scoring: the leader runs five AI jurors
+other validators re-run the panel
+
+10
+00:00:42,770 --> 00:00:50,690
+[Live screen recording, sped up 4×] Network checking: accepted, finality window open
+
+11
+00:00:50,690 --> 00:01:00,400
+[Live screen recording, sped up 4×] Finalized · SUCCESS · validators agree 3, idle 2
+then this browser signs confirm_verdict, which also finalizes
+
+12
+00:01:00,400 --> 00:01:12,567
+[Live screen recording, real time] Case #5: the new verdict, read back from the contract
+5-0 for Take B · 3 transactions, all FINALIZED · SUCCESS
+
+13
+00:01:12,567 --> 00:01:16,567
+Every point where VERDICT asks GenLayer for a decision (architecture diagram).
+
+14
+00:01:16,567 --> 00:01:21,067
+"The network overruled the preview." Card design with example data: not a live case.
+
+15
+00:01:21,067 --> 00:01:26,067
+Scam Pattern Ledger on studionet (owner-deployed 0x59C6…aE4D): pattern recorded 0x175d40a8…, sighting 0xe0719186…, PII rejected 0xc66ed874…
+
+16
+00:01:26,067 --> 00:01:31,567
+github.com/yoyoblair333-wq/verdict · JudgeRouter 0xEe9AB3e45005E97dA53BFE570412f30D6F2C1e64 (owner-deployed)
+CI green · 294 contract tests · 216 relayer tests · testnet (studionet), no real value
+
