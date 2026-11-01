@@ -10,6 +10,8 @@
 
 ## Verify in 5 minutes (for GenLayer stewards)
 
+**Two-minute path:** the [review guide](https://yoyoblair333-wq.github.io/verdict/review.html) maps each Projects quality-bar item to the link or transaction that shows it.
+
 Everything below runs from a fresh clone with no keys and no network writes.
 
 ```bash
@@ -71,6 +73,49 @@ Deployed on **GenLayer studionet** from the owner's own wallet on 2026-10-31 and
 * **Tests.** `cd web && npm ci && npx playwright install chromium && npm run build && npm test` runs the offline tier (no network: node tests plus browser tests with the RPC blocked and a stubbed snapshot). `npm run test:live` is the optional live tier against studionet (`VERDICT_WEB_WRITE=1` also signs one visitor case end to end).
 
 To reproduce by hand in the Studio web UI: [deploy/STUDIO_DEPLOY.md](deploy/STUDIO_DEPLOY.md) with the ready-to-paste cases in [examples/](examples/). Scripted: `deploy/deploy.ts` (`cd relayer && npm run deploy`).
+
+---
+
+## Use VERDICT from your app
+
+The relayer in `relayer/` is a small HTTP service that packages takes, opens cases on `JudgeRouter` and judges them, so an app, a bot or an AI agent can use VERDICT without a wallet. Try it in **shadow mode** first: it validates every request and shows exactly what it would send, but signs nothing and spends nothing.
+
+```bash
+cd relayer
+cp .env.example .env                       # points at the owner JudgeRouter 0xEe9A...1e64
+echo "MODERATION_ACK_LOCAL_ONLY=true" >> .env   # no moderation provider is wired yet
+npm ci && npm run build
+node --env-file=.env dist/index.js         # "SHADOW MODE ... listening on :8787"
+```
+
+In another terminal:
+
+```bash
+curl -s -X POST localhost:8787/judge -H 'content-type: application/json' -d '{
+  "rubric": "whos_right",
+  "entries": ["Cereal is a soup.", "Cereal is not a soup."],
+  "disclosure": {"consent": true, "adult_confirmed": true}
+}'
+```
+
+Shadow mode answers with what it would submit (output from a real run, trimmed):
+
+```json
+{"mode":"shadow","label":"Test run · Not public yet",
+ "package_digest":"dc6123a0…7bd4f",
+ "provenance_label":"All takes submitted by an API client; authorship not verified. …",
+ "would_submit":{"function":"open_case_package","args":["<canonical package, 1086 chars>","dc6123a0…7bd4f"]}}
+```
+
+In live mode (`VERDICT_MODE=live`, your own relayer key; see [Running it](#running-it)) the same call opens the case, has the jury rule and waits until the verdict is final on the network.
+
+Three ways in:
+
+* **REST:** `POST /judge` for one call, or `POST /cases` → `POST /cases/:id/judge` → `POST /cases/:id/appeal` with signed webhooks. Every endpoint is listed in [Relayer REST API](#relayer-rest-api).
+* **MCP (AI agents):** `node relayer/dist/mcp.js` exposes one tool, `judge`, to Claude Desktop or any MCP client. Setup is in the header of [`relayer/src/mcp.ts`](relayer/src/mcp.ts).
+* **n8n:** import [`relayer/integrations/n8n/verdict-judge.workflow.json`](relayer/integrations/n8n/verdict-judge.workflow.json).
+
+**Plans (not built yet):** deploy and run the evidence on Bradbury ([docs/BRADBURY_PLAN.md](docs/BRADBURY_PLAN.md)); publish the MCP tool to npm; wire a moderation provider so the relayer can run without `MODERATION_ACK_LOCAL_ONLY`; wire an AI provider for the off-chain Quick Verdict and Red Flag Court endpoints (they answer 503 until one is passed in); measure real fees on a fee-charging network.
 
 ---
 

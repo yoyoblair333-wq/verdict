@@ -37,7 +37,7 @@ await build({
   logLevel: "info",
 });
 
-for (const f of ["index.html", "rig.html", "styles.css"]) await copyFile(path.join(web, "src", f), path.join(dist, f));
+for (const f of ["index.html", "rig.html", "review.html", "styles.css"]) await copyFile(path.join(web, "src", f), path.join(dist, f));
 await copyFile(path.join(root, "brand/logo-mark.svg"), path.join(dist, "favicon.svg"));
 // Demo video (docs/demo/verdict-demo.mp4), served at <site>/demo/verdict-demo.mp4.
 const demoVideo = path.join(root, "docs/demo/verdict-demo.mp4");

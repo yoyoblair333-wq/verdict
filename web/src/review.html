@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>VERDICT Review Guide</title>
+<meta name="description" content="A two-minute review path for GenLayer stewards: each Projects quality-bar item mapped to a link or transaction that shows it.">
+<meta name="theme-color" content="#1B1340">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@800;900&family=Schibsted+Grotesk:ital,wght@0,500;0,700;0,800;1,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="netbar" role="note"><b>GenLayer testnet (studionet)</b> · no real value · entertainment only · 18+</div>
+<div class="wrap">
+  <header class="top">
+    <a class="brand" href="./" aria-label="VERDICT live court">
+      <svg viewBox="0 0 128 128" aria-hidden="true"><circle cx="64" cy="64" r="60" fill="#1B1340"/><circle cx="64" cy="64" r="52.8" fill="none" stroke="#F7E26B" stroke-width="2.16"/><circle cx="30.91" cy="91.77" r="4.08" fill="#F7E26B"/><circle cx="45.74" cy="103.15" r="4.08" fill="#F7E26B"/><circle cx="64" cy="107.2" r="4.08" fill="#F7E26B"/><circle cx="82.26" cy="103.15" r="4.08" fill="#F7E26B"/><circle cx="97.09" cy="91.77" r="4.08" fill="#F7E26B"/><path d="M40.38 44.22 L52.19 44.22 L64 73.74 L58.1 87.52 Z" fill="#F7E26B"/><path d="M58.1 87.52 L64 73.74 L79.74 42.26 L85.65 46.19 L65.97 87.52 Z" fill="#F7E26B"/><g transform="translate(82.7 40.29) rotate(27)"><rect x="-14.76" y="-6.4" width="29.52" height="12.79" rx="1.97" fill="#F7E26B"/><rect x="-7.87" y="-6.4" width="2.36" height="12.79" fill="#1B1340"/><rect x="5.51" y="-6.4" width="2.36" height="12.79" fill="#1B1340"/></g></svg>
+      <span class="word">VERDICT</span>
+    </a>
+    <nav class="tabs" aria-label="Sections">
+      <a href="./">Court</a>
+      <a href="rig.html">Try to rig it</a>
+      <a href="review.html" aria-current="page">Review guide</a>
+    </nav>
+  </header>
+
+  <section class="hero">
+    <h1>Review in<br>two minutes.</h1>
+    <p>For GenLayer stewards. Each item of the Projects quality bar, with the link or transaction that shows it. Every transaction hash below is on studionet and listed with its status changes and validator votes in <a href="https://github.com/yoyoblair333-wq/verdict/blob/main/docs/LIVE_EVIDENCE.md">docs/LIVE_EVIDENCE.md</a>.</p>
+  </section>
+
+  <section class="panel rigsect review" id="bar-trust">
+    <h2>1 · A real trust problem, not a better LLM answer</h2>
+    <p class="lede">When one company's AI settles a disagreement, both people must trust its model, prompt and servers, and neither can check or appeal the call. In VERDICT the leader runs a five-juror AI panel, and every validator re-runs that panel with its own model. The ruling is written only if the validators agree with the leader's result (<code>_verdicts_agree</code> in <a href="https://github.com/yoyoblair333-wq/verdict/blob/main/contracts/judge_router.py">contracts/judge_router.py</a>, run through <code>gl.vm.run_nondet_unsafe</code>). The loser can appeal to a 7-juror, then a 9-juror panel.</p>
+    <ul class="checks">
+      <li><b>See it:</b> the <a href="./#proof">"Proof, live" panel</a> on the home page reads a recorded Supreme Court ruling and shows how its validators voted, live from the network.</li>
+      <li><b>Full appeal ladder:</b> case 1 went 5-0, then 7-0, then 9-0. Supreme Court tx <code>0xf417c0f6a1f40e9baaa3ca1a9c32c628d6bbdf969c384ceefd604be026fc1891</code>.</li>
+      <li><b>A validator disagreed and the majority still held:</b> case 2 appeal tx <code>0x9f26a7927297178492dd76f27a7cea87de03759ab3ac7770516a60b207f6fd18</code> (agree 3, disagree 1, idle 1).</li>
+      <li><b>The winner cannot block the loser's appeal:</b> a revoke after the verdict was confirmed is refused on-chain, tx <code>0xbea18f58dea8eef3e671470c3f0412372927a954ee7b7e4bf4af8cc90689ef61</code> (FINALIZED with execution ERROR, as designed).</li>
+      <li><b>Second contract, same idea:</b> PatternLedger stores a scam pattern only if validators agree it identifies no one. A summary with digits was refused on-chain, tx <code>0xc66ed87412db89f8b2fd651e29cc327080e709ecbdf2b214c23841cc1639643d</code>. See the <a href="./#ledger">Scam Pattern Ledger</a> section.</li>
+    </ul>
+  </section>
+
+  <section class="panel rigsect review" id="bar-data">
+    <h2>2 · Live or authoritative data</h2>
+    <p class="lede">Honest answer: VERDICT's outcomes do not depend on real-world facts. The jurors judge only the two takes the parties submit, against a fixed rubric, so there is no outside data to fetch and none is fetched. The data the app does depend on, the contract state and each transaction's validator votes, is read live from the network by the visitor's own browser. Nothing on the pages is computed or cached by a VERDICT server.</p>
+    <ul class="checks">
+      <li><b>Check:</b> open the home page with the browser's network tab: cases come from <code>gen_call</code> and the proof panel from a transaction read, both to <code>studio.genlayer.com/api</code>.</li>
+    </ul>
+  </section>
+
+  <section class="panel rigsect review" id="bar-docs">
+    <h2>3 · Complete source and accurate docs</h2>
+    <ul class="checks">
+      <li><b>One command from a fresh clone:</b> <code>git clone https://github.com/yoyoblair333-wq/verdict.git verdict &amp;&amp; cd verdict &amp;&amp; bash scripts/verify.sh</code>. No keys, no network writes. It runs the contract tests, <code>genvm-lint</code> on both contracts, the relayer type check and tests, and the offline web tests, and ends with <code>VERIFY: PASS</code>. CI runs the same script on every push.</li>
+      <li><b>What it is, the problem, how to use it:</b> <a href="https://github.com/yoyoblair333-wq/verdict#readme">README</a>. Product spec: <a href="https://github.com/yoyoblair333-wq/verdict/blob/main/docs/SPEC.md">docs/SPEC.md</a>. Threat model: <a href="https://github.com/yoyoblair333-wq/verdict/blob/main/docs/THREAT_MODEL.md">docs/THREAT_MODEL.md</a>. Decisions: <a href="https://github.com/yoyoblair333-wq/verdict/blob/main/docs/DECISIONS.md">docs/DECISIONS.md</a>.</li>
+      <li><b>Deployed code = GitHub code:</b> <a href="rig.html">Try to rig it</a> hashes the deployed code and the GitHub source in your browser. The home page and the ledger section show the same check for both contracts.</li>
+    </ul>
+  </section>
+
+  <section class="panel rigsect review" id="bar-frontend">
+    <h2>4 · The frontend calls the contract through the full transaction lifecycle</h2>
+    <ul class="checks">
+      <li><b>Do it yourself:</b> on the home page, <a href="./#try">Try it on testnet</a>, click "Fill in a sample case", tick the two boxes and "Send to the jury". Your browser makes a throwaway testnet account and signs <code>open_case_package</code>, <code>judge</code> and <code>confirm_verdict</code> itself. The status rail follows the real transaction status (submitted, jury scoring, network checking, finalized), then the verdict is read back from the contract. About 2 to 4 minutes.</li>
+      <li><b>A recorded browser-signed case (case 4, no relayer):</b> open <code>0x58ae3f80a9ec07be66de86c1a3ed28f5a72c50bd751ae479c218b50f09882206</code>, judge <code>0xf5ec127771d95ab09abb57b770287379b6ddc096e0c70c42105cfc6fb18f18df</code>, confirm <code>0x0aebc775fa868914ee9cb383e93b90d70bcc47e5d6481d31e76cbfabd4ed602a</code>.</li>
+      <li><b>Watch it:</b> <a href="demo/verdict-demo.mp4">90-second demo video</a>, a screen recording of the live app.</li>
+    </ul>
+  </section>
+
+  <section class="panel rigsect review" id="bar-different">
+    <h2>5 · Different from boilerplate, with a path to continued use</h2>
+    <ul class="checks">
+      <li><b>Not one LLM call:</b> named juror personas, tiered panels of 5, 7 and 9, a custom validator that checks the leader's verdict (not just its format), a confirmed verdict that cannot be revoked to block the loser's appeal, provenance labels for who opened a case, and a second contract (PatternLedger) whose validators judge privacy and dedup.</li>
+      <li><b>Owner and relayer are separate keys:</b> both contracts were deployed from the owner's own wallet; the relayer can run cases but cannot pause, re-key or take ownership.</li>
+      <li><b>Ways to keep using it:</b> a relayer service with a REST API, documented in the README section "Use VERDICT from your app". Plans are listed there and labelled as plans.</li>
+    </ul>
+  </section>
+
+  <section class="panel rigsect review" id="bar-limits">
+    <h2>What this does not show yet</h2>
+    <ul class="checks">
+      <li>Evidence is on studionet. Bradbury is not deployed yet (<a href="https://github.com/yoyoblair333-wq/verdict/blob/main/docs/BRADBURY_PLAN.md">docs/BRADBURY_PLAN.md</a>).</li>
+      <li>No public users yet: every case on-chain is a test case.</li>
+      <li>Transaction fees on a fee-charging network have not been measured.</li>
+    </ul>
+  </section>
+
+  <footer>
+    <span>VERDICT · entertainment only · not arbitration · no money, tokens or value</span>
+    <span><a href="./">Court</a> · <a href="rig.html">Try to rig it</a> · <a href="https://github.com/yoyoblair333-wq/verdict">Source</a></span>
+  </footer>
+</div>
+</body>
+</html>

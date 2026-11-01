@@ -553,3 +553,34 @@ test("browser (offline): scam ledger is read-only, says who can write, admits th
   assert.deepEqual(errors, []);
   await ctx.close();
 });
+
+test("review guide: every tx hash it cites is in the recorded evidence; every in-site link exists; nothing banned", () => {
+  const html = fs.readFileSync(path.join(here, "../src/review.html"), "utf8");
+  const evidence = [fs.readFileSync(path.join(ROOT, "docs/LIVE_EVIDENCE.md"), "utf8"), ...fs.readdirSync(path.join(ROOT, "docs/live")).map((f) => fs.readFileSync(path.join(ROOT, "docs/live", f), "utf8"))].join("\n").toLowerCase();
+  const hashes = [...new Set(html.match(/0x[0-9a-fA-F]{64}/g) ?? [])];
+  assert.ok(hashes.length >= 7, `only ${hashes.length} hashes`);
+  for (const x of hashes) assert.ok(evidence.includes(x.toLowerCase()), `${x} is not in docs/LIVE_EVIDENCE.md or docs/live/`);
+  const index = fs.readFileSync(path.join(here, "../src/index.html"), "utf8");
+  for (const [, id] of html.matchAll(/href="\.\/#([a-z-]+)"/g)) assert.match(index, new RegExp(`id="${id}"`), `index.html has no #${id}`);
+  for (const [, f] of html.matchAll(/href="([a-z]+\.html)"/g)) assert.ok(fs.existsSync(path.join(DIST, f)), `${f} is not built`);
+  assert.ok(fs.existsSync(path.join(DIST, "demo/verdict-demo.mp4")), "demo video is not built");
+  for (const re of BANNED) assert.doesNotMatch(html, re);
+  const readme = fs.readFileSync(path.join(ROOT, "README.md"), "utf8");
+  assert.match(readme, /^## Use VERDICT from your app/m, "review.html points to this README section");
+});
+
+test("browser (offline): review guide renders without horizontal scroll at 375 and 1280 px", async () => {
+  for (const width of [375, 1280]) {
+    const ctx = await browser.newContext({ viewport: { width, height: 812 }, serviceWorkers: "block" });
+    const page = await ctx.newPage();
+    const errors = [];
+    page.on("pageerror", (e) => errors.push(e.message));
+    await ctx.route((u) => !u.href.startsWith(url), (r) => r.abort());
+    await page.goto(`${url}review.html`, { waitUntil: "domcontentloaded" });
+    assert.equal(await page.locator(".review").count(), 6);
+    const { sw, iw } = await page.evaluate(() => ({ sw: document.documentElement.scrollWidth, iw: window.innerWidth }));
+    assert.ok(sw <= iw, `${width}px: scrollWidth ${sw} > innerWidth ${iw}`);
+    assert.deepEqual(errors, []);
+    await ctx.close();
+  }
+});
