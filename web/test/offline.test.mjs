@@ -17,7 +17,7 @@ import { test, before, after } from "node:test";
 import { fileURLToPath } from "node:url";
 import pw from "playwright";
 import { CONTRACT_ADDRESS, CONTRACT_CODE_DIGEST, LEDGER_ADDRESS, OWNER_ADDRESS as OWNER, RELAYER_ADDRESS } from "../src/config.js";
-import { hideDecision } from "../src/lib/display.js"; import { pickProof, proofSentence, proofVotes } from "../src/lib/proof.js"; import { categoryLabel, flagLabel, sinceIso, submissionLabel, writersLine } from "../src/lib/ledger.js";
+import { hideDecision } from "../src/lib/display.js"; import { classifyError, withTimeout, SlowError } from "../src/lib/errors.js"; import { pickProof, proofSentence, proofVotes } from "../src/lib/proof.js"; import { categoryLabel, flagLabel, sinceIso, submissionLabel, writersLine } from "../src/lib/ledger.js";
 import { groupCases, idsToFetch, isRelayerCase, provenanceLabel, receiptDisplay, tierStatus, VISITOR_LINE } from "../src/lib/gallery.js";
 import { buildPackage, canonicalCodeText, canonicalize, codeDigest, sanitiseText, sha256Hex } from "../src/lib/package.js";
 import { ALL_TEST_REFS, BANNED, compareCode, juryChecks, NOT_YET, revokeChecks, summarizeTx, tally, trustPlan } from "../src/lib/trust.js";
@@ -583,4 +583,110 @@ test("browser (offline): review guide renders without horizontal scroll at 375 a
     assert.deepEqual(errors, []);
     await ctx.close();
   }
+});
+
+
+// ------------------------------------------------ errors + accessibility (round 2)
+
+test("errors: every failure kind maps to a plain-language message and a retry label", async () => {
+  const k = (e, o) => classifyError(e, o).kind;
+  assert.equal(k(new TypeError("Failed to fetch")), "offline");
+  assert.equal(k(new Error("fetch failed")), "offline");
+  assert.equal(k(new Error("HTTP 503 Service Unavailable")), "offline");
+  assert.equal(k(new SlowError("Reading the contract", 20000)), "slow");
+  assert.equal(k(new Error("request timed out")), "slow");
+  assert.equal(k(new Error("x"), { finality: "STALE" }), "stale");
+  assert.equal(k(new Error("insufficient funds for gas * price + value")), "funds");
+  assert.equal(k(new Error("out of gas")), "funds");
+  const r = classifyError(new Error("x"), { execution: "ERROR", reason: "[EXPECTED] the case is final" });
+  assert.equal(r.kind, "refused");
+  assert.match(r.message, /the case is final/);
+  assert.equal(k(new Error("weird")), "unknown");
+  for (const e of [new TypeError("Failed to fetch"), new SlowError("a", 1000), new Error("out of gas"), new Error("weird")]) {
+    const i = classifyError(e);
+    assert.ok(i.message.length > 20 && i.retry, i.kind);
+    assert.doesNotMatch(i.message, /RPC|calldata|revert|nonce/i, "no jargon in the visitor-facing sentence");
+  }
+  await assert.rejects(withTimeout(new Promise(() => {}), 30, "Test"), (e) => e.code === "SLOW");
+  assert.equal(await withTimeout(Promise.resolve(7), 1000), 7);
+});
+
+test("browser (offline): network down -> plain-language error with a working Try again button", async () => {
+  const { ctx, page, errors } = await stubbedPage();
+  const box = page.locator('#neterr .errbox[role="alert"]');
+  await box.waitFor({ timeout: 30_000 });
+  assert.equal(await box.getAttribute("data-kind"), "offline");
+  assert.match(await box.textContent(), /can't reach the GenLayer test network/);
+  assert.match(await box.textContent(), /saved copy/);
+  await box.locator("button").click();
+  await page.waitForSelector('#source[data-state="snapshot"]', { timeout: 30_000 });
+  await page.locator('#neterr .errbox[data-kind="offline"]').waitFor({ timeout: 30_000 });
+  await page.waitForFunction(() => document.getElementById("ledgersrc")?.dataset.state === "error", null, { timeout: 30_000 });
+  assert.equal(await page.locator('#patterns .errbox button').count(), 1, "the ledger offers its own retry");
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test("browser (offline): slow network -> 'answering slowly' message instead of an endless spinner", async () => {
+  const ctx = await browser.newContext({ viewport: { width: 375, height: 812 }, serviceWorkers: "block" });
+  const page = await ctx.newPage();
+  const errors = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  await page.addInitScript(() => { window.VERDICT_READ_TIMEOUT_MS = 1500; });
+  // The RPC host accepts the request and never answers; everything else off-site is refused.
+  await ctx.route((u) => !u.href.startsWith(url), (r) => (/genlayer\.com/.test(r.request().url()) ? undefined : r.abort()));
+  const ev = JSON.parse(fs.readFileSync(path.join(DIST, "evidence.json"), "utf8"));
+  await page.route("**/verdict/snapshot.json", (r) => r.fulfill({ contentType: "application/json", body: JSON.stringify(stub) }));
+  await page.route("**/verdict/evidence.json", (r) => r.fulfill({ contentType: "application/json", body: JSON.stringify({ ...ev, pinned: [1, 2, 3, 5] }) }));
+  await page.goto(url, { waitUntil: "domcontentloaded" });
+  const box = page.locator("#neterr .errbox");
+  await box.waitFor({ timeout: 30_000 });
+  assert.equal(await box.getAttribute("data-kind"), "slow");
+  assert.match(await box.textContent(), /answering slowly/);
+  assert.match(await page.locator("#source").textContent(), /Snapshot/);
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+async function axeScan(page) {
+  await page.addScriptTag({ path: path.resolve(here, "../node_modules/axe-core/axe.min.js") });
+  const r = await page.evaluate(async () => window.axe.run(document, { runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"] } }));
+  return r.violations.filter((v) => v.impact === "serious" || v.impact === "critical").map((v) => `${v.id}: ${v.nodes.slice(0, 3).map((n) => n.target.join(" ")).join(" | ")}`);
+}
+
+test("a11y: no serious or critical WCAG 2.1 AA violations at 375 px, light and dark (court, trust page, review guide)", async () => {
+  for (const scheme of ["light", "dark"]) {
+    const { ctx, page } = await stubbedPage();
+    await page.emulateMedia({ colorScheme: scheme });
+    const v1 = await axeScan(page);
+    assert.deepEqual(v1, [], `court page (${scheme}): ${v1.join("; ")}`);
+    await ctx.close();
+    const r = await rigPage();
+    await r.page.emulateMedia({ colorScheme: scheme });
+    const v2 = await axeScan(r.page);
+    assert.deepEqual(v2, [], `trust page (${scheme}): ${v2.join("; ")}`);
+    await r.ctx.close();
+    const c3 = await browser.newContext({ viewport: { width: 375, height: 812 }, serviceWorkers: "block", colorScheme: scheme });
+    const p3 = await c3.newPage();
+    await c3.route((u) => !u.href.startsWith(url), (x) => x.abort());
+    await p3.goto(`${url}review.html`, { waitUntil: "domcontentloaded" });
+    const v3 = await axeScan(p3);
+    assert.deepEqual(v3, [], `review guide (${scheme}): ${v3.join("; ")}`);
+    await c3.close();
+  }
+});
+
+test("a11y: keyboard - first Tab lands on 'Skip to content', which moves focus into the main content", async () => {
+  const { ctx, page } = await stubbedPage();
+  await page.goto(url, { waitUntil: "domcontentloaded" });
+  await page.keyboard.press("Tab");
+  assert.equal(await page.evaluate(() => document.activeElement?.className), "skip");
+  await page.keyboard.press("Enter");
+  assert.equal(await page.evaluate(() => document.activeElement?.id), "main");
+  // Every control in the write form is reachable and labelled.
+  const unlabeled = await page.evaluate(() => [...document.querySelectorAll("#caseform input, #caseform textarea, #caseform button")]
+    .filter((el) => !(el.labels?.length || el.getAttribute("aria-label") || el.textContent.trim()))
+    .map((el) => el.id || el.name));
+  assert.deepEqual(unlabeled, []);
+  await ctx.close();
 });

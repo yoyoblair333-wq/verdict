@@ -1,0 +1,24 @@
+flowchart TB
+  subgraph People["People"]
+    V["Visitor's browser\n(own testnet burner key)"]
+    A["Apps: REST API · MCP tool · n8n\nvia the VERDICT relayer"]
+  end
+  subgraph GL["GenLayer network (studionet)"]
+    L["Leader validator\nruns the AI jury"]
+    VV["Other validators\neach re-run the jury\nwith their own AI model"]
+    L -- "proposed ruling" --> VV
+    VV -- "agree? (equivalence check)" --> C{"Consensus"}
+  end
+  subgraph Contracts["Intelligent Contracts (deployed from the owner's wallet)"]
+    JR["JudgeRouter\ncases · 5→7→9 juror appeals\nverdict stored only if validators agree"]
+    PL["PatternLedger\nabstract scam patterns\nstored only if no one is identified"]
+  end
+  V -- "signs open_case_package · judge · appeal" --> L
+  A -- "relayer signs (owner/relayer roles)" --> L
+  C -- "majority agrees → written" --> JR
+  C -- "majority agrees → written" --> PL
+  V -. "reads cases, votes, code hash" .-> JR
+  V -. "reads patterns" .-> PL
+  G["GitHub source"] -. "browser hashes deployed code = source\n(Try to rig it)" .-> JR
+  T["Where trust comes from:\n1 no single model decides\n2 losing side can appeal\n3 anyone can check the code"]:::note
+  classDef note fill:#F7E26B,stroke:#1B1340,color:#1B1340

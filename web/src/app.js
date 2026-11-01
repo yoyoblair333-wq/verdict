@@ -12,6 +12,7 @@ import { hideDecision } from "./lib/display.js";
 import { pickProof, proofSentence, proofVotes } from "./lib/proof.js";
 import { categoryLabel, flagLabel, sinceIso, submissionLabel, writersLine } from "./lib/ledger.js";
 import { h } from "./lib/dom.js";
+import { classifyError, readTimeoutMs, withTimeout } from "./lib/errors.js";
 import { groupCases, idsToFetch, isRelayerCase, provenanceLabel, receiptDisplay, RELAYER_CHIP, tierStatus, VISITOR_CHIP } from "./lib/gallery.js";
 
 const NUM_TO_NAME = transactionsStatusNumberToName;
@@ -47,7 +48,17 @@ function plain(v) {
 }
 
 async function view(functionName, args = []) {
-  return plain(await read.readContract({ address: C.CONTRACT_ADDRESS, functionName, args }));
+  return plain(await withTimeout(read.readContract({ address: C.CONTRACT_ADDRESS, functionName, args }), readTimeoutMs(), "Reading the contract"));
+}
+
+/** A plain-language error with one retry button (role=alert so screen readers hear it). */
+function errBox(info, onRetry, extra = "") {
+  return h(
+    "div",
+    { class: "errbox", role: "alert", "data-kind": info.kind },
+    h("p", {}, info.message, extra ? ` ${extra}` : ""),
+    onRetry ? h("button", { class: "btn2 small", type: "button", onclick: onRetry }, info.retry) : null,
+  );
 }
 
 const short = (s, n = 10) => (s && s.length > 2 * n + 1 ? `${s.slice(0, n)}…${s.slice(-6)}` : s ?? "");
@@ -126,7 +137,7 @@ async function loadEvidence() {
 
 async function checkPin() {
   try {
-    const code = await read.getContractCode(C.CONTRACT_ADDRESS);
+    const code = await withTimeout(read.getContractCode(C.CONTRACT_ADDRESS), readTimeoutMs(), "Reading the contract code");
     const digest = await codeDigest(code);
     return { state: digest === C.CONTRACT_CODE_DIGEST ? "match" : "mismatch", digest, rawDigest: await sha256Hex(code) };
   } catch (e) {
@@ -191,6 +202,7 @@ async function refresh() {
     }
   }
   $("refresh").disabled = false;
+  renderNetErr();
   renderSource();
   renderFacts();
   renderCases();
@@ -222,7 +234,7 @@ async function renderProof() {
     h("a", { href: "rig.html" }, "More checks: Try to rig it"),
   );
   try {
-    const v = proofVotes(await read.getTransaction({ hash: p.hash }), NUM_TO_NAME);
+    const v = proofVotes(await withTimeout(read.getTransaction({ hash: p.hash }), readTimeoutMs(), "Reading the transaction"), NUM_TO_NAME);
     src.dataset.state = "live";
     src.textContent = `Live · ${new Date().toLocaleTimeString()}`;
     src.title = `getTransaction over ${C.RPC_URL}, by this browser`;
@@ -235,8 +247,22 @@ async function renderProof() {
   } catch (e) {
     src.dataset.state = "error";
     src.textContent = "Network unreachable";
-    line.textContent = `Case #${p.caseId} was ruled ${p.split} by ${p.jurors} AI jurors. This browser could not reach the network to show the validators' votes (${e.message}); use the Explorer link to check them.`;
+    line.textContent = `Case #${p.caseId} was ruled ${p.split} by ${p.jurors} AI jurors. The validators' votes could not be read just now; use the Explorer link or try again.`;
+    votesEl.replaceChildren();
+    $("prooferr")?.replaceChildren(errBox(classifyError(e), () => { $("prooferr").replaceChildren(); renderProof(); }));
+    return;
   }
+  $("prooferr")?.replaceChildren();
+}
+
+function renderNetErr() {
+  const box = $("neterr");
+  if (!box) return;
+  const s = state.source;
+  if (!s || s.kind === "live") return box.replaceChildren();
+  const info = classifyError(s.error);
+  const extra = s.kind === "snapshot" ? "Meanwhile the page shows a saved copy of the same contract's data, taken when the site was built." : "";
+  box.replaceChildren(errBox(info, () => refresh(), extra));
 }
 
 function renderSource() {
@@ -311,7 +337,7 @@ async function checkTx(hash, st) {
   st.className = "st";
   st.textContent = "checking…";
   try {
-    const tx = await read.getTransaction({ hash });
+    const tx = await withTimeout(read.getTransaction({ hash }), readTimeoutMs(), "Reading the transaction");
     const c = classifyTx(tx, NUM_TO_NAME);
     const votes = voteSummary(tx);
     const why = c.execution === "ERROR" ? revertReason(tx) : "";
@@ -319,7 +345,7 @@ async function checkTx(hash, st) {
     st.textContent = `${c.chainStatus} · ${c.execution}${votes ? ` · validators ${votes}` : ""}${why ? ` · ${why}` : ""}`;
   } catch (e) {
     st.className = "st bad";
-    st.textContent = `RPC error: ${e.message}`;
+    st.textContent = `${classifyError(e).message} Click "Check status live" to try again.`;
   }
 }
 
@@ -541,7 +567,7 @@ async function track(hash, until, onStatus) {
   let tx = null;
   for (;;) {
     try {
-      tx = await read.getTransaction({ hash });
+      tx = await withTimeout(read.getTransaction({ hash }), readTimeoutMs(), "Reading the transaction");
       c = classifyTx(tx, NUM_TO_NAME);
     } catch (e) {
       console.warn("getTransaction", e.message); // an RPC error is not an answer: retry
@@ -577,6 +603,20 @@ async function juryStep(fn, args, label) {
   current.txs.push({ fn, hash, at: new Date().toISOString() });
   persist();
   log(`${label}: sent`, txLink(hash));
+  return finishJury(fn, hash);
+}
+
+/** Error carrying the tracked outcome, so the page can explain it in plain words. */
+function outcomeError(fn, c, why) {
+  const e = new Error(`${fn} ended ${c.chainStatus}/${c.execution}${why ? `: ${why}` : ""}`);
+  e.outcome = { finality: c.finality, execution: c.execution, reason: why };
+  if (c.finality === "STALE") e.code = "STALE";
+  return e;
+}
+
+/** Track a sent jury tx to finality, then attest it (also used to resume a stalled one). */
+async function finishJury(fn, hash) {
+  current.pending = { fn, hash };
   setRail("scoring");
   railNote("The leader validator is running the jurors; other validators will re-run them.");
   const { c, tx } = await track(hash, "FINAL", (s) => {
@@ -592,8 +632,9 @@ async function juryStep(fn, args, label) {
     setRail(c.finality === "STALE" ? "checking" : "scoring", true);
     const why = c.execution === "ERROR" ? revertReason(tx) : c.chainStatus;
     railNote(c.finality === "STALE" ? "Still not final after 15 minutes. Check the transaction later." : `The network did not finalize a verdict: ${why}`);
-    throw new Error(`${fn} ended ${c.chainStatus}/${c.execution}${why ? `: ${why}` : ""}`);
+    throw outcomeError(fn, c, why);
   }
+  current.pending = null;
   setRail("final");
   const votes = voteSummary(tx);
   railNote(`Finalized · execution SUCCESS${votes ? ` · validators ${votes}` : ""}`);
@@ -635,9 +676,11 @@ async function runAppeal(kase) {
   renderWriteGate();
   $("runresult").querySelectorAll("button.cta").forEach((b) => (b.disabled = true));
   try {
+    $("runerr").replaceChildren();
     await juryStep("appeal", [current.caseId, current.digest, kase.tier], `Appeal to ${TIER_NAME[kase.tier + 1]}`);
   } catch (e) {
     log(`Stopped: ${e.message}`);
+    showRunError(e);
   } finally {
     running = false;
     renderWriteGate();
@@ -667,6 +710,7 @@ async function onSubmit(ev) {
   $("run").hidden = false;
   $("log").replaceChildren();
   $("runresult").replaceChildren();
+  $("runerr").replaceChildren();
   setRail("submitted");
   try {
     const requestKey = randomRequestKey();
@@ -693,7 +737,7 @@ async function onSubmit(ev) {
       setRail("submitted", true);
       const why = o.c.execution === "ERROR" ? revertReason(o.tx) : o.c.chainStatus;
       railNote(`The contract refused the case: ${why}`);
-      throw new Error(`open_case_package ended ${o.c.chainStatus}/${o.c.execution}${why ? `: ${why}` : ""}`);
+      throw outcomeError("open_case_package", o.c, why);
     }
     // Case id from the contract's own index (sender + requestKey).
     let found = { case_id: 0 };
@@ -711,6 +755,7 @@ async function onSubmit(ev) {
     console.error(e);
     log(`Stopped: ${e.message}`);
     if (!$("railnote").textContent) railNote(e.message);
+    showRunError(e);
   } finally {
     running = false;
     renderWriteGate();
@@ -722,10 +767,55 @@ async function onSubmit(ev) {
   }
 }
 
+/** Explain a stopped run in plain words, with the one retry that is safe from here. */
+function showRunError(e) {
+  const info = classifyError(e, e?.outcome ?? {});
+  let retry;
+  if (current?.pending && (info.kind === "stale" || info.kind === "slow" || info.kind === "offline")) {
+    retry = () => resumeRun(() => finishJury(current.pending.fn, current.pending.hash));
+  } else if (info.kind === "refused") {
+    retry = () => {
+      $("runerr").replaceChildren();
+      $("ta").focus();
+    };
+  } else if (current?.caseId && !current.txs.some((t) => t.fn === "judge")) {
+    retry = () => resumeRun(() => juryStep("judge", [current.caseId, current.digest], "Tier 1 jury"));
+  } else if (!current?.caseId) {
+    retry = () => {
+      $("runerr").replaceChildren();
+      $("caseform").requestSubmit();
+    };
+  } else {
+    retry = () => {
+      $("runerr").replaceChildren();
+      refresh();
+    };
+  }
+  $("runerr").replaceChildren(errBox(info, retry));
+}
+
+async function resumeRun(step) {
+  if (running) return;
+  running = true;
+  renderWriteGate();
+  $("runerr").replaceChildren();
+  try {
+    await step();
+  } catch (e) {
+    log(`Stopped: ${e.message}`);
+    showRunError(e);
+  } finally {
+    running = false;
+    renderWriteGate();
+    const k = current?.caseId ? await view("get_case", [current.caseId]).catch(() => null) : null;
+    if (k) renderRunResult(k);
+  }
+}
+
 // ---------------------------------------------------- scam pattern ledger
 
 async function ledgerView(functionName, args = []) {
-  return plain(await read.readContract({ address: C.LEDGER_ADDRESS, functionName, args }));
+  return plain(await withTimeout(read.readContract({ address: C.LEDGER_ADDRESS, functionName, args }), readTimeoutMs(), "Reading the ledger"));
 }
 
 function patternCard(p, weekCount) {
@@ -768,7 +858,7 @@ async function renderLedger() {
       ledgerView("get_config"),
       ledgerView("list_recent", [10]),
       ledgerView("top_patterns_since", [sinceIso(new Date(), 7), 50]),
-      read.getContractCode(C.LEDGER_ADDRESS),
+      withTimeout(read.getContractCode(C.LEDGER_ADDRESS), readTimeoutMs(), "Reading the ledger code"),
     ]);
     const digest = await codeDigest(code);
     const week = new Map((top ?? []).map((r) => [r.id, r.sightings_since]));
@@ -786,7 +876,9 @@ async function renderLedger() {
     src.dataset.state = "error";
     src.textContent = "Network unreachable";
     src.title = e.message;
-    list.replaceChildren(h("p", { class: "empty" }, `This browser could not reach ${C.RPC_URL} to read the ledger (${e.message}). The recorded transactions below can still be opened in the explorer.`));
+    list.replaceChildren(
+      errBox(classifyError(e), () => renderLedger(), "The recorded transactions below can still be opened in the explorer."),
+    );
   }
 }
 

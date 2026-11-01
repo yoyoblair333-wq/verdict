@@ -13,6 +13,7 @@
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+<a class="skip" href="#main">Skip to content</a>
 <div class="netbar" role="note"><b>GenLayer testnet (studionet)</b> · no real value · entertainment only · 18+</div>
 <div class="wrap">
   <header class="top">
@@ -27,6 +28,7 @@
       <a href="rig.html" id="nav-rig">Try to rig it</a>
     </nav>
   </header>
+  <main id="main" tabindex="-1">
 
   <section class="hero">
     <h1>AI rulings you<br>don't take on faith.</h1>
@@ -42,6 +44,7 @@
     <p class="proofline" id="proofline">Reading a recorded ruling and asking the network how its validators voted…</p>
     <div class="proofvotes" id="proofvotes" aria-hidden="true"></div>
     <p class="sub" id="prooflinks"></p>
+    <div id="prooferr"></div>
   </section>
 
   <section class="panel" id="contract" aria-labelledby="contract-h">
@@ -50,6 +53,7 @@
       <span class="source" id="source" data-state="loading">Connecting…</span>
     </div>
     <dl class="facts" id="facts"><dt>Status</dt><dd>Reading the contract over RPC…</dd></dl>
+    <div id="neterr"></div>
     <button class="btn2 small" id="refresh" type="button">Refresh from the network</button>
   </section>
 
@@ -119,11 +123,13 @@
         <li data-k="final"><i></i>Finalized</li>
       </ol>
       <p class="railnote" id="railnote"></p>
-      <ul class="log" id="log"></ul>
+      <ul class="log" id="log" aria-live="polite"></ul>
+      <div id="runerr"></div>
       <div id="runresult"></div>
     </div>
   </section>
 
+  </main>
   <footer>
     <span>VERDICT · entertainment only · not arbitration · no money, tokens or value</span>
     <span><a href="demo/verdict-demo.mp4">Watch the 90-second demo</a> · <a href="rig.html">Try to rig it</a> · <a href="review.html">Review guide for stewards</a> · <a href="https://github.com/yoyoblair333-wq/verdict">Source</a> · <a href="https://docs.genlayer.com/">GenLayer docs</a></span>

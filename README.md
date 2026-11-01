@@ -137,6 +137,14 @@ The number to watch is **on-chain decisions per week**.
 
 ## Architecture
 
+### Where trust comes from (one picture)
+
+![VERDICT architecture: browsers and apps send cases to GenLayer; the leader runs the AI jury, other validators re-run it with their own models, and only an agreed ruling is written to JudgeRouter or PatternLedger](docs/img/architecture.svg)
+
+Source: [`docs/img/architecture.mmd`](docs/img/architecture.mmd) (rendered with mermaid-cli). Three things make a ruling trustworthy without trusting VERDICT: no single AI model decides (validators must agree), the losing side can appeal to bigger panels, and anyone can check that the deployed code is the code in this repo.
+
+### Full component view
+
 ```mermaid
 flowchart LR
   subgraph Clients

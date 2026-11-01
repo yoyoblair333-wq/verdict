@@ -1,7 +1,7 @@
 /* VERDICT live web app. Brand tokens from app/index.html (brand/brand-guide.md). */
 :root{
   --robe:#1B1340; --robe-deep:#120C2E; --pad:#F7E26B; --stamp:#E5242C; --docket:#F4F6FF; --rule:#8FA8F0;
-  --ok:#1E7A4C; --warn:#9A5B00;
+  --ok:#1E7A4C; --warn:#9A5B00; --stamp-text:#B3141B;
   --bg:var(--docket); --fg:var(--robe); --muted:#4A4378; --line:#CBD3F2; --surface:#FFFFFF;
   --btn-bg:var(--robe); --btn-fg:var(--pad);
   --display:'Big Shoulders Display', Impact, 'Arial Narrow', sans-serif;
@@ -13,12 +13,12 @@
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
     --bg:var(--robe-deep); --fg:var(--docket); --muted:#A9B6E8; --line:#2E2560; --surface:var(--robe);
-    --btn-bg:var(--pad); --btn-fg:var(--robe); --ok:#6FD39E; --warn:#F2B34A; color-scheme:dark;
+    --btn-bg:var(--pad); --btn-fg:var(--robe); --ok:#6FD39E; --warn:#F2B34A; --stamp-text:#FF8A8F; color-scheme:dark;
   }
 }
 :root[data-theme="dark"]{
   --bg:var(--robe-deep); --fg:var(--docket); --muted:#A9B6E8; --line:#2E2560; --surface:var(--robe);
-  --btn-bg:var(--pad); --btn-fg:var(--robe); --ok:#6FD39E; --warn:#F2B34A; color-scheme:dark;
+  --btn-bg:var(--pad); --btn-fg:var(--robe); --ok:#6FD39E; --warn:#F2B34A; --stamp-text:#FF8A8F; color-scheme:dark;
 }
 *{box-sizing:border-box}
 html,body{margin:0}
@@ -53,12 +53,12 @@ code,.mono{font-family:var(--mono);font-size:.86em;overflow-wrap:anywhere}
 .source{font-size:12px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;border:1.5px solid currentColor;border-radius:6px;padding:2px 7px;max-width:100%}
 .source[data-state="live"]{color:var(--ok)}
 .source[data-state="snapshot"]{color:var(--warn)}
-.source[data-state="error"]{color:var(--stamp)}
+.source[data-state="error"]{color:var(--stamp-text)}
 .facts{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:4px 12px;margin:12px 0 12px;font-size:14px}
 .facts dt{font-weight:800}
 .facts dd{margin:0;min-width:0;overflow-wrap:anywhere}
 .pin-ok{color:var(--ok);font-weight:800}
-.pin-bad{color:var(--stamp);font-weight:800}
+.pin-bad{color:var(--stamp-text);font-weight:800}
 
 .btn2{display:block;width:100%;border:2px solid var(--fg);background:transparent;border-radius:999px;padding:12px 16px;font-weight:800;font-size:16px;cursor:pointer}
 .btn2.small{padding:9px 14px;font-size:14px;width:auto}
@@ -104,7 +104,7 @@ code,.mono{font-family:var(--mono);font-size:.86em;overflow-wrap:anywhere}
 .txs .fn{font-weight:800;font-family:var(--mono);font-size:12px}
 .txs .st{font-weight:700}
 .txs .st.ok{color:var(--ok)}
-.txs .st.bad{color:var(--stamp)}
+.txs .st.bad{color:var(--stamp-text)}
 .txs .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 details summary{cursor:pointer;font-weight:800;font-size:14px;margin:4px 0}
 
@@ -112,7 +112,7 @@ details summary{cursor:pointer;font-weight:800;font-size:14px;margin:4px 0}
 .try{margin-top:8px}
 .gate{border-left:4px solid var(--stamp);padding:6px 10px;font-weight:700;margin:0 0 14px}
 .burner{border:2px dashed var(--fg);border-radius:12px;padding:10px 12px;margin:0 0 16px;font-size:14px;display:grid;gap:4px}
-.burner .lbl{font-size:11px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:var(--stamp)}
+.burner .lbl{font-size:11px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:var(--stamp-text)}
 .caseform fieldset{border:0;padding:0;margin:0 0 12px}
 .caseform legend{font-weight:800;margin-bottom:8px;padding:0}
 .rubrics{display:flex;flex-wrap:wrap;gap:8px}
@@ -128,7 +128,7 @@ details summary{cursor:pointer;font-weight:800;font-size:14px;margin:4px 0}
 .count{display:block;text-align:right;font-size:12px;color:rgba(27,19,64,.7);font-variant-numeric:tabular-nums}
 .check{display:flex;gap:10px;align-items:flex-start;margin:14px 0 0;font-size:14px;line-height:1.4;cursor:pointer}
 .check input{width:20px;height:20px;flex:none;margin:1px 0 0;accent-color:var(--fg)}
-.err{min-height:22px;margin:12px 0 0;font-weight:700;font-size:15px;color:var(--stamp)}
+.err{min-height:22px;margin:12px 0 0;font-weight:700;font-size:15px;color:var(--stamp-text)}
 .cta{display:block;width:100%;border:0;border-radius:999px;background:var(--btn-bg);color:var(--btn-fg);font:900 28px/1 var(--display);letter-spacing:.02em;padding:18px 20px 16px;cursor:pointer;margin-top:4px}
 .cta[disabled]{opacity:.45;cursor:not-allowed}
 .sub{margin:10px 0 0;text-align:center;font-size:14px;color:var(--muted)}
@@ -187,8 +187,8 @@ details.visitors>.case{margin-top:16px}
 .proof[data-kind="snapshot"]{color:var(--warn)}
 .proof[data-kind="recorded"]{color:var(--muted)}
 .proof[data-kind="tested"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
-.proof[data-kind="pending"]{color:var(--stamp);border-style:dashed}
-.proof[data-kind="unchecked"]{color:var(--stamp)}
+.proof[data-kind="pending"]{color:var(--stamp-text);border-style:dashed}
+.proof[data-kind="unchecked"]{color:var(--stamp-text)}
 .legend{list-style:none;margin:14px 0 0;padding:0;display:grid;gap:6px;font-size:13px;color:var(--muted)}
 .legend .proof{margin-right:6px}
 @media (min-width:560px){.legend{grid-template-columns:1fr 1fr}}
@@ -217,7 +217,7 @@ h3.testsh{font:900 22px/1 var(--display);margin:22px 0 8px;letter-spacing:.02em}
 .txcard .hash{display:block;margin:6px 0;font-size:11px;color:var(--muted)}
 .checks{list-style:none;margin:6px 0;padding:0;display:grid;gap:2px;font-size:13px}
 .checks .ok{color:var(--ok)}
-.checks .bad{color:var(--stamp)}
+.checks .bad{color:var(--stamp-text)}
 .checks li{overflow-wrap:anywhere}
 .votes{list-style:none;margin:8px 0;padding:0;display:flex;flex-wrap:wrap;gap:6px}
 .votes li{display:inline-flex;gap:5px;align-items:baseline;font-size:12px;border:1.5px solid var(--line);border-radius:999px;padding:2px 8px;max-width:100%}
@@ -228,11 +228,11 @@ h3.testsh{font:900 22px/1 var(--display);margin:22px 0 8px;letter-spacing:.02em}
 .txcard .row{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;font-weight:700;margin:4px 0 0}
 .revert{margin:6px 0;display:grid;gap:2px}
 .revert small{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
-.revert code{font-weight:700;color:var(--stamp);overflow-wrap:anywhere}
+.revert code{font-weight:700;color:var(--stamp-text);overflow-wrap:anywhere}
 .verdictbox{display:grid;gap:4px;border-radius:12px;padding:10px 12px;margin:12px 0 4px;border:2px solid var(--fg);font-weight:700;font-size:15px}
 .verdictbox .big{font:900 44px/.9 var(--display);letter-spacing:.01em}
 .verdictbox.match{background:var(--pad);color:var(--robe);border-color:var(--pad)}
-.verdictbox.differ{border-color:var(--stamp);color:var(--stamp)}
+.verdictbox.differ{border-color:var(--stamp);color:var(--stamp-text)}
 .digests dd small{color:var(--muted);overflow-wrap:anywhere}
 .digests code{display:block}
 pre.cmd{margin:4px 0 0;padding:10px 12px;border-radius:10px;background:var(--robe);color:var(--pad);font-size:12px;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-all;max-width:100%}
@@ -254,7 +254,7 @@ a.plain{font-size:13px;font-weight:700}
 .proofvotes{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 8px}
 .vote{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:50%;font-weight:900;border:2px solid currentColor}
 .vote.agree{color:var(--ok)}
-.vote.disagree{color:var(--stamp)}
+.vote.disagree{color:var(--stamp-text)}
 .vote.idle{color:var(--muted);border-style:dashed}
 .proofpanel .sub{text-align:left;font-size:13px;color:var(--muted);margin:0;overflow-wrap:anywhere}
 
@@ -271,3 +271,13 @@ a.plain{font-size:13px;font-weight:700}
 .review h2{font:900 clamp(22px,6.5vw,28px)/1.05 var(--display);margin:0}
 .checks{margin:10px 0 0;padding-left:18px;display:grid;gap:8px;font-size:15px}
 .checks code{overflow-wrap:anywhere}
+
+/* Plain-language error states (lib/errors.js) */
+.errbox{margin:12px 0;border:2px solid var(--stamp);border-radius:12px;padding:10px 12px;background:var(--surface)}
+.errbox p{margin:0 0 8px;font-size:15px}
+.errbox[data-kind="slow"],.errbox[data-kind="stale"]{border-color:var(--warn)}
+.errbox .btn2{width:auto;display:inline-block}
+/* Keyboard users: jump straight to the content */
+.skip{position:absolute;left:-9999px;top:0;background:var(--pad);color:var(--robe);padding:8px 14px;border-radius:0 0 8px 0;font-weight:800;z-index:10}
+.skip:focus{left:0}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
