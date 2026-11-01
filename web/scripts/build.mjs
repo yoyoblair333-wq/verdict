@@ -11,6 +11,7 @@
 //                   jury tx and the revoke negative test.
 // snapshot.json is written separately by scripts/snapshot.mjs (Pages workflow).
 import { build } from "esbuild";
+import { existsSync } from "node:fs";
 import { copyFile, mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -61,10 +62,15 @@ for (const t of run.transactions ?? []) {
 }
 // Browser-signed demo case (docs/live/demo-case.json, AUDIT-2 P1-1): its tx
 // hashes are indexed too, so every visitor sees them, not only the signing browser.
-const demo = JSON.parse(await readFile(path.join(root, "docs/live/demo-case.json"), "utf8"));
-if (String(demo.contract).toLowerCase() !== String(run.contract).toLowerCase()) throw new Error("demo-case.json is for another contract");
-if (!Number.isSafeInteger(demo.case_id) || demo.case_id < 1) throw new Error("demo-case.json: bad case_id");
-cases[demo.case_id] = (demo.transactions ?? []).filter((t) => typeof t.hash === "string" && /^0x[0-9a-fA-F]{64}$/.test(t.hash)).map((t) => ({ fn: t.fn, hash: t.hash }));
+// Optional: a deployment may not have one yet (earlier deployments' demo cases
+// are kept as docs/live/demo-case-<address>.json).
+const demoPath = path.join(root, "docs/live/demo-case.json");
+const demo = existsSync(demoPath) ? JSON.parse(await readFile(demoPath, "utf8")) : null;
+if (demo) {
+  if (String(demo.contract).toLowerCase() !== String(run.contract).toLowerCase()) throw new Error("demo-case.json is for another contract");
+  if (!Number.isSafeInteger(demo.case_id) || demo.case_id < 1) throw new Error("demo-case.json: bad case_id");
+  cases[demo.case_id] = (demo.transactions ?? []).filter((t) => typeof t.hash === "string" && /^0x[0-9a-fA-F]{64}$/.test(t.hash)).map((t) => ({ fn: t.fn, hash: t.hash }));
+}
 // Pinned = every evidence case: fetched by id and listed first, so spam can't push them off.
 const pinned = Object.keys(cases).map(Number).sort((a, b) => a - b);
 // Operator hidden list (src/hidden-cases.json) + takedowns recorded in the run.
@@ -99,7 +105,7 @@ const trust = {
 if (trust.jury.length < 2 || !trust.revoke) throw new Error("trust: the evidence run no longer has the jury and revoke transactions the trust page reads");
 
 const evidence = {
-  source: "docs/live/studionet-run.json + docs/live/demo-case.json",
+  source: demo ? "docs/live/studionet-run.json + docs/live/demo-case.json" : "docs/live/studionet-run.json",
   network: run.network,
   contract: run.contract,
   recordedAt: run.startedAt,

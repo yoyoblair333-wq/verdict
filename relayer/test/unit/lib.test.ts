@@ -13,7 +13,7 @@ import { classifyTx, pollFinality } from "../../src/lib/finality.js";
 import { Inbox, JournalCorrupt, Outbox, verifyInboxChain, type ReceiptBody } from "../../src/lib/journal.js";
 import { localCheck } from "../../src/lib/moderation.js";
 import { buildPackage, provenanceLabel, sanitiseText, verifyPackage } from "../../src/lib/package.js";
-import { checkContractPin, pinAllowsSubmit, UnsupportedRpc } from "../../src/lib/pinning.js";
+import { canonicalCodeText, checkContractPin, codeDigest, pinAllowsSubmit, UnsupportedRpc } from "../../src/lib/pinning.js";
 import { DailyCounter } from "../../src/lib/rateLimit.js";
 import { validateCallbackUrl } from "../../src/lib/webhook.js";
 
@@ -123,8 +123,8 @@ test("side tokens: constant-time hash match; 'ab' does not match 'abc'", () => {
 });
 
 test("pinning: match, mismatch, unsupported (refused unless opted in), error", async () => {
-  const want = createHash("sha256").update("code").digest("hex");
-  assert.equal((await checkContractPin(async () => "code", want)).state, "match");
+  const want = createHash("sha256").update("code\n").digest("hex");
+  assert.equal((await checkContractPin(async () => "code\n", want)).state, "match");
   const mm = await checkContractPin(async () => "other", want);
   assert.equal(mm.state, "mismatch");
   const un = await checkContractPin(async () => { throw new UnsupportedRpc("no"); }, want);
@@ -178,4 +178,19 @@ test("callback URL SSRF guard", () => {
   for (const bad of ["http://example.com", "https://localhost/x", "https://10.0.0.1/x", "https://[::1]/x", "https://[::ffff:127.0.0.1]/x", "https://[::]/x", "https://169.254.169.254/latest", "not a url"]) {
     assert.notEqual(validateCallbackUrl(bad), null, bad);
   }
+});
+
+test("pinning: canonical code digest normalises only line endings and trailing newlines", async () => {
+  const lf = "a = 1\nb = 2\n";
+  const want = createHash("sha256").update(lf).digest("hex");
+  // A source file with LF endings and one final newline: canonical = plain sha256.
+  assert.equal(codeDigest(lf), want);
+  // Studio on Windows: CRLF endings, final newline dropped. Same code, same digest.
+  for (const v of ["a = 1\r\nb = 2", "a = 1\r\nb = 2\r\n", "a = 1\rb = 2", "a = 1\nb = 2\n\n\n"]) assert.equal(codeDigest(v), want, JSON.stringify(v));
+  assert.equal(canonicalCodeText("x\r\ny"), "x\ny\n");
+  // Any change to the code itself still changes the digest.
+  for (const v of ["a = 1\nb = 3\n", "a = 1\n\nb = 2\n", " a = 1\nb = 2\n", "a = 1 \nb = 2\n"]) assert.notEqual(codeDigest(v), want, JSON.stringify(v));
+  const r = await checkContractPin(async () => "a = 1\r\nb = 2", want);
+  assert.equal(r.state, "match");
+  assert.ok(r.state === "match" && r.rawDigest !== want);
 });

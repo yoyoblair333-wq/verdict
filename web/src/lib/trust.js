@@ -62,7 +62,7 @@ export const INJECTION_TESTS = [
   T("relayer/test/unit/lib.test.ts", 162, 'test("local moderation pre-check mirrors the contract', 1, "The relayer's copy of the contract's patterns, run before any gas is spent."),
   T("relayer/test/unit/fixtures.test.ts", 56, 'test("injection-attempt:', 1, "The relayer refuses every text in the same shared fixture."),
   T("relayer/test/standin/guards.test.ts", 40, 'test("guard: moderation and injection screen run before gas', 1, "A refused take never reaches the chain."),
-  T("web/test/offline.test.mjs", 235, 'test("browser (offline): hostile chain strings render as text', 1, "This site shows chain text as text, never as HTML."),
+  T("web/test/offline.test.mjs", 246, 'test("browser (offline): hostile chain strings render as text', 1, "This site shows chain text as text, never as HTML."),
 ];
 
 /** V-FUN-05, V-FUN-09: the 5 / 7 / 9 ladder. */
@@ -105,7 +105,7 @@ export const DOES_NOT_PROVE = [
   { t: "That our prompts are neutral.", d: "They are public: the code check below proves the contract runs the published prompts and juror personas. Read them and judge for yourself." },
   { t: "That a screenshot is real.", d: "Only the chain is. Check the case and its transactions here or on the explorer." },
   { t: "That a visitor case was moderated.", d: "Anyone can open a case with their own testnet account. Its consent, 18+ and moderation labels are the opener's claims; VERDICT checked none of them." },
-  { t: "That the operator can't step in.", d: "The contract owner can pause it, which stops new cases, juries and appeals. On relayer cases only VERDICT's keys can send the jury or an appeal: the contract stops a winner, not the operator. On this testnet deployment the owner and the relayer are one throwaway key." },
+  { t: "That the operator can't step in.", d: "The contract owner can pause it, which stops new cases, juries and appeals. On relayer cases only VERDICT's keys can send the jury or an appeal: the contract stops a winner, not the operator. On this testnet deployment the owner is the wallet that deployed the contract and the relayer is a separate key; both are VERDICT's." },
   { t: "Anything about mainnet.", d: "This is GenLayer's studionet test network. No real value, no money, no tokens." },
   { t: "That Quick Verdicts or the games were checked.", d: "They run off the network, carry no receipt, and say so." },
 ];

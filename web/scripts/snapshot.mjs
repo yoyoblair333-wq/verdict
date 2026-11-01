@@ -65,7 +65,11 @@ for (const id of [...pinned, ...page]) {
   } else cases.push(c);
 }
 const code = await withRetry(() => client.getContractCode(CONTRACT_ADDRESS));
-const digest = createHash("sha256").update(code, "utf8").digest("hex");
+// Canonical code digest (web/src/lib/package.js canonicalCodeText): line
+// endings to LF, one final newline. rawDigest is the stored bytes as-is.
+const canon = (t) => String(t).replace(/\r\n?/g, "\n").replace(/\n+$/, "") + "\n";
+const digest = createHash("sha256").update(canon(code), "utf8").digest("hex");
+const rawDigest = createHash("sha256").update(code, "utf8").digest("hex");
 
 // Trust page fallback ("Try to rig it."): the same transaction summaries and
 // GitHub source hash the page computes live. A failure here never blocks the
@@ -82,7 +86,9 @@ try {
     if (!res.ok) throw new Error(`GitHub answered ${res.status}`);
     return res;
   });
-  trust = { at: new Date().toISOString(), txs, github: { url: RAW_SOURCE_URL, digest: await sha256Bytes(await r.arrayBuffer()) } };
+  const buf = await r.arrayBuffer();
+  const ghText = new TextDecoder().decode(buf);
+  trust = { at: new Date().toISOString(), txs, github: { url: RAW_SOURCE_URL, digest: createHash("sha256").update(canon(ghText), "utf8").digest("hex"), rawDigest: await sha256Bytes(buf) } };
 } catch (e) {
   console.warn(`snapshot: trust section skipped (${e.message})`);
 }
@@ -91,7 +97,7 @@ const snap = {
   snapshotAt: new Date().toISOString(),
   rpc: RPC_URL,
   contract: CONTRACT_ADDRESS,
-  pin: { state: digest === CONTRACT_CODE_DIGEST ? "match" : "mismatch", digest },
+  pin: { state: digest === CONTRACT_CODE_DIGEST ? "match" : "mismatch", digest, rawDigest },
   config,
   cases,
   trust,

@@ -48,6 +48,21 @@ export async function sha256Hex(text) {
   return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+/**
+ * Contract code with line endings turned into LF and exactly one trailing
+ * newline. Pasting a file into GenLayer Studio on Windows stores CRLF and
+ * drops the final newline; normalising only that cannot hide a code change.
+ * Same rule as relayer/src/lib/pinning.ts canonicalCodeText.
+ */
+export function canonicalCodeText(text) {
+  return String(text).replace(/\r\n?/g, "\n").replace(/\n+$/, "") + "\n";
+}
+
+/** The digest every code check compares: sha256 of canonicalCodeText. */
+export async function codeDigest(text) {
+  return sha256Hex(canonicalCodeText(text));
+}
+
 // -------------------------------------------------------------- sanitise
 
 const INVISIBLE_RE = /[​-‏‪-‮⁠-⁤﻿]/g;

@@ -1,0 +1,96 @@
+{
+  "about": "Visitor-signed case recorded for the demo video: web/dist served locally, driven by Playwright (headless Chromium), every transaction signed in the browser by its generated testnet burner via genlayer-js. No relayer involved. Status re-checked over RPC after the run.",
+  "network": "studionet",
+  "rpc": "https://studio.genlayer.com/api",
+  "contract": "0x3f867934247d88Aa3134d897a9246cfB1324B1Fa",
+  "case_id": 5,
+  "creator_burner": "0xB1a9D090c0aEC5560ad25646c38a4Db0254F844c",
+  "request_key": "7a7d1c48e76b7f5b97bf6e6d7e211afe",
+  "package_digest": "01f51eb7f80de32f59fb4dbe1ce047855e088ac9dbf98e05995c835627939267",
+  "rubric": "whos_right",
+  "surface": "settle",
+  "entries": [
+    "Cereal is a soup: it is a liquid with solid pieces, eaten from a bowl with a spoon.",
+    "Cereal is not a soup. Soup is cooked and savoury; nobody has ever simmered cornflakes."
+  ],
+  "transactions": [
+    {
+      "fn": "open_case_package",
+      "hash": "0xe5f89db1258a952b5e724e5d76c15b3382d47a1a85c850983156cd3e82fa9ea1",
+      "sent_at": "2026-10-31T20:28:44.536Z",
+      "chainStatus": "FINALIZED",
+      "execution": "SUCCESS",
+      "votes": "agree 3, idle 2"
+    },
+    {
+      "fn": "judge",
+      "hash": "0xa2701c2f0276cb84a2d529d5f6aa145dd7fba880c0e3d5535f25f5cb26b3e1ef",
+      "sent_at": "2026-10-31T20:29:47.839Z",
+      "chainStatus": "FINALIZED",
+      "execution": "SUCCESS",
+      "votes": "agree 3, idle 1, disagree 1"
+    },
+    {
+      "fn": "confirm_verdict",
+      "hash": "0x11df92e968557e43a2347c7701e9640653aa895ece5280e336c2439a5285132c",
+      "sent_at": "2026-10-31T20:31:23.436Z",
+      "chainStatus": "FINALIZED",
+      "execution": "SUCCESS",
+      "votes": "agree 3, idle 2"
+    }
+  ],
+  "verdict": {
+    "status": "judged",
+    "tier": 1,
+    "jurors": 5,
+    "split": "5-0",
+    "winner_index": 1,
+    "scores": [
+      56,
+      80
+    ],
+    "reason": "Entry 1 gives a clearer category boundary and a stronger real-world basis for the claim.",
+    "confirmed_tier": 1,
+    "juror_votes": [
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "juror_names": [
+      "Marlowe",
+      "Dahlia",
+      "Frank",
+      "Tiff",
+      "Theo"
+    ]
+  },
+  "browser_log": [
+    "1:28:43 PMCase package built. Receipt number: 01f51eb7f80de32f59fb4dbe1ce047855e088ac9dbf98e05995c835627939267",
+    "1:28:44 PMopen_case_package: sent 0xe5f89db1\u2026fa9ea1",
+    "1:28:44 PMopen_case_package: PENDING (UNKNOWN)",
+    "1:29:35 PMopen_case_package: PROPOSING (UNKNOWN)",
+    "1:29:42 PMopen_case_package: REVEALING (SUCCESS)",
+    "1:29:45 PMopen_case_package: ACCEPTED (SUCCESS)",
+    "1:29:46 PMCase #5 is on-chain.",
+    "1:29:47 PMTier 1 jury: sent 0xa2701c2f\u2026b3e1ef",
+    "1:29:48 PMjudge: PENDING (UNKNOWN)",
+    "1:29:51 PMjudge: PROPOSING (UNKNOWN)",
+    "1:30:00 PMjudge: COMMITTING (SUCCESS)",
+    "1:30:48 PMjudge: ACCEPTED (SUCCESS)",
+    "1:31:21 PMjudge: FINALIZED (SUCCESS)",
+    "1:31:21 PMjudge: FINALIZED \u00b7 SUCCESS \u00b7 validators agree 3, idle 1, disagree 1",
+    "1:31:22 PMSigning confirm_verdict (finality attestation)\u2026",
+    "1:31:23 PMconfirm_verdict: sent 0x11df92e9\u202685132c",
+    "1:31:23 PMconfirm_verdict: PENDING (UNKNOWN)",
+    "1:31:26 PMconfirm_verdict: COMMITTING (SUCCESS)",
+    "1:31:29 PMconfirm_verdict: ACCEPTED (SUCCESS)",
+    "1:32:01 PMconfirm_verdict: FINALIZED (SUCCESS)"
+  ],
+  "recorded_wall_clock_sec": {
+    "send_click_to_tier1_finalized": 155.7,
+    "send_click_to_confirm_verdict_finalized": 198.0
+  },
+  "video": "VERDICT demo, section 3 (sped up 6x)"
+}

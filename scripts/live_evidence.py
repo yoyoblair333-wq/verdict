@@ -14,7 +14,12 @@ accepted.
 docs/live/studionet-run.json is rewritten to point there).
 --why: one paragraph on why this deployment exists.
 --owner / --relayer: get_config roles read from the deployed contract.
---source: contracts/judge_router.py; its sha256 is printed beside the on-chain one.
+--source: contracts/judge_router.py; its canonical code digest is printed beside the on-chain one.
+--earlier-why: replaces the default "superseded" sentence for the demoted section.
+
+Code digests are canonical: sha256 after CRLF/CR -> LF and exactly one final
+newline (relayer/src/lib/pinning.ts codeDigest). Pasting into GenLayer Studio on
+Windows changes only those; for an LF source file it equals plain sha256.
 """
 import argparse
 import hashlib
@@ -38,6 +43,11 @@ DEFAULT_WHY = ("This deployment exists because the contract changed after the in
                "creator or the owner, and the legacy `open_case` path is owner-only. A contract change means a new address and a new pin.")
 
 
+def code_digest(data: bytes) -> str:
+    text = data.replace(b"\r\n", b"\n").replace(b"\r", b"\n").rstrip(b"\n") + b"\n"
+    return hashlib.sha256(text).hexdigest()
+
+
 def render(run, deploy_tx, deploy_votes, revoke_reason, why=DEFAULT_WHY, owner="", relayer="", source_digest=""):
     tx_by_hash = {t["hash"]: t for t in run["transactions"]}
     out = []
@@ -59,9 +69,13 @@ def render(run, deploy_tx, deploy_votes, revoke_reason, why=DEFAULT_WHY, owner="
         w(f"| Owner / relayer (throwaway) | `{run['relayer']}` (same key as the earlier deployment) |")
     if source_digest:
         same = "=" if source_digest == run["pin"]["digest"] else "≠"
-        w(f"| Code pin | `gen_getContractCode` → sha256 `{run['pin']['digest']}` {same} sha256 of `contracts/judge_router.py` `{source_digest}` = `EXPECTED_CONTRACT_CODE_DIGEST` (**{run['pin']['state']}**) |")
+        w(f"| Code pin | `gen_getContractCode` → canonical sha256 `{run['pin']['digest']}` {same} canonical sha256 of `contracts/judge_router.py` `{source_digest}` = `EXPECTED_CONTRACT_CODE_DIGEST` (**{run['pin']['state']}**) |")
     else:
         w(f"| Code pin | `gen_getContractCode` → sha256 `{run['pin']['digest']}` = `EXPECTED_CONTRACT_CODE_DIGEST` (**{run['pin']['state']}**) |")
+    raw = run["pin"].get("rawDigest")
+    if raw and raw != run["pin"]["digest"]:
+        w(f"| Stored bytes | raw sha256 `{raw}`: the code was pasted into GenLayer Studio on Windows, which stores CRLF line endings and drops the final newline. "
+          "The pin compares the canonical form (line endings to LF, one final newline), which cannot hide any change to the code. |")
     w(f"| Run | {run['startedAt']} → {run['finishedAt']} ({run['elapsedSec']} s, {len(run['cases'])} cases, {len(run['transactions'])} transactions) |\n")
     w("### The three cases\n")
     for c in run["cases"]:
@@ -126,7 +140,7 @@ def render(run, deploy_tx, deploy_votes, revoke_reason, why=DEFAULT_WHY, owner="
     return "\n".join(out)
 
 
-def demote_current(old, address, run_file):
+def demote_current(old, address, run_file, why=""):
     """Page in the multi-deployment format: its current section becomes an
     earlier one; its existing earlier sections and their prose stay as they are."""
     cur = re.search(r"^## Current deployment \((.*?)\)\n(.*?)(?=^## )", old, flags=re.M | re.S)
@@ -135,7 +149,7 @@ def demote_current(old, address, run_file):
     tail = old[old.index("\n## Earlier deployment") + 1:] if "\n## Earlier deployment" in old else ""
     addr = f", `{address}`" if address else ""
     lines = [f"## Earlier deployment ({cur.group(1)}{addr})", "",
-             "Superseded by the current deployment above: `contracts/judge_router.py` has changed since (owner/relayer split: constructor "
+             (why + (f" Its run data is kept in [`docs/live/{run_file}`](live/{run_file})." if run_file else "")) if why else "Superseded by the current deployment above: `contracts/judge_router.py` has changed since (owner/relayer split: constructor "
              "`relayer`, owner-only `set_relayer`, lifecycle calls open to the current relayer), so this address no longer matches the source or the pinned digest."
              + (f" Its run data is kept in [`docs/live/{run_file}`](live/{run_file})." if run_file else ""), ""]
     body = cur.group(2)
@@ -181,12 +195,13 @@ def main():
     ap.add_argument("--why", default=DEFAULT_WHY)
     ap.add_argument("--owner", default="")
     ap.add_argument("--relayer", default="")
-    ap.add_argument("--source", default="", help="contract source file; its sha256 is shown next to the on-chain digest")
+    ap.add_argument("--source", default="", help="contract source file; its canonical code digest is shown next to the on-chain digest")
+    ap.add_argument("--earlier-why", default="")
     a = ap.parse_args()
-    source_digest = hashlib.sha256(open(a.source, "rb").read()).hexdigest() if a.source else ""
+    source_digest = code_digest(open(a.source, "rb").read()) if a.source else ""
     run = json.load(open(a.run, encoding="utf-8"))
     page = [f"# Live evidence: studionet\n",
-            "Every studionet deployment is recorded here. The **current** one matches `contracts/judge_router.py` byte for byte (pin below); "
+            "Every studionet deployment is recorded here. The **current** one matches `contracts/judge_router.py` (canonical code digest, pin below); "
             "the **earlier** ones are kept for the record and no longer match the source.\n",
             render(run, a.deploy_tx, a.deploy_votes, a.revoke_reason, a.why, a.owner, a.relayer, source_digest),
             "## Reproduce\n",
@@ -203,7 +218,7 @@ def main():
     if a.earlier:
         old = open(a.earlier, encoding="utf-8").read()
         if re.search(r"^## Current deployment ", old, flags=re.M):
-            page.append(demote_current(old, a.earlier_address, a.earlier_run))
+            page.append(demote_current(old, a.earlier_address, a.earlier_run, a.earlier_why))
         else:
             page.append(demote_first_format(old))
     print("\n".join(page))

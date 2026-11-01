@@ -1,11 +1,12 @@
 {
   "network": "studionet",
-  "contract": "0x3f867934247d88Aa3134d897a9246cfB1324B1Fa",
+  "contract": "0xEe9AB3e45005E97dA53BFE570412f30D6F2C1e64",
   "relayer": "0x34653Fb290480a8C99B4D92D4857123B5624c37d",
-  "startedAt": "2026-10-31T19:58:22.603Z",
+  "startedAt": "2026-11-01T01:57:41.849Z",
   "pin": {
     "state": "match",
-    "digest": "7c18143cf8f5224d6f8cdccebcdcc70b3b584f0b9247bf55c8439d2fac10ca1b"
+    "digest": "7c18143cf8f5224d6f8cdccebcdcc70b3b584f0b9247bf55c8439d2fac10ca1b",
+    "rawDigest": "6bfe51a77be80254a1572899044403bc54d193e32679226c7d6eabb33753f4da"
   },
   "cases": [
     {
@@ -16,11 +17,11 @@
           "status": 201,
           "body": {
             "id": 1,
-            "tx": "0xe08409184d086bb6cb3e92dc0da1e672490e5b212123b7d75a37c6de4a3d3d14",
+            "tx": "0x82b1128c15577f2fc3d429ad62abf3a1f22311575fc493b9367617187ec5fa2f",
             "status": "pending",
             "finality": "ACCEPTED",
-            "request_key": "8c7f93595ab941edc1c01d5b69b3849c",
-            "package_digest": "43b09ddff2cfd7fdbc58a16298d15bdee819bee7921bfc3cdfe1fd372931883e",
+            "request_key": "33150e00a05d856716ea5fe6b11c1877",
+            "package_digest": "98cd727ceac5f72004dd6ddf11f8619b663dc992ffa30e3d6bd4990265475394",
             "provenance": [
               {
                 "assurance": "self_asserted",
@@ -39,11 +40,11 @@
           "step": "POST judge",
           "status": 202,
           "body": {
-            "tx": "0x926597b1a497e9e7a1b313958b23d6027615741116a08b0c3e82d8bf371e910f",
+            "tx": "0x44a3f10499d3fb9539e610603a8bfd68db59a6d22c599178789d45cd1737a83b",
             "finality": "ACCEPTED",
             "final": false,
             "verdict_final": false,
-            "receipt_number": "43b09ddff2cfd7fdbc58a16298d15bdee819bee7921bfc3cdfe1fd372931883e"
+            "receipt_number": "98cd727ceac5f72004dd6ddf11f8619b663dc992ffa30e3d6bd4990265475394"
           }
         },
         {
@@ -51,8 +52,8 @@
           "verdict": {
             "winnerIndex": 0,
             "scores": [
-              68,
-              32
+              80,
+              34
             ],
             "jurorVotes": [
               0,
@@ -62,7 +63,7 @@
               0
             ],
             "split": "5-0",
-            "reason": "Sweet and salty pairing is a demonstrable culinary principle; tradition-based objection offers no logical counterargumen",
+            "reason": "Entry 0 gives a clear supporting rationale; Entry 1 relies on hyperbole instead of argument.",
             "jurors": 5
           },
           "provenance_label": "All takes submitted through Settle It; authorship not verified. The receipt number proves which takes were judged, not that the verdict is correct."
@@ -71,13 +72,13 @@
           "step": "appeal -> Tier 2",
           "status": 202,
           "body": {
-            "tx": "0xfed31cf680876d75769ef4150b4763be285f0e386556aaed4c538685488c9e89",
+            "tx": "0x9fab39801786910c99bded7ae01fcdb04d4a83e71074d9af83b72f3f5b7090a6",
             "finality": "ACCEPTED",
             "final": false,
             "verdict_final": false,
             "paid_with": "free",
             "credit_balance_cents": 0,
-            "receipt_number": "43b09ddff2cfd7fdbc58a16298d15bdee819bee7921bfc3cdfe1fd372931883e"
+            "receipt_number": "98cd727ceac5f72004dd6ddf11f8619b663dc992ffa30e3d6bd4990265475394"
           }
         },
         {
@@ -98,7 +99,7 @@
               0
             ],
             "split": "7-0",
-            "reason": "One gives a clear, broadly grounded rationale; the other relies on hyperbole instead of support.",
+            "reason": "Entry 0 gives a clear, relevant rationale; entry 1 relies on hyperbole rather than support.",
             "jurors": 7
           }
         },
@@ -106,13 +107,13 @@
           "step": "appeal -> Supreme Court",
           "status": 202,
           "body": {
-            "tx": "0x2f653265ab200902585fb3903babd6fa88d987d0b5e13cab8ef09eb15ee146b0",
+            "tx": "0xf417c0f6a1f40e9baaa3ca1a9c32c628d6bbdf969c384ceefd604be026fc1891",
             "finality": "ACCEPTED",
             "final": false,
             "verdict_final": false,
             "paid_with": "free",
             "credit_balance_cents": 0,
-            "receipt_number": "43b09ddff2cfd7fdbc58a16298d15bdee819bee7921bfc3cdfe1fd372931883e"
+            "receipt_number": "98cd727ceac5f72004dd6ddf11f8619b663dc992ffa30e3d6bd4990265475394"
           }
         },
         {
@@ -120,8 +121,8 @@
           "verdict": {
             "winnerIndex": 0,
             "scores": [
-              69,
-              31
+              66,
+              34
             ],
             "jurorVotes": [
               0,
@@ -135,14 +136,14 @@
               0
             ],
             "split": "9-0",
-            "reason": "Sweet and salty pairings have broad culinary support; tradition alone isn't a counter-argument.",
+            "reason": "Entry 0 gives a tasty rationale, while reasonable",
             "jurors": 9
           },
           "status": "final"
         }
       ],
       "caseId": 1,
-      "receiptNumber": "43b09ddff2cfd7fdbc58a16298d15bdee819bee7921bfc3cdfe1fd372931883e"
+      "receiptNumber": "98cd727ceac5f72004dd6ddf11f8619b663dc992ffa30e3d6bd4990265475394"
     },
     {
       "example": "Better roast (Live Court)",
@@ -152,11 +153,11 @@
           "status": 201,
           "body": {
             "id": 2,
-            "tx": "0x71d325273244b0965a0b58b021b67efc3c26d794b6bd7945a653af3c6264180d",
+            "tx": "0x7aee9bf02c3c3227473214cd2b83c9544e9c3f25ddef3886e5fd2d9fd2266d6a",
             "status": "pending",
             "finality": "ACCEPTED",
-            "request_key": "646277997a5eac6660b91c25f3727491",
-            "package_digest": "eb167ed7cfbd30029133da432dd390b55ef8de0d6940eaa277dcb3e3df302ebd",
+            "request_key": "94849c1f423bf3cf5442541abaf343a7",
+            "package_digest": "1bf9522629bd04a898823c954e78fc383f1e5d729564b7ddc8c3f0e9ba1200c2",
             "provenance": [
               {
                 "assurance": "self_asserted",
@@ -175,11 +176,11 @@
           "step": "POST judge",
           "status": 202,
           "body": {
-            "tx": "0x5adc60577f1d84d58adeb292d21050e21b5f272f4371b0cd9e8227ad850a175c",
+            "tx": "0x1ecabc4c1c3b2a4711861cff1c48aaeb78dda8b6aa9a6aeb94b5e00a2107eff0",
             "finality": "ACCEPTED",
             "final": false,
             "verdict_final": false,
-            "receipt_number": "eb167ed7cfbd30029133da432dd390b55ef8de0d6940eaa277dcb3e3df302ebd"
+            "receipt_number": "1bf9522629bd04a898823c954e78fc383f1e5d729564b7ddc8c3f0e9ba1200c2"
           }
         },
         {
@@ -188,7 +189,7 @@
             "winnerIndex": 1,
             "scores": [
               66,
-              86
+              90
             ],
             "jurorVotes": [
               1,
@@ -198,7 +199,7 @@
               1
             ],
             "split": "5-0",
-            "reason": "Entry 1 offers a sharper, more psychologically astute roast with greater originality, while entry 0 relies on a common, ",
+            "reason": "More specific and relatable with a witty emotional twist.",
             "jurors": 5
           },
           "provenance_label": "All takes relayed by the stream host; authorship not verified. The receipt number proves which takes were judged, not that the verdict is correct."
@@ -207,13 +208,13 @@
           "step": "appeal -> Tier 2",
           "status": 202,
           "body": {
-            "tx": "0x50f2e49cee3af3f79357453692ba4d90415856dc3e112580b31b08d41febbef2",
+            "tx": "0x9f26a7927297178492dd76f27a7cea87de03759ab3ac7770516a60b207f6fd18",
             "finality": "ACCEPTED",
             "final": false,
             "verdict_final": false,
             "paid_with": "free",
             "credit_balance_cents": 0,
-            "receipt_number": "eb167ed7cfbd30029133da432dd390b55ef8de0d6940eaa277dcb3e3df302ebd"
+            "receipt_number": "1bf9522629bd04a898823c954e78fc383f1e5d729564b7ddc8c3f0e9ba1200c2"
           }
         },
         {
@@ -221,8 +222,8 @@
           "verdict": {
             "winnerIndex": 1,
             "scores": [
-              57,
-              73
+              80,
+              90
             ],
             "jurorVotes": [
               1,
@@ -231,40 +232,40 @@
               1,
               1,
               1,
-              0
+              1
             ],
-            "split": "6-1",
-            "reason": "Entry 1 is punchier and more pointed, while Entry 0’s familiar bug comparison feels less original.",
+            "split": "7-0",
+            "reason": "Second entry is more original and cleverly targets a specific developer behavior rather than just general criticism.",
             "jurors": 7
           }
         },
         {
           "step": "finalize (operator)",
-          "tx": "0x373f9d4e28e99282ee4c0bca13b4f1f29f1689520643f0bbbd847a5122dcfde7",
+          "tx": "0x6d35097c0734e3ef178cf14e39ed4d06ab1f07eb61bda43c1b072f470e024bd4",
           "transitions": [
             {
-              "at": "2026-10-31T20:10:09.993Z",
+              "at": "2026-11-01T02:08:09.212Z",
               "tSec": 0.1,
               "finality": "PENDING",
               "chainStatus": "PENDING",
               "execution": "UNKNOWN"
             },
             {
-              "at": "2026-10-31T20:10:13.053Z",
+              "at": "2026-11-01T02:08:12.266Z",
               "tSec": 3.1,
               "finality": "PENDING",
-              "chainStatus": "COMMITTING",
-              "execution": "SUCCESS"
+              "chainStatus": "PROPOSING",
+              "execution": "UNKNOWN"
             },
             {
-              "at": "2026-10-31T20:10:16.118Z",
+              "at": "2026-11-01T02:08:15.331Z",
               "tSec": 6.2,
               "finality": "ACCEPTED",
               "chainStatus": "ACCEPTED",
               "execution": "SUCCESS"
             },
             {
-              "at": "2026-10-31T20:10:46.963Z",
+              "at": "2026-11-01T02:08:46.121Z",
               "tSec": 37,
               "finality": "FINALIZED_SUCCESS",
               "chainStatus": "FINALIZED",
@@ -278,7 +279,7 @@
         }
       ],
       "caseId": 2,
-      "receiptNumber": "eb167ed7cfbd30029133da432dd390b55ef8de0d6940eaa277dcb3e3df302ebd"
+      "receiptNumber": "1bf9522629bd04a898823c954e78fc383f1e5d729564b7ddc8c3f0e9ba1200c2"
     },
     {
       "example": "Pettiest text (API)",
@@ -288,11 +289,11 @@
           "status": 201,
           "body": {
             "id": 3,
-            "tx": "0x06e9c4ea8b940fdb7e35d21b4c00fc9d96f2530259a0203a996c9e4ec3ccfcf4",
+            "tx": "0xc936ba8d7394999b4ef37890f4e62ba5881e87ba73105326e7bf46aa04bd9b84",
             "status": "pending",
             "finality": "ACCEPTED",
-            "request_key": "19debc62326cc36d1a57f104d947cb34",
-            "package_digest": "05ceb5420f6ad332eaa3d5063cb7e66ce53c811aee8f769464acf05ffdb235cc",
+            "request_key": "1b7cd22ef21029d1f20705725dd544bc",
+            "package_digest": "f8d7bd2d5dbe08adb7366f1e0dc0ee577453600a098fc8807dc29fe46017715d",
             "provenance": [
               {
                 "assurance": "self_asserted",
@@ -311,11 +312,11 @@
           "step": "POST judge",
           "status": 202,
           "body": {
-            "tx": "0x6f4b2f84e3274c53e56c0c2716be24c5bf786aa025d2e703a020a9682f119e9a",
+            "tx": "0x5a067ee197dce39f60c9fb0e0e9b99329435302acfb4e8b1d6d8e0be55128877",
             "finality": "ACCEPTED",
             "final": false,
             "verdict_final": false,
-            "receipt_number": "05ceb5420f6ad332eaa3d5063cb7e66ce53c811aee8f769464acf05ffdb235cc"
+            "receipt_number": "f8d7bd2d5dbe08adb7366f1e0dc0ee577453600a098fc8807dc29fe46017715d"
           }
         },
         {
@@ -323,18 +324,18 @@
           "verdict": {
             "winnerIndex": 1,
             "scores": [
-              68,
-              76
+              30,
+              80
             ],
             "jurorVotes": [
               1,
-              0,
               1,
-              0,
+              1,
+              1,
               1
             ],
-            "split": "3-2",
-            "reason": "The birthday threat-free promise of calculated future neglect is a masterclass in passive-aggressive precision and delay",
+            "split": "5-0",
+            "reason": "Entry 1 is more impressively petty with its passive-aggressive birthday reminder threat, while Entry 0 is too brief to s",
             "jurors": 5
           },
           "provenance_label": "All takes submitted by an API client; authorship not verified. The receipt number proves which takes were judged, not that the verdict is correct."
@@ -348,32 +349,25 @@
         },
         {
           "step": "raw on-chain revoke after confirm_verdict (must revert)",
-          "tx": "0xfcecc671e08106833d11e92c495cdada542ce9012e7d8673b2ebea6fb29984c4",
+          "tx": "0xbea18f58dea8eef3e671470c3f0412372927a954ee7b7e4bf4af8cc90689ef61",
           "transitions": [
             {
-              "at": "2026-10-31T20:12:45.076Z",
+              "at": "2026-11-01T02:10:53.324Z",
               "tSec": 0.1,
               "finality": "PENDING",
               "chainStatus": "PENDING",
               "execution": "UNKNOWN"
             },
             {
-              "at": "2026-10-31T20:12:48.159Z",
+              "at": "2026-11-01T02:10:56.406Z",
               "tSec": 3.1,
-              "finality": "PENDING",
-              "chainStatus": "PROPOSING",
-              "execution": "UNKNOWN"
-            },
-            {
-              "at": "2026-10-31T20:12:51.255Z",
-              "tSec": 6.2,
               "finality": "ACCEPTED",
               "chainStatus": "ACCEPTED",
               "execution": "ERROR"
             },
             {
-              "at": "2026-10-31T20:13:25.117Z",
-              "tSec": 40.1,
+              "at": "2026-11-01T02:11:27.282Z",
+              "tSec": 34,
               "finality": "FINALIZED_ERROR",
               "chainStatus": "FINALIZED",
               "execution": "ERROR"
@@ -391,39 +385,39 @@
         }
       ],
       "caseId": 3,
-      "receiptNumber": "05ceb5420f6ad332eaa3d5063cb7e66ce53c811aee8f769464acf05ffdb235cc"
+      "receiptNumber": "f8d7bd2d5dbe08adb7366f1e0dc0ee577453600a098fc8807dc29fe46017715d"
     }
   ],
   "transactions": [
     {
       "fn": "open_case_package",
-      "hash": "0xe08409184d086bb6cb3e92dc0da1e672490e5b212123b7d75a37c6de4a3d3d14",
-      "sentAt": "2026-10-31T19:58:23.566Z",
+      "hash": "0x82b1128c15577f2fc3d429ad62abf3a1f22311575fc493b9367617187ec5fa2f",
+      "sentAt": "2026-11-01T01:57:42.717Z",
       "transitions": [
         {
-          "at": "2026-10-31T19:58:23.644Z",
+          "at": "2026-11-01T01:57:42.786Z",
           "tSec": 0.1,
           "finality": "PENDING",
           "chainStatus": "PENDING",
           "execution": "UNKNOWN"
         },
         {
-          "at": "2026-10-31T19:58:26.733Z",
+          "at": "2026-11-01T01:57:45.877Z",
           "tSec": 3.2,
           "finality": "PENDING",
           "chainStatus": "COMMITTING",
           "execution": "SUCCESS"
         },
         {
-          "at": "2026-10-31T19:58:29.820Z",
-          "tSec": 6.3,
+          "at": "2026-11-01T01:57:48.948Z",
+          "tSec": 6.2,
           "finality": "ACCEPTED",
           "chainStatus": "ACCEPTED",
           "execution": "SUCCESS"
         },
         {
-          "at": "2026-10-31T19:59:17.411Z",
-          "tSec": 53.8,
+          "at": "2026-11-01T01:58:33.124Z",
+          "tSec": 50.4,
           "finality": "FINALIZED_SUCCESS",
           "chainStatus": "FINALIZED",
           "execution": "SUCCESS"
@@ -434,57 +428,57 @@
         "result_name": "MAJORITY_AGREE",
         "execution": "SUCCESS",
         "votes": {
-          "0x378aED3bA912Ce77C3C66155961A7e61C2fE8F3B": "idle",
-          "0x4868b172ddEBC18b5219aaCeAB77ae0Df330c83A": "agree",
-          "0x5e84e17266a193077728229751aC8A1dD24be146": "agree",
-          "0xCe0B66448435cA53665C954705Abd753515594Cf": "idle",
-          "0xF7D08d12dB37D3e02D1833b5cB7e56B07F114186": "agree"
+          "0x007d6451555Df7765c707284F844137927aE4e5E": "agree",
+          "0x045291B293B9D68969c18B6637A8258038cf787A": "agree",
+          "0x5D9Ee6E9aAF2F0b739314A52dd9Da57cd8866dA8": "agree",
+          "0x9C182DE7F93AdbE8ee3D62570613eC23c5683cAc": "idle",
+          "0xe06A34A1eBd398AF3399d08593B8c3C433CdD947": "idle"
         },
         "num_of_initial_validators": 5,
         "num_of_rounds": "1",
         "rotation_count": 0,
         "appealed": false,
-        "gaslimit": 45,
-        "created_at": "2026-10-31T19:58:23.425639+00:00",
+        "gaslimit": 64,
+        "created_at": "2026-11-01T01:57:42.609694+00:00",
         "error": ""
       }
     },
     {
       "fn": "judge",
-      "hash": "0x926597b1a497e9e7a1b313958b23d6027615741116a08b0c3e82d8bf371e910f",
-      "sentAt": "2026-10-31T19:58:32.800Z",
+      "hash": "0x44a3f10499d3fb9539e610603a8bfd68db59a6d22c599178789d45cd1737a83b",
+      "sentAt": "2026-11-01T01:57:51.987Z",
       "transitions": [
         {
-          "at": "2026-10-31T19:58:32.870Z",
+          "at": "2026-11-01T01:57:52.069Z",
           "tSec": 0.1,
           "finality": "PENDING",
           "chainStatus": "PENDING",
           "execution": "UNKNOWN"
         },
         {
-          "at": "2026-10-31T19:58:35.940Z",
+          "at": "2026-11-01T01:57:55.134Z",
           "tSec": 3.1,
           "finality": "PENDING",
           "chainStatus": "PROPOSING",
           "execution": "UNKNOWN"
         },
         {
-          "at": "2026-10-31T19:58:45.138Z",
-          "tSec": 12.3,
+          "at": "2026-11-01T01:58:01.266Z",
+          "tSec": 9.3,
           "finality": "PENDING",
           "chainStatus": "COMMITTING",
           "execution": "SUCCESS"
         },
         {
-          "at": "2026-10-31T19:59:18.923Z",
-          "tSec": 46.1,
+          "at": "2026-11-01T01:58:35.016Z",
+          "tSec": 43,
           "finality": "ACCEPTED",
           "chainStatus": "ACCEPTED",
           "execution": "SUCCESS"
         },
         {
-          "at": "2026-10-31T19:59:49.937Z",
-          "tSec": 77.1,
+          "at": "2026-11-01T01:59:05.940Z",
+          "tSec": 74,
           "finality": "FINALIZED_SUCCESS",
           "chainStatus": "FINALIZED",
           "execution": "SUCCESS"
@@ -496,49 +490,110 @@
         "execution": "SUCCESS",
         "votes": {
           "0x0eb3859451817bC25Cc717D4F676D54D0D3aD0aE": "idle",
-          "0x4868b172ddEBC18b5219aaCeAB77ae0Df330c83A": "agree",
+          "0x5847AF34a4e5bA96490f8c883598f68EC9B0B907": "agree",
           "0x5D9Ee6E9aAF2F0b739314A52dd9Da57cd8866dA8": "agree",
-          "0x5e84e17266a193077728229751aC8A1dD24be146": "idle",
-          "0xb9ed1258763dfFC83356b15e8A20236B86E42ba2": "agree"
+          "0xCe0B66448435cA53665C954705Abd753515594Cf": "idle",
+          "0xb04cdDC4a6Ff6A0aDF715cfe00Fa307b901cebD4": "agree"
         },
         "num_of_initial_validators": 5,
         "num_of_rounds": "1",
         "rotation_count": 0,
         "appealed": false,
-        "gaslimit": 46,
-        "created_at": "2026-10-31T19:58:32.642287+00:00",
+        "gaslimit": 66,
+        "created_at": "2026-11-01T01:57:51.749015+00:00",
         "error": ""
       }
     },
     {
       "fn": "confirm_verdict",
-      "hash": "0xb36de12d1af430a2e720fe66bbd6243e99ac665010e85b4ea6d90c063f83bd01",
-      "sentAt": "2026-10-31T19:59:51.499Z",
+      "hash": "0x5b382692bac20aa491f95accf80dab8d05c0f17fd162bbe408e70bcf515199bc",
+      "sentAt": "2026-11-01T01:59:07.659Z",
       "transitions": [
         {
-          "at": "2026-10-31T19:59:51.558Z",
+          "at": "2026-11-01T01:59:07.714Z",
           "tSec": 0.1,
           "finality": "PENDING",
           "chainStatus": "PENDING",
           "execution": "UNKNOWN"
         },
         {
-          "at": "2026-10-31T19:59:54.640Z",
+          "at": "2026-11-01T01:59:10.773Z",
           "tSec": 3.1,
           "finality": "PENDING",
           "chainStatus": "COMMITTING",
           "execution": "SUCCESS"
         },
         {
-          "at": "2026-10-31T19:59:57.745Z",
+          "at": "2026-11-01T01:59:13.874Z",
           "tSec": 6.2,
           "finality": "ACCEPTED",
           "chainStatus": "ACCEPTED",
           "execution": "SUCCESS"
         },
         {
-          "at": "2026-10-31T20:00:29.832Z",
-          "tSec": 38.3,
+          "at": "2026-11-01T01:59:45.821Z",
+          "tSec": 38.2,
+          "finality": "FINALIZED_SUCCESS",
+          "chainStatus": "FINALIZED",
+          "execution": "SUCCESS"
+        }
+      ],
+      "final": {
+        "statusName": "FINALIZED",
+        "result_name": "MAJORITY_AGREE",
+        "execution": "SUCCESS",
+        "votes": {
+          "0x4619C8420D50c9dE477DB2CBb7b4863A041688CB": "idle",
+          "0x5847AF34a4e5bA96490f8c883598f68EC9B0B907": "idle",
+          "0xF7D08d12dB37D3e02D1833b5cB7e56B07F114186": "agree",
+          "0xcab45E3fe9cC9592B5C378E47734E022b7Df80c9": "agree",
+          "0xe06A34A1eBd398AF3399d08593B8c3C433CdD947": "agree"
+        },
+        "num_of_initial_validators": 5,
+        "num_of_rounds": "1",
+        "rotation_count": 0,
+        "appealed": false,
+        "gaslimit": 67,
+        "created_at": "2026-11-01T01:59:07.418816+00:00",
+        "error": ""
+      }
+    },
+    {
+      "fn": "appeal",
+      "hash": "0x9fab39801786910c99bded7ae01fcdb04d4a83e71074d9af83b72f3f5b7090a6",
+      "sentAt": "2026-11-01T01:59:48.459Z",
+      "transitions": [
+        {
+          "at": "2026-11-01T01:59:48.518Z",
+          "tSec": 0.1,
+          "finality": "PENDING",
+          "chainStatus": "PENDING",
+          "execution": "UNKNOWN"
+        },
+        {
+          "at": "2026-11-01T01:59:51.628Z",
+          "tSec": 3.2,
+          "finality": "PENDING",
+          "chainStatus": "PROPOSING",
+          "execution": "UNKNOWN"
+        },
+        {
+          "at": "2026-11-01T02:00:00.813Z",
+          "tSec": 12.4,
+          "finality": "PENDING",
+          "chainStatus": "COMMITTING",
+          "execution": "SUCCESS"
+        },
+        {
+          "at": "2026-11-01T02:00:43.971Z",
+          "tSec": 55.5,
+          "finality": "ACCEPTED",
+          "chainStatus": "ACCEPTED",
+          "execution": "SUCCESS"
+        },
+        {
+          "at": "2026-11-01T02:01:14.899Z",
+          "tSec": 86.4,
           "finality": "FINALIZED_SUCCESS",
           "chainStatus": "FINALIZED",
           "execution": "SUCCESS"
@@ -551,55 +606,55 @@
         "votes": {
           "0x007d6451555Df7765c707284F844137927aE4e5E": "idle",
           "0x045291B293B9D68969c18B6637A8258038cf787A": "agree",
-          "0x336458747913FE397be82c4F0926ACeB3ab13618": "agree",
           "0x4441Ebe37E72c039B73f1D6CF8C6DEe277FE547a": "agree",
-          "0x5847AF34a4e5bA96490f8c883598f68EC9B0B907": "idle"
+          "0x4619C8420D50c9dE477DB2CBb7b4863A041688CB": "idle",
+          "0xb04cdDC4a6Ff6A0aDF715cfe00Fa307b901cebD4": "agree"
         },
         "num_of_initial_validators": 5,
         "num_of_rounds": "1",
         "rotation_count": 0,
         "appealed": false,
-        "gaslimit": 47,
-        "created_at": "2026-10-31T19:59:51.386046+00:00",
+        "gaslimit": 68,
+        "created_at": "2026-11-01T01:59:48.354236+00:00",
         "error": ""
       }
     },
     {
-      "fn": "appeal",
-      "hash": "0xfed31cf680876d75769ef4150b4763be285f0e386556aaed4c538685488c9e89",
-      "sentAt": "2026-10-31T20:00:32.632Z",
+      "fn": "confirm_verdict",
+      "hash": "0x1b591f7d52b08ffb4a6afa3d3e707a726154962dc4eff009570cca9ddd479533",
+      "sentAt": "2026-11-01T02:01:16.583Z",
       "transitions": [
         {
-          "at": "2026-10-31T20:00:32.729Z",
+          "at": "2026-11-01T02:01:16.670Z",
           "tSec": 0.1,
           "finality": "PENDING",
           "chainStatus": "PENDING",
           "execution": "UNKNOWN"
         },
         {
-          "at": "2026-10-31T20:00:35.786Z",
+          "at": "2026-11-01T02:01:19.743Z",
           "tSec": 3.2,
           "finality": "PENDING",
           "chainStatus": "PROPOSING",
           "execution": "UNKNOWN"
         },
         {
-          "at": "2026-10-31T20:00:51.155Z",
-          "tSec": 18.5,
+          "at": "2026-11-01T02:01:22.930Z",
+          "tSec": 6.3,
           "finality": "PENDING",
           "chainStatus": "COMMITTING",
           "execution": "SUCCESS"
         },
         {
-          "at": "2026-10-31T20:01:18.814Z",
-          "tSec": 46.2,
+          "at": "2026-11-01T02:01:25.997Z",
+          "tSec": 9.4,
           "finality": "ACCEPTED",
           "chainStatus": "ACCEPTED",
           "execution": "SUCCESS"
         },
         {
-          "at": "2026-10-31T20:01:49.723Z",
-          "tSec": 77.1,
+          "at": "2026-11-01T02:01:54.905Z",
+          "tSec": 38.3,
           "finality": "FINALIZED_SUCCESS",
           "chainStatus": "FINALIZED",
           "execution": "SUCCESS"
@@ -610,49 +665,117 @@
         "result_name": "MAJORITY_AGREE",
         "execution": "SUCCESS",
         "votes": {
-          "0x007d6451555Df7765c707284F844137927aE4e5E": "idle",
-          "0x4441Ebe37E72c039B73f1D6CF8C6DEe277FE547a": "idle",
-          "0x4868b172ddEBC18b5219aaCeAB77ae0Df330c83A": "agree",
-          "0x5D9Ee6E9aAF2F0b739314A52dd9Da57cd8866dA8": "agree",
-          "0xe06A34A1eBd398AF3399d08593B8c3C433CdD947": "agree"
+          "0x336458747913FE397be82c4F0926ACeB3ab13618": "agree",
+          "0x4619C8420D50c9dE477DB2CBb7b4863A041688CB": "idle",
+          "0x5847AF34a4e5bA96490f8c883598f68EC9B0B907": "agree",
+          "0x9C182DE7F93AdbE8ee3D62570613eC23c5683cAc": "agree",
+          "0xe06A34A1eBd398AF3399d08593B8c3C433CdD947": "idle"
         },
         "num_of_initial_validators": 5,
         "num_of_rounds": "1",
         "rotation_count": 0,
         "appealed": false,
-        "gaslimit": 48,
-        "created_at": "2026-10-31T20:00:32.448807+00:00",
+        "gaslimit": 69,
+        "created_at": "2026-11-01T02:01:16.361078+00:00",
         "error": ""
       }
     },
     {
-      "fn": "confirm_verdict",
-      "hash": "0xc7456472fc6f43306e2eba800b06505d39f6e14ef8e3537e04e11b226e11ffc6",
-      "sentAt": "2026-10-31T20:01:51.287Z",
+      "fn": "appeal",
+      "hash": "0xf417c0f6a1f40e9baaa3ca1a9c32c628d6bbdf969c384ceefd604be026fc1891",
+      "sentAt": "2026-11-01T02:01:57.627Z",
       "transitions": [
         {
-          "at": "2026-10-31T20:01:51.345Z",
+          "at": "2026-11-01T02:01:57.693Z",
           "tSec": 0.1,
+          "finality": "PENDING",
+          "chainStatus": "PENDING",
+          "execution": "UNKNOWN"
+        },
+        {
+          "at": "2026-11-01T02:02:00.788Z",
+          "tSec": 3.2,
           "finality": "PENDING",
           "chainStatus": "PROPOSING",
           "execution": "UNKNOWN"
         },
         {
-          "at": "2026-10-31T20:01:54.462Z",
-          "tSec": 3.2,
+          "at": "2026-11-01T02:02:37.592Z",
+          "tSec": 40,
           "finality": "PENDING",
           "chainStatus": "COMMITTING",
           "execution": "SUCCESS"
         },
         {
-          "at": "2026-10-31T20:01:57.551Z",
-          "tSec": 6.3,
+          "at": "2026-11-01T02:03:02.192Z",
+          "tSec": 64.6,
+          "finality": "PENDING",
+          "chainStatus": "REVEALING",
+          "execution": "SUCCESS"
+        },
+        {
+          "at": "2026-11-01T02:03:05.263Z",
+          "tSec": 67.6,
           "finality": "ACCEPTED",
           "chainStatus": "ACCEPTED",
           "execution": "SUCCESS"
         },
         {
-          "at": "2026-10-31T20:02:26.488Z",
+          "at": "2026-11-01T02:03:33.042Z",
+          "tSec": 95.4,
+          "finality": "FINALIZED_SUCCESS",
+          "chainStatus": "FINALIZED",
+          "execution": "SUCCESS"
+        }
+      ],
+      "final": {
+        "statusName": "FINALIZED",
+        "result_name": "MAJORITY_AGREE",
+        "execution": "SUCCESS",
+        "votes": {
+          "0x0eb3859451817bC25Cc717D4F676D54D0D3aD0aE": "idle",
+          "0x5847AF34a4e5bA96490f8c883598f68EC9B0B907": "agree",
+          "0xB4EE99165ffe987E64B7b72e45a753309c501eef": "agree",
+          "0xF7D08d12dB37D3e02D1833b5cB7e56B07F114186": "agree",
+          "0xcab45E3fe9cC9592B5C378E47734E022b7Df80c9": "idle"
+        },
+        "num_of_initial_validators": 5,
+        "num_of_rounds": "1",
+        "rotation_count": 0,
+        "appealed": false,
+        "gaslimit": 70,
+        "created_at": "2026-11-01T02:01:57.438822+00:00",
+        "error": ""
+      }
+    },
+    {
+      "fn": "confirm_verdict",
+      "hash": "0x7e58be5895a52ec0b76e07be89fae0507d93c7b16a070e0551b1a3d9c80a04d3",
+      "sentAt": "2026-11-01T02:03:34.571Z",
+      "transitions": [
+        {
+          "at": "2026-11-01T02:03:34.629Z",
+          "tSec": 0.1,
+          "finality": "PENDING",
+          "chainStatus": "PENDING",
+          "execution": "UNKNOWN"
+        },
+        {
+          "at": "2026-11-01T02:03:37.698Z",
+          "tSec": 3.1,
+          "finality": "PENDING",
+          "chainStatus": "REVEALING",
+          "execution": "SUCCESS"
+        },
+        {
+          "at": "2026-11-01T02:03:40.795Z",
+          "tSec": 6.2,
+          "finality": "ACCEPTED",
+          "chainStatus": "ACCEPTED",
+          "execution": "SUCCESS"
+        },
+        {
+          "at": "2026-11-01T02:04:09.734Z",
           "tSec": 35.2,
           "finality": "FINALIZED_SUCCESS",
           "chainStatus": "FINALIZED",
@@ -665,164 +788,49 @@
         "execution": "SUCCESS",
         "votes": {
           "0x378aED3bA912Ce77C3C66155961A7e61C2fE8F3B": "agree",
-          "0x4619C8420D50c9dE477DB2CBb7b4863A041688CB": "agree",
-          "0x5e84e17266a193077728229751aC8A1dD24be146": "idle",
-          "0x9C182DE7F93AdbE8ee3D62570613eC23c5683cAc": "idle",
-          "0xB4EE99165ffe987E64B7b72e45a753309c501eef": "agree"
+          "0x4441Ebe37E72c039B73f1D6CF8C6DEe277FE547a": "agree",
+          "0x4868b172ddEBC18b5219aaCeAB77ae0Df330c83A": "agree",
+          "0x5D9Ee6E9aAF2F0b739314A52dd9Da57cd8866dA8": "agree",
+          "0xcab45E3fe9cC9592B5C378E47734E022b7Df80c9": "agree"
         },
         "num_of_initial_validators": 5,
         "num_of_rounds": "1",
         "rotation_count": 0,
         "appealed": false,
-        "gaslimit": 49,
-        "created_at": "2026-10-31T20:01:51.176873+00:00",
-        "error": ""
-      }
-    },
-    {
-      "fn": "appeal",
-      "hash": "0x2f653265ab200902585fb3903babd6fa88d987d0b5e13cab8ef09eb15ee146b0",
-      "sentAt": "2026-10-31T20:02:29.116Z",
-      "transitions": [
-        {
-          "at": "2026-10-31T20:02:29.174Z",
-          "tSec": 0.1,
-          "finality": "PENDING",
-          "chainStatus": "PENDING",
-          "execution": "UNKNOWN"
-        },
-        {
-          "at": "2026-10-31T20:02:32.260Z",
-          "tSec": 3.1,
-          "finality": "PENDING",
-          "chainStatus": "PROPOSING",
-          "execution": "UNKNOWN"
-        },
-        {
-          "at": "2026-10-31T20:02:50.699Z",
-          "tSec": 21.6,
-          "finality": "PENDING",
-          "chainStatus": "COMMITTING",
-          "execution": "SUCCESS"
-        },
-        {
-          "at": "2026-10-31T20:03:27.578Z",
-          "tSec": 58.5,
-          "finality": "ACCEPTED",
-          "chainStatus": "ACCEPTED",
-          "execution": "SUCCESS"
-        },
-        {
-          "at": "2026-10-31T20:03:58.487Z",
-          "tSec": 89.4,
-          "finality": "FINALIZED_SUCCESS",
-          "chainStatus": "FINALIZED",
-          "execution": "SUCCESS"
-        }
-      ],
-      "final": {
-        "statusName": "FINALIZED",
-        "result_name": "MAJORITY_AGREE",
-        "execution": "SUCCESS",
-        "votes": {
-          "0x336458747913FE397be82c4F0926ACeB3ab13618": "agree",
-          "0x5847AF34a4e5bA96490f8c883598f68EC9B0B907": "idle",
-          "0x5e84e17266a193077728229751aC8A1dD24be146": "idle",
-          "0xb04cdDC4a6Ff6A0aDF715cfe00Fa307b901cebD4": "agree",
-          "0xe06A34A1eBd398AF3399d08593B8c3C433CdD947": "agree"
-        },
-        "num_of_initial_validators": 5,
-        "num_of_rounds": "1",
-        "rotation_count": 0,
-        "appealed": false,
-        "gaslimit": 50,
-        "created_at": "2026-10-31T20:02:28.994845+00:00",
-        "error": ""
-      }
-    },
-    {
-      "fn": "confirm_verdict",
-      "hash": "0xf54171fe6553b48b63a7e1df932034d01dbc9c50d77f7b76f6144427a1ccfa99",
-      "sentAt": "2026-10-31T20:04:00.071Z",
-      "transitions": [
-        {
-          "at": "2026-10-31T20:04:00.148Z",
-          "tSec": 0.1,
-          "finality": "PENDING",
-          "chainStatus": "PENDING",
-          "execution": "UNKNOWN"
-        },
-        {
-          "at": "2026-10-31T20:04:03.205Z",
-          "tSec": 3.1,
-          "finality": "PENDING",
-          "chainStatus": "COMMITTING",
-          "execution": "SUCCESS"
-        },
-        {
-          "at": "2026-10-31T20:04:06.283Z",
-          "tSec": 6.2,
-          "finality": "ACCEPTED",
-          "chainStatus": "ACCEPTED",
-          "execution": "SUCCESS"
-        },
-        {
-          "at": "2026-10-31T20:04:38.380Z",
-          "tSec": 38.3,
-          "finality": "FINALIZED_SUCCESS",
-          "chainStatus": "FINALIZED",
-          "execution": "SUCCESS"
-        }
-      ],
-      "final": {
-        "statusName": "FINALIZED",
-        "result_name": "MAJORITY_AGREE",
-        "execution": "SUCCESS",
-        "votes": {
-          "0x007d6451555Df7765c707284F844137927aE4e5E": "idle",
-          "0x336458747913FE397be82c4F0926ACeB3ab13618": "idle",
-          "0x378aED3bA912Ce77C3C66155961A7e61C2fE8F3B": "agree",
-          "0xF7D08d12dB37D3e02D1833b5cB7e56B07F114186": "agree",
-          "0xb04cdDC4a6Ff6A0aDF715cfe00Fa307b901cebD4": "agree"
-        },
-        "num_of_initial_validators": 5,
-        "num_of_rounds": "1",
-        "rotation_count": 0,
-        "appealed": false,
-        "gaslimit": 51,
-        "created_at": "2026-10-31T20:03:59.928411+00:00",
+        "gaslimit": 71,
+        "created_at": "2026-11-01T02:03:34.461815+00:00",
         "error": ""
       }
     },
     {
       "fn": "open_case_package",
-      "hash": "0x71d325273244b0965a0b58b021b67efc3c26d794b6bd7945a653af3c6264180d",
-      "sentAt": "2026-10-31T20:04:39.973Z",
+      "hash": "0x7aee9bf02c3c3227473214cd2b83c9544e9c3f25ddef3886e5fd2d9fd2266d6a",
+      "sentAt": "2026-11-01T02:04:11.467Z",
       "transitions": [
         {
-          "at": "2026-10-31T20:04:40.029Z",
+          "at": "2026-11-01T02:04:11.534Z",
           "tSec": 0.1,
           "finality": "PENDING",
           "chainStatus": "PENDING",
           "execution": "UNKNOWN"
         },
         {
-          "at": "2026-10-31T20:04:43.088Z",
+          "at": "2026-11-01T02:04:14.601Z",
           "tSec": 3.1,
           "finality": "PENDING",
-          "chainStatus": "PROPOSING",
-          "execution": "UNKNOWN"
+          "chainStatus": "COMMITTING",
+          "execution": "SUCCESS"
         },
         {
-          "at": "2026-10-31T20:04:46.160Z",
+          "at": "2026-11-01T02:04:17.692Z",
           "tSec": 6.2,
           "finality": "ACCEPTED",
           "chainStatus": "ACCEPTED",
           "execution": "SUCCESS"
         },
         {
-          "at": "2026-10-31T20:05:46.266Z",
-          "tSec": 66.3,
+          "at": "2026-11-01T02:04:58.767Z",
+          "tSec": 47.3,
           "finality": "FINALIZED_SUCCESS",
           "chainStatus": "FINALIZED",
           "execution": "SUCCESS"
@@ -833,57 +841,172 @@
         "result_name": "MAJORITY_AGREE",
         "execution": "SUCCESS",
         "votes": {
-          "0x0eb3859451817bC25Cc717D4F676D54D0D3aD0aE": "idle",
-          "0x4441Ebe37E72c039B73f1D6CF8C6DEe277FE547a": "agree",
-          "0x5D9Ee6E9aAF2F0b739314A52dd9Da57cd8866dA8": "agree",
-          "0xCe0B66448435cA53665C954705Abd753515594Cf": "agree",
-          "0xcab45E3fe9cC9592B5C378E47734E022b7Df80c9": "idle"
+          "0x4619C8420D50c9dE477DB2CBb7b4863A041688CB": "agree",
+          "0x5847AF34a4e5bA96490f8c883598f68EC9B0B907": "idle",
+          "0x5e84e17266a193077728229751aC8A1dD24be146": "idle",
+          "0x63d72fE364368491E62a42B9C73c317Ce1ca8434": "agree",
+          "0xCe0B66448435cA53665C954705Abd753515594Cf": "agree"
         },
         "num_of_initial_validators": 5,
         "num_of_rounds": "1",
         "rotation_count": 0,
         "appealed": false,
-        "gaslimit": 52,
-        "created_at": "2026-10-31T20:04:39.852701+00:00",
+        "gaslimit": 72,
+        "created_at": "2026-11-01T02:04:11.234928+00:00",
         "error": ""
       }
     },
     {
       "fn": "judge",
-      "hash": "0x5adc60577f1d84d58adeb292d21050e21b5f272f4371b0cd9e8227ad850a175c",
-      "sentAt": "2026-10-31T20:04:49.083Z",
+      "hash": "0x1ecabc4c1c3b2a4711861cff1c48aaeb78dda8b6aa9a6aeb94b5e00a2107eff0",
+      "sentAt": "2026-11-01T02:04:20.749Z",
       "transitions": [
         {
-          "at": "2026-10-31T20:04:49.143Z",
+          "at": "2026-11-01T02:04:20.816Z",
           "tSec": 0.1,
           "finality": "PENDING",
           "chainStatus": "PENDING",
           "execution": "UNKNOWN"
         },
         {
-          "at": "2026-10-31T20:04:52.199Z",
+          "at": "2026-11-01T02:04:23.873Z",
           "tSec": 3.1,
           "finality": "PENDING",
           "chainStatus": "PROPOSING",
           "execution": "UNKNOWN"
         },
         {
-          "at": "2026-10-31T20:05:01.409Z",
+          "at": "2026-11-01T02:04:36.119Z",
+          "tSec": 15.4,
+          "finality": "PENDING",
+          "chainStatus": "COMMITTING",
+          "execution": "SUCCESS"
+        },
+        {
+          "at": "2026-11-01T02:04:57.574Z",
+          "tSec": 36.8,
+          "finality": "ACCEPTED",
+          "chainStatus": "ACCEPTED",
+          "execution": "SUCCESS"
+        },
+        {
+          "at": "2026-11-01T02:05:28.442Z",
+          "tSec": 67.7,
+          "finality": "FINALIZED_SUCCESS",
+          "chainStatus": "FINALIZED",
+          "execution": "SUCCESS"
+        }
+      ],
+      "final": {
+        "statusName": "FINALIZED",
+        "result_name": "MAJORITY_AGREE",
+        "execution": "SUCCESS",
+        "votes": {
+          "0x5e84e17266a193077728229751aC8A1dD24be146": "idle",
+          "0xB4EE99165ffe987E64B7b72e45a753309c501eef": "agree",
+          "0xCe0B66448435cA53665C954705Abd753515594Cf": "agree",
+          "0xb04cdDC4a6Ff6A0aDF715cfe00Fa307b901cebD4": "idle",
+          "0xb9ed1258763dfFC83356b15e8A20236B86E42ba2": "agree"
+        },
+        "num_of_initial_validators": 5,
+        "num_of_rounds": "1",
+        "rotation_count": 0,
+        "appealed": false,
+        "gaslimit": 73,
+        "created_at": "2026-11-01T02:04:20.491533+00:00",
+        "error": ""
+      }
+    },
+    {
+      "fn": "confirm_verdict",
+      "hash": "0xbcb035c42a040b3f3a5a3a9ff4e709f56e019084e1ae4660b2aa1e444838a45b",
+      "sentAt": "2026-11-01T02:05:29.995Z",
+      "transitions": [
+        {
+          "at": "2026-11-01T02:05:30.051Z",
+          "tSec": 0.1,
+          "finality": "PENDING",
+          "chainStatus": "PENDING",
+          "execution": "UNKNOWN"
+        },
+        {
+          "at": "2026-11-01T02:05:33.114Z",
+          "tSec": 3.1,
+          "finality": "PENDING",
+          "chainStatus": "COMMITTING",
+          "execution": "SUCCESS"
+        },
+        {
+          "at": "2026-11-01T02:05:36.232Z",
+          "tSec": 6.2,
+          "finality": "ACCEPTED",
+          "chainStatus": "ACCEPTED",
+          "execution": "SUCCESS"
+        },
+        {
+          "at": "2026-11-01T02:06:05.153Z",
+          "tSec": 35.2,
+          "finality": "FINALIZED_SUCCESS",
+          "chainStatus": "FINALIZED",
+          "execution": "SUCCESS"
+        }
+      ],
+      "final": {
+        "statusName": "FINALIZED",
+        "result_name": "MAJORITY_AGREE",
+        "execution": "SUCCESS",
+        "votes": {
+          "0x378aED3bA912Ce77C3C66155961A7e61C2fE8F3B": "agree",
+          "0x4441Ebe37E72c039B73f1D6CF8C6DEe277FE547a": "idle",
+          "0xF7D08d12dB37D3e02D1833b5cB7e56B07F114186": "agree",
+          "0xcab45E3fe9cC9592B5C378E47734E022b7Df80c9": "agree",
+          "0xe06A34A1eBd398AF3399d08593B8c3C433CdD947": "idle"
+        },
+        "num_of_initial_validators": 5,
+        "num_of_rounds": "1",
+        "rotation_count": 0,
+        "appealed": false,
+        "gaslimit": 74,
+        "created_at": "2026-11-01T02:05:29.891214+00:00",
+        "error": ""
+      }
+    },
+    {
+      "fn": "appeal",
+      "hash": "0x9f26a7927297178492dd76f27a7cea87de03759ab3ac7770516a60b207f6fd18",
+      "sentAt": "2026-11-01T02:06:07.767Z",
+      "transitions": [
+        {
+          "at": "2026-11-01T02:06:07.818Z",
+          "tSec": 0.1,
+          "finality": "PENDING",
+          "chainStatus": "PENDING",
+          "execution": "UNKNOWN"
+        },
+        {
+          "at": "2026-11-01T02:06:10.871Z",
+          "tSec": 3.1,
+          "finality": "PENDING",
+          "chainStatus": "PROPOSING",
+          "execution": "UNKNOWN"
+        },
+        {
+          "at": "2026-11-01T02:06:20.068Z",
           "tSec": 12.3,
           "finality": "PENDING",
           "chainStatus": "COMMITTING",
           "execution": "SUCCESS"
         },
         {
-          "at": "2026-10-31T20:05:47.595Z",
-          "tSec": 58.5,
+          "at": "2026-11-01T02:06:57.044Z",
+          "tSec": 49.3,
           "finality": "ACCEPTED",
           "chainStatus": "ACCEPTED",
           "execution": "SUCCESS"
         },
         {
-          "at": "2026-10-31T20:06:18.556Z",
-          "tSec": 89.5,
+          "at": "2026-11-01T02:07:27.944Z",
+          "tSec": 80.2,
           "finality": "FINALIZED_SUCCESS",
           "chainStatus": "FINALIZED",
           "execution": "SUCCESS"
@@ -894,50 +1017,104 @@
         "result_name": "MAJORITY_AGREE",
         "execution": "SUCCESS",
         "votes": {
-          "0x0eb3859451817bC25Cc717D4F676D54D0D3aD0aE": "idle",
-          "0x4868b172ddEBC18b5219aaCeAB77ae0Df330c83A": "disagree",
-          "0x5D9Ee6E9aAF2F0b739314A52dd9Da57cd8866dA8": "agree",
-          "0x5e84e17266a193077728229751aC8A1dD24be146": "agree",
-          "0xB4EE99165ffe987E64B7b72e45a753309c501eef": "agree"
+          "0x378aED3bA912Ce77C3C66155961A7e61C2fE8F3B": "idle",
+          "0x5D9Ee6E9aAF2F0b739314A52dd9Da57cd8866dA8": "disagree",
+          "0xCe0B66448435cA53665C954705Abd753515594Cf": "agree",
+          "0xb04cdDC4a6Ff6A0aDF715cfe00Fa307b901cebD4": "agree",
+          "0xcab45E3fe9cC9592B5C378E47734E022b7Df80c9": "agree"
         },
         "num_of_initial_validators": 5,
         "num_of_rounds": "1",
         "rotation_count": 0,
         "appealed": false,
-        "gaslimit": 53,
-        "created_at": "2026-10-31T20:04:48.967924+00:00",
+        "gaslimit": 75,
+        "created_at": "2026-11-01T02:06:07.650681+00:00",
         "error": ""
       }
     },
     {
       "fn": "confirm_verdict",
-      "hash": "0xf7b73e5b3ce6ea976a94408f925a1ed349621d3802f5b67b2d0c3b2fedd72805",
-      "sentAt": "2026-10-31T20:06:20.149Z",
+      "hash": "0xe9ecacd560114462a18d9d14a1dea0c6e35ac7acf54349fd1f5244a3aa511b7d",
+      "sentAt": "2026-11-01T02:07:29.591Z",
       "transitions": [
         {
-          "at": "2026-10-31T20:06:20.203Z",
+          "at": "2026-11-01T02:07:29.646Z",
           "tSec": 0.1,
           "finality": "PENDING",
           "chainStatus": "PENDING",
           "execution": "UNKNOWN"
         },
         {
-          "at": "2026-10-31T20:06:23.263Z",
+          "at": "2026-11-01T02:07:32.704Z",
           "tSec": 3.1,
           "finality": "PENDING",
-          "chainStatus": "PROPOSING",
-          "execution": "UNKNOWN"
+          "chainStatus": "COMMITTING",
+          "execution": "SUCCESS"
         },
         {
-          "at": "2026-10-31T20:06:26.338Z",
+          "at": "2026-11-01T02:07:35.800Z",
           "tSec": 6.2,
           "finality": "ACCEPTED",
           "chainStatus": "ACCEPTED",
           "execution": "SUCCESS"
         },
         {
-          "at": "2026-10-31T20:06:58.268Z",
+          "at": "2026-11-01T02:08:07.732Z",
           "tSec": 38.1,
+          "finality": "FINALIZED_SUCCESS",
+          "chainStatus": "FINALIZED",
+          "execution": "SUCCESS"
+        }
+      ],
+      "final": {
+        "statusName": "FINALIZED",
+        "result_name": "MAJORITY_AGREE",
+        "execution": "SUCCESS",
+        "votes": {
+          "0x007d6451555Df7765c707284F844137927aE4e5E": "agree",
+          "0x045291B293B9D68969c18B6637A8258038cf787A": "agree",
+          "0x4619C8420D50c9dE477DB2CBb7b4863A041688CB": "idle",
+          "0xCe0B66448435cA53665C954705Abd753515594Cf": "agree",
+          "0xF7D08d12dB37D3e02D1833b5cB7e56B07F114186": "idle"
+        },
+        "num_of_initial_validators": 5,
+        "num_of_rounds": "1",
+        "rotation_count": 0,
+        "appealed": false,
+        "gaslimit": 76,
+        "created_at": "2026-11-01T02:07:29.490189+00:00",
+        "error": ""
+      }
+    },
+    {
+      "fn": "finalize",
+      "hash": "0x6d35097c0734e3ef178cf14e39ed4d06ab1f07eb61bda43c1b072f470e024bd4",
+      "sentAt": "2026-11-01T02:08:09.158Z",
+      "transitions": [
+        {
+          "at": "2026-11-01T02:08:09.212Z",
+          "tSec": 0.1,
+          "finality": "PENDING",
+          "chainStatus": "PENDING",
+          "execution": "UNKNOWN"
+        },
+        {
+          "at": "2026-11-01T02:08:12.266Z",
+          "tSec": 3.1,
+          "finality": "PENDING",
+          "chainStatus": "PROPOSING",
+          "execution": "UNKNOWN"
+        },
+        {
+          "at": "2026-11-01T02:08:15.331Z",
+          "tSec": 6.2,
+          "finality": "ACCEPTED",
+          "chainStatus": "ACCEPTED",
+          "execution": "SUCCESS"
+        },
+        {
+          "at": "2026-11-01T02:08:46.121Z",
+          "tSec": 37,
           "finality": "FINALIZED_SUCCESS",
           "chainStatus": "FINALIZED",
           "execution": "SUCCESS"
@@ -950,109 +1127,48 @@
         "votes": {
           "0x0eb3859451817bC25Cc717D4F676D54D0D3aD0aE": "agree",
           "0x4619C8420D50c9dE477DB2CBb7b4863A041688CB": "agree",
-          "0x5847AF34a4e5bA96490f8c883598f68EC9B0B907": "idle",
           "0x63d72fE364368491E62a42B9C73c317Ce1ca8434": "agree",
-          "0xF7D08d12dB37D3e02D1833b5cB7e56B07F114186": "idle"
+          "0xF7D08d12dB37D3e02D1833b5cB7e56B07F114186": "agree",
+          "0xb9ed1258763dfFC83356b15e8A20236B86E42ba2": "agree"
         },
         "num_of_initial_validators": 5,
         "num_of_rounds": "1",
         "rotation_count": 0,
         "appealed": false,
-        "gaslimit": 54,
-        "created_at": "2026-10-31T20:06:20.022199+00:00",
+        "gaslimit": 77,
+        "created_at": "2026-11-01T02:08:09.052788+00:00",
         "error": ""
       }
     },
     {
-      "fn": "appeal",
-      "hash": "0x50f2e49cee3af3f79357453692ba4d90415856dc3e112580b31b08d41febbef2",
-      "sentAt": "2026-10-31T20:07:00.941Z",
+      "fn": "open_case_package",
+      "hash": "0xc936ba8d7394999b4ef37890f4e62ba5881e87ba73105326e7bf46aa04bd9b84",
+      "sentAt": "2026-11-01T02:08:47.587Z",
       "transitions": [
         {
-          "at": "2026-10-31T20:07:00.998Z",
-          "tSec": 0.1,
-          "finality": "PENDING",
-          "chainStatus": "PROPOSING",
-          "execution": "UNKNOWN"
-        },
-        {
-          "at": "2026-10-31T20:07:34.699Z",
-          "tSec": 33.8,
-          "finality": "PENDING",
-          "chainStatus": "COMMITTING",
-          "execution": "SUCCESS"
-        },
-        {
-          "at": "2026-10-31T20:08:51.361Z",
-          "tSec": 110.4,
-          "finality": "ACCEPTED",
-          "chainStatus": "ACCEPTED",
-          "execution": "SUCCESS"
-        },
-        {
-          "at": "2026-10-31T20:09:22.310Z",
-          "tSec": 141.4,
-          "finality": "FINALIZED_SUCCESS",
-          "chainStatus": "FINALIZED",
-          "execution": "SUCCESS"
-        }
-      ],
-      "final": {
-        "statusName": "FINALIZED",
-        "result_name": "MAJORITY_AGREE",
-        "execution": "SUCCESS",
-        "votes": {
-          "0x045291B293B9D68969c18B6637A8258038cf787A": "idle",
-          "0x378aED3bA912Ce77C3C66155961A7e61C2fE8F3B": "agree",
-          "0x4619C8420D50c9dE477DB2CBb7b4863A041688CB": "idle",
-          "0x5e84e17266a193077728229751aC8A1dD24be146": "agree",
-          "0xcab45E3fe9cC9592B5C378E47734E022b7Df80c9": "agree"
-        },
-        "num_of_initial_validators": 5,
-        "num_of_rounds": "1",
-        "rotation_count": 0,
-        "appealed": false,
-        "gaslimit": 55,
-        "created_at": "2026-10-31T20:07:00.811571+00:00",
-        "error": ""
-      }
-    },
-    {
-      "fn": "confirm_verdict",
-      "hash": "0x96820ef22fe4a91c51f4000f8db84c9556e615da639e255833f1d652bf39351c",
-      "sentAt": "2026-10-31T20:09:24.061Z",
-      "transitions": [
-        {
-          "at": "2026-10-31T20:09:24.138Z",
+          "at": "2026-11-01T02:08:47.645Z",
           "tSec": 0.1,
           "finality": "PENDING",
           "chainStatus": "PENDING",
           "execution": "UNKNOWN"
         },
         {
-          "at": "2026-10-31T20:09:27.230Z",
-          "tSec": 3.2,
-          "finality": "PENDING",
-          "chainStatus": "PROPOSING",
-          "execution": "UNKNOWN"
-        },
-        {
-          "at": "2026-10-31T20:09:33.395Z",
-          "tSec": 9.3,
+          "at": "2026-11-01T02:08:50.731Z",
+          "tSec": 3.1,
           "finality": "PENDING",
           "chainStatus": "COMMITTING",
           "execution": "SUCCESS"
         },
         {
-          "at": "2026-10-31T20:09:36.469Z",
-          "tSec": 12.4,
+          "at": "2026-11-01T02:08:53.799Z",
+          "tSec": 6.2,
           "finality": "ACCEPTED",
           "chainStatus": "ACCEPTED",
           "execution": "SUCCESS"
         },
         {
-          "at": "2026-10-31T20:10:08.425Z",
-          "tSec": 44.4,
+          "at": "2026-11-01T02:09:41.042Z",
+          "tSec": 53.5,
           "finality": "FINALIZED_SUCCESS",
           "chainStatus": "FINALIZED",
           "execution": "SUCCESS"
@@ -1064,164 +1180,56 @@
         "execution": "SUCCESS",
         "votes": {
           "0x007d6451555Df7765c707284F844137927aE4e5E": "idle",
-          "0x378aED3bA912Ce77C3C66155961A7e61C2fE8F3B": "idle",
           "0x63d72fE364368491E62a42B9C73c317Ce1ca8434": "agree",
-          "0xB4EE99165ffe987E64B7b72e45a753309c501eef": "agree",
-          "0xb04cdDC4a6Ff6A0aDF715cfe00Fa307b901cebD4": "agree"
-        },
-        "num_of_initial_validators": 5,
-        "num_of_rounds": "1",
-        "rotation_count": 0,
-        "appealed": false,
-        "gaslimit": 56,
-        "created_at": "2026-10-31T20:09:23.828798+00:00",
-        "error": ""
-      }
-    },
-    {
-      "fn": "finalize",
-      "hash": "0x373f9d4e28e99282ee4c0bca13b4f1f29f1689520643f0bbbd847a5122dcfde7",
-      "sentAt": "2026-10-31T20:10:09.933Z",
-      "transitions": [
-        {
-          "at": "2026-10-31T20:10:09.993Z",
-          "tSec": 0.1,
-          "finality": "PENDING",
-          "chainStatus": "PENDING",
-          "execution": "UNKNOWN"
-        },
-        {
-          "at": "2026-10-31T20:10:13.053Z",
-          "tSec": 3.1,
-          "finality": "PENDING",
-          "chainStatus": "COMMITTING",
-          "execution": "SUCCESS"
-        },
-        {
-          "at": "2026-10-31T20:10:16.118Z",
-          "tSec": 6.2,
-          "finality": "ACCEPTED",
-          "chainStatus": "ACCEPTED",
-          "execution": "SUCCESS"
-        },
-        {
-          "at": "2026-10-31T20:10:46.963Z",
-          "tSec": 37,
-          "finality": "FINALIZED_SUCCESS",
-          "chainStatus": "FINALIZED",
-          "execution": "SUCCESS"
-        }
-      ],
-      "final": {
-        "statusName": "FINALIZED",
-        "result_name": "MAJORITY_AGREE",
-        "execution": "SUCCESS",
-        "votes": {
-          "0x007d6451555Df7765c707284F844137927aE4e5E": "agree",
           "0x9C182DE7F93AdbE8ee3D62570613eC23c5683cAc": "idle",
-          "0xCe0B66448435cA53665C954705Abd753515594Cf": "agree",
-          "0xF7D08d12dB37D3e02D1833b5cB7e56B07F114186": "idle",
+          "0xb04cdDC4a6Ff6A0aDF715cfe00Fa307b901cebD4": "agree",
           "0xb9ed1258763dfFC83356b15e8A20236B86E42ba2": "agree"
         },
         "num_of_initial_validators": 5,
         "num_of_rounds": "1",
         "rotation_count": 0,
         "appealed": false,
-        "gaslimit": 57,
-        "created_at": "2026-10-31T20:10:09.787589+00:00",
-        "error": ""
-      }
-    },
-    {
-      "fn": "open_case_package",
-      "hash": "0x06e9c4ea8b940fdb7e35d21b4c00fc9d96f2530259a0203a996c9e4ec3ccfcf4",
-      "sentAt": "2026-10-31T20:10:48.609Z",
-      "transitions": [
-        {
-          "at": "2026-10-31T20:10:48.690Z",
-          "tSec": 0.1,
-          "finality": "PENDING",
-          "chainStatus": "PENDING",
-          "execution": "UNKNOWN"
-        },
-        {
-          "at": "2026-10-31T20:10:51.772Z",
-          "tSec": 3.2,
-          "finality": "PENDING",
-          "chainStatus": "COMMITTING",
-          "execution": "SUCCESS"
-        },
-        {
-          "at": "2026-10-31T20:10:54.843Z",
-          "tSec": 6.2,
-          "finality": "ACCEPTED",
-          "chainStatus": "ACCEPTED",
-          "execution": "SUCCESS"
-        },
-        {
-          "at": "2026-10-31T20:11:32.954Z",
-          "tSec": 44.3,
-          "finality": "FINALIZED_SUCCESS",
-          "chainStatus": "FINALIZED",
-          "execution": "SUCCESS"
-        }
-      ],
-      "final": {
-        "statusName": "FINALIZED",
-        "result_name": "MAJORITY_AGREE",
-        "execution": "SUCCESS",
-        "votes": {
-          "0x4619C8420D50c9dE477DB2CBb7b4863A041688CB": "agree",
-          "0x4868b172ddEBC18b5219aaCeAB77ae0Df330c83A": "idle",
-          "0xb04cdDC4a6Ff6A0aDF715cfe00Fa307b901cebD4": "agree",
-          "0xcab45E3fe9cC9592B5C378E47734E022b7Df80c9": "agree",
-          "0xe06A34A1eBd398AF3399d08593B8c3C433CdD947": "idle"
-        },
-        "num_of_initial_validators": 5,
-        "num_of_rounds": "1",
-        "rotation_count": 0,
-        "appealed": false,
-        "gaslimit": 58,
-        "created_at": "2026-10-31T20:10:48.358786+00:00",
+        "gaslimit": 78,
+        "created_at": "2026-11-01T02:08:47.485419+00:00",
         "error": ""
       }
     },
     {
       "fn": "judge",
-      "hash": "0x6f4b2f84e3274c53e56c0c2716be24c5bf786aa025d2e703a020a9682f119e9a",
-      "sentAt": "2026-10-31T20:10:57.748Z",
+      "hash": "0x5a067ee197dce39f60c9fb0e0e9b99329435302acfb4e8b1d6d8e0be55128877",
+      "sentAt": "2026-11-01T02:08:56.838Z",
       "transitions": [
         {
-          "at": "2026-10-31T20:10:57.806Z",
+          "at": "2026-11-01T02:08:56.906Z",
           "tSec": 0.1,
           "finality": "PENDING",
           "chainStatus": "PENDING",
           "execution": "UNKNOWN"
         },
         {
-          "at": "2026-10-31T20:11:00.900Z",
-          "tSec": 3.2,
+          "at": "2026-11-01T02:08:59.957Z",
+          "tSec": 3.1,
           "finality": "PENDING",
           "chainStatus": "PROPOSING",
           "execution": "UNKNOWN"
         },
         {
-          "at": "2026-10-31T20:11:10.086Z",
-          "tSec": 12.3,
+          "at": "2026-11-01T02:09:06.119Z",
+          "tSec": 9.3,
           "finality": "PENDING",
           "chainStatus": "COMMITTING",
           "execution": "SUCCESS"
         },
         {
-          "at": "2026-10-31T20:11:34.631Z",
-          "tSec": 36.9,
+          "at": "2026-11-01T02:09:39.922Z",
+          "tSec": 43.1,
           "finality": "ACCEPTED",
           "chainStatus": "ACCEPTED",
           "execution": "SUCCESS"
         },
         {
-          "at": "2026-10-31T20:12:05.551Z",
-          "tSec": 67.8,
+          "at": "2026-11-01T02:10:13.823Z",
+          "tSec": 77,
           "finality": "FINALIZED_SUCCESS",
           "chainStatus": "FINALIZED",
           "execution": "SUCCESS"
@@ -1232,49 +1240,49 @@
         "result_name": "MAJORITY_AGREE",
         "execution": "SUCCESS",
         "votes": {
-          "0x007d6451555Df7765c707284F844137927aE4e5E": "agree",
-          "0x336458747913FE397be82c4F0926ACeB3ab13618": "agree",
-          "0x4441Ebe37E72c039B73f1D6CF8C6DEe277FE547a": "disagree",
-          "0x5D9Ee6E9aAF2F0b739314A52dd9Da57cd8866dA8": "agree",
-          "0xb04cdDC4a6Ff6A0aDF715cfe00Fa307b901cebD4": "idle"
+          "0x0eb3859451817bC25Cc717D4F676D54D0D3aD0aE": "agree",
+          "0x4441Ebe37E72c039B73f1D6CF8C6DEe277FE547a": "idle",
+          "0x5e84e17266a193077728229751aC8A1dD24be146": "idle",
+          "0xCe0B66448435cA53665C954705Abd753515594Cf": "agree",
+          "0xe06A34A1eBd398AF3399d08593B8c3C433CdD947": "agree"
         },
         "num_of_initial_validators": 5,
         "num_of_rounds": "1",
         "rotation_count": 0,
         "appealed": false,
-        "gaslimit": 59,
-        "created_at": "2026-10-31T20:10:57.623940+00:00",
+        "gaslimit": 79,
+        "created_at": "2026-11-01T02:08:56.589273+00:00",
         "error": ""
       }
     },
     {
       "fn": "confirm_verdict",
-      "hash": "0xf333ed24f6ddcec2b2454f753e6e0f64259ba2a62767f3a1e73b3af4edf6c1bc",
-      "sentAt": "2026-10-31T20:12:07.193Z",
+      "hash": "0x69f1f3323f3ccf60de014e401a4125ad27ee9dfa3afc438bf165d6af232739b7",
+      "sentAt": "2026-11-01T02:10:15.507Z",
       "transitions": [
         {
-          "at": "2026-10-31T20:12:07.254Z",
+          "at": "2026-11-01T02:10:15.601Z",
           "tSec": 0.1,
           "finality": "PENDING",
           "chainStatus": "PENDING",
           "execution": "UNKNOWN"
         },
         {
-          "at": "2026-10-31T20:12:10.316Z",
-          "tSec": 3.1,
+          "at": "2026-11-01T02:10:18.659Z",
+          "tSec": 3.2,
           "finality": "PENDING",
           "chainStatus": "COMMITTING",
           "execution": "SUCCESS"
         },
         {
-          "at": "2026-10-31T20:12:13.403Z",
+          "at": "2026-11-01T02:10:21.751Z",
           "tSec": 6.2,
           "finality": "ACCEPTED",
           "chainStatus": "ACCEPTED",
           "execution": "SUCCESS"
         },
         {
-          "at": "2026-10-31T20:12:42.319Z",
+          "at": "2026-11-01T02:10:50.653Z",
           "tSec": 35.1,
           "finality": "FINALIZED_SUCCESS",
           "chainStatus": "FINALIZED",
@@ -1286,50 +1294,43 @@
         "result_name": "MAJORITY_AGREE",
         "execution": "SUCCESS",
         "votes": {
-          "0x4619C8420D50c9dE477DB2CBb7b4863A041688CB": "agree",
-          "0x4868b172ddEBC18b5219aaCeAB77ae0Df330c83A": "idle",
+          "0x0eb3859451817bC25Cc717D4F676D54D0D3aD0aE": "idle",
           "0x5D9Ee6E9aAF2F0b739314A52dd9Da57cd8866dA8": "agree",
-          "0x5e84e17266a193077728229751aC8A1dD24be146": "idle",
-          "0xcab45E3fe9cC9592B5C378E47734E022b7Df80c9": "agree"
+          "0x5e84e17266a193077728229751aC8A1dD24be146": "agree",
+          "0xb9ed1258763dfFC83356b15e8A20236B86E42ba2": "agree",
+          "0xcab45E3fe9cC9592B5C378E47734E022b7Df80c9": "idle"
         },
         "num_of_initial_validators": 5,
         "num_of_rounds": "1",
         "rotation_count": 0,
         "appealed": false,
-        "gaslimit": 60,
-        "created_at": "2026-10-31T20:12:07.039386+00:00",
+        "gaslimit": 80,
+        "created_at": "2026-11-01T02:10:15.279867+00:00",
         "error": ""
       }
     },
     {
       "fn": "revoke",
-      "hash": "0xfcecc671e08106833d11e92c495cdada542ce9012e7d8673b2ebea6fb29984c4",
-      "sentAt": "2026-10-31T20:12:45.022Z",
+      "hash": "0xbea18f58dea8eef3e671470c3f0412372927a954ee7b7e4bf4af8cc90689ef61",
+      "sentAt": "2026-11-01T02:10:53.271Z",
       "transitions": [
         {
-          "at": "2026-10-31T20:12:45.076Z",
+          "at": "2026-11-01T02:10:53.324Z",
           "tSec": 0.1,
           "finality": "PENDING",
           "chainStatus": "PENDING",
           "execution": "UNKNOWN"
         },
         {
-          "at": "2026-10-31T20:12:48.159Z",
+          "at": "2026-11-01T02:10:56.406Z",
           "tSec": 3.1,
-          "finality": "PENDING",
-          "chainStatus": "PROPOSING",
-          "execution": "UNKNOWN"
-        },
-        {
-          "at": "2026-10-31T20:12:51.255Z",
-          "tSec": 6.2,
           "finality": "ACCEPTED",
           "chainStatus": "ACCEPTED",
           "execution": "ERROR"
         },
         {
-          "at": "2026-10-31T20:13:25.117Z",
-          "tSec": 40.1,
+          "at": "2026-11-01T02:11:27.282Z",
+          "tSec": 34,
           "finality": "FINALIZED_ERROR",
           "chainStatus": "FINALIZED",
           "execution": "ERROR"
@@ -1340,18 +1341,18 @@
         "result_name": "MAJORITY_AGREE",
         "execution": "ERROR",
         "votes": {
-          "0x5847AF34a4e5bA96490f8c883598f68EC9B0B907": "agree",
-          "0x5D9Ee6E9aAF2F0b739314A52dd9Da57cd8866dA8": "idle",
+          "0x4441Ebe37E72c039B73f1D6CF8C6DEe277FE547a": "agree",
+          "0x63d72fE364368491E62a42B9C73c317Ce1ca8434": "idle",
+          "0x9C182DE7F93AdbE8ee3D62570613eC23c5683cAc": "agree",
           "0xB4EE99165ffe987E64B7b72e45a753309c501eef": "idle",
-          "0xCe0B66448435cA53665C954705Abd753515594Cf": "agree",
-          "0xcab45E3fe9cC9592B5C378E47734E022b7Df80c9": "agree"
+          "0xb04cdDC4a6Ff6A0aDF715cfe00Fa307b901cebD4": "agree"
         },
         "num_of_initial_validators": 5,
         "num_of_rounds": "1",
         "rotation_count": 0,
         "appealed": false,
-        "gaslimit": 61,
-        "created_at": "2026-10-31T20:12:44.807483+00:00",
+        "gaslimit": 81,
+        "created_at": "2026-11-01T02:10:53.123692+00:00",
         "error": ""
       }
     }
@@ -1362,18 +1363,18 @@
       "seq": 1,
       "prevHash": "0000000000000000000000000000000000000000000000000000000000000000",
       "caseId": 1,
-      "requestKey": "8c7f93595ab941edc1c01d5b69b3849c",
-      "packageDigest": "43b09ddff2cfd7fdbc58a16298d15bdee819bee7921bfc3cdfe1fd372931883e",
+      "requestKey": "33150e00a05d856716ea5fe6b11c1877",
+      "packageDigest": "98cd727ceac5f72004dd6ddf11f8619b663dc992ffa30e3d6bd4990265475394",
       "op": "judge",
-      "txHash": "0x926597b1a497e9e7a1b313958b23d6027615741116a08b0c3e82d8bf371e910f",
+      "txHash": "0x44a3f10499d3fb9539e610603a8bfd68db59a6d22c599178789d45cd1737a83b",
       "finality": "FINALIZED_SUCCESS",
       "caseStatus": "judged",
       "tier": 1,
       "verdict": {
         "winnerIndex": 0,
         "scores": [
-          68,
-          32
+          80,
+          34
         ],
         "jurorVotes": [
           0,
@@ -1383,7 +1384,7 @@
           0
         ],
         "split": "5-0",
-        "reason": "Sweet and salty pairing is a demonstrable culinary principle; tradition-based objection offers no logical counterargumen",
+        "reason": "Entry 0 gives a clear supporting rationale; Entry 1 relies on hyperbole instead of argument.",
         "jurors": 5
       },
       "provenance": [
@@ -1399,20 +1400,20 @@
       "provenanceLabel": "All takes submitted through Settle It; authorship not verified. The receipt number proves which takes were judged, not that the verdict is correct.",
       "destination": {
         "network": "studionet",
-        "contractAddress": "0x3f867934247d88Aa3134d897a9246cfB1324B1Fa"
+        "contractAddress": "0xEe9AB3e45005E97dA53BFE570412f30D6F2C1e64"
       },
-      "observedAt": "2026-10-31T19:59:51.099Z",
-      "recordHash": "4bb05e9805d3a630e6247feecd1a8b8d6122df4ce8fd86805d62bc705656b5df"
+      "observedAt": "2026-11-01T01:59:07.128Z",
+      "recordHash": "46adde8bdc08c213628ae53998505c9112f2ac9abf6cafe01544605054d2c99d"
     },
     {
       "schema": "verdict.verdict-receipt.v1",
       "seq": 2,
-      "prevHash": "4bb05e9805d3a630e6247feecd1a8b8d6122df4ce8fd86805d62bc705656b5df",
+      "prevHash": "46adde8bdc08c213628ae53998505c9112f2ac9abf6cafe01544605054d2c99d",
       "caseId": 1,
-      "requestKey": "8c7f93595ab941edc1c01d5b69b3849c",
-      "packageDigest": "43b09ddff2cfd7fdbc58a16298d15bdee819bee7921bfc3cdfe1fd372931883e",
+      "requestKey": "33150e00a05d856716ea5fe6b11c1877",
+      "packageDigest": "98cd727ceac5f72004dd6ddf11f8619b663dc992ffa30e3d6bd4990265475394",
       "op": "appeal",
-      "txHash": "0xfed31cf680876d75769ef4150b4763be285f0e386556aaed4c538685488c9e89",
+      "txHash": "0x9fab39801786910c99bded7ae01fcdb04d4a83e71074d9af83b72f3f5b7090a6",
       "finality": "FINALIZED_SUCCESS",
       "caseStatus": "appealed",
       "tier": 2,
@@ -1432,7 +1433,7 @@
           0
         ],
         "split": "7-0",
-        "reason": "One gives a clear, broadly grounded rationale; the other relies on hyperbole instead of support.",
+        "reason": "Entry 0 gives a clear, relevant rationale; entry 1 relies on hyperbole rather than support.",
         "jurors": 7
       },
       "provenance": [
@@ -1448,28 +1449,28 @@
       "provenanceLabel": "All takes submitted through Settle It; authorship not verified. The receipt number proves which takes were judged, not that the verdict is correct.",
       "destination": {
         "network": "studionet",
-        "contractAddress": "0x3f867934247d88Aa3134d897a9246cfB1324B1Fa"
+        "contractAddress": "0xEe9AB3e45005E97dA53BFE570412f30D6F2C1e64"
       },
-      "observedAt": "2026-10-31T20:01:50.884Z",
-      "recordHash": "74acf9bd1e7b8c88b82efdb140998f945ea48af7f50e24102e0452efe04cf6cb"
+      "observedAt": "2026-11-01T02:01:16.058Z",
+      "recordHash": "8fde6902f261fb51e14d810545bcfd4bee78a14a5293a66e0057e4dec5bf0e69"
     },
     {
       "schema": "verdict.verdict-receipt.v1",
       "seq": 3,
-      "prevHash": "74acf9bd1e7b8c88b82efdb140998f945ea48af7f50e24102e0452efe04cf6cb",
+      "prevHash": "8fde6902f261fb51e14d810545bcfd4bee78a14a5293a66e0057e4dec5bf0e69",
       "caseId": 1,
-      "requestKey": "8c7f93595ab941edc1c01d5b69b3849c",
-      "packageDigest": "43b09ddff2cfd7fdbc58a16298d15bdee819bee7921bfc3cdfe1fd372931883e",
+      "requestKey": "33150e00a05d856716ea5fe6b11c1877",
+      "packageDigest": "98cd727ceac5f72004dd6ddf11f8619b663dc992ffa30e3d6bd4990265475394",
       "op": "appeal",
-      "txHash": "0x2f653265ab200902585fb3903babd6fa88d987d0b5e13cab8ef09eb15ee146b0",
+      "txHash": "0xf417c0f6a1f40e9baaa3ca1a9c32c628d6bbdf969c384ceefd604be026fc1891",
       "finality": "FINALIZED_SUCCESS",
       "caseStatus": "final",
       "tier": 3,
       "verdict": {
         "winnerIndex": 0,
         "scores": [
-          69,
-          31
+          66,
+          34
         ],
         "jurorVotes": [
           0,
@@ -1483,7 +1484,7 @@
           0
         ],
         "split": "9-0",
-        "reason": "Sweet and salty pairings have broad culinary support; tradition alone isn't a counter-argument.",
+        "reason": "Entry 0 gives a tasty rationale, while reasonable",
         "jurors": 9
       },
       "provenance": [
@@ -1499,20 +1500,20 @@
       "provenanceLabel": "All takes submitted through Settle It; authorship not verified. The receipt number proves which takes were judged, not that the verdict is correct.",
       "destination": {
         "network": "studionet",
-        "contractAddress": "0x3f867934247d88Aa3134d897a9246cfB1324B1Fa"
+        "contractAddress": "0xEe9AB3e45005E97dA53BFE570412f30D6F2C1e64"
       },
-      "observedAt": "2026-10-31T20:03:59.635Z",
-      "recordHash": "49f8e65e6555bbd9a32c72ef6cd449bff83c93e2cb2dd1eb3fe6dce090c9a701"
+      "observedAt": "2026-11-01T02:03:34.179Z",
+      "recordHash": "5694b60dc719680bcf2c8324ae1c9351073b7f8bdf57c2620c14ae65a4d5c79b"
     },
     {
       "schema": "verdict.verdict-receipt.v1",
       "seq": 4,
-      "prevHash": "49f8e65e6555bbd9a32c72ef6cd449bff83c93e2cb2dd1eb3fe6dce090c9a701",
+      "prevHash": "5694b60dc719680bcf2c8324ae1c9351073b7f8bdf57c2620c14ae65a4d5c79b",
       "caseId": 2,
-      "requestKey": "646277997a5eac6660b91c25f3727491",
-      "packageDigest": "eb167ed7cfbd30029133da432dd390b55ef8de0d6940eaa277dcb3e3df302ebd",
+      "requestKey": "94849c1f423bf3cf5442541abaf343a7",
+      "packageDigest": "1bf9522629bd04a898823c954e78fc383f1e5d729564b7ddc8c3f0e9ba1200c2",
       "op": "judge",
-      "txHash": "0x5adc60577f1d84d58adeb292d21050e21b5f272f4371b0cd9e8227ad850a175c",
+      "txHash": "0x1ecabc4c1c3b2a4711861cff1c48aaeb78dda8b6aa9a6aeb94b5e00a2107eff0",
       "finality": "FINALIZED_SUCCESS",
       "caseStatus": "judged",
       "tier": 1,
@@ -1520,7 +1521,7 @@
         "winnerIndex": 1,
         "scores": [
           66,
-          86
+          90
         ],
         "jurorVotes": [
           1,
@@ -1530,7 +1531,7 @@
           1
         ],
         "split": "5-0",
-        "reason": "Entry 1 offers a sharper, more psychologically astute roast with greater originality, while entry 0 relies on a common, ",
+        "reason": "More specific and relatable with a witty emotional twist.",
         "jurors": 5
       },
       "provenance": [
@@ -1546,28 +1547,28 @@
       "provenanceLabel": "All takes relayed by the stream host; authorship not verified. The receipt number proves which takes were judged, not that the verdict is correct.",
       "destination": {
         "network": "studionet",
-        "contractAddress": "0x3f867934247d88Aa3134d897a9246cfB1324B1Fa"
+        "contractAddress": "0xEe9AB3e45005E97dA53BFE570412f30D6F2C1e64"
       },
-      "observedAt": "2026-10-31T20:06:19.701Z",
-      "recordHash": "59569b31e7282d142869ea6cdcbf912b2b9b92f98209efb1e8b13c9147b59130"
+      "observedAt": "2026-11-01T02:05:29.594Z",
+      "recordHash": "10bda4e82b5e0c50295b8ccce60526b9a6c684de2375bc6268d39aa07ea3ff14"
     },
     {
       "schema": "verdict.verdict-receipt.v1",
       "seq": 5,
-      "prevHash": "59569b31e7282d142869ea6cdcbf912b2b9b92f98209efb1e8b13c9147b59130",
+      "prevHash": "10bda4e82b5e0c50295b8ccce60526b9a6c684de2375bc6268d39aa07ea3ff14",
       "caseId": 2,
-      "requestKey": "646277997a5eac6660b91c25f3727491",
-      "packageDigest": "eb167ed7cfbd30029133da432dd390b55ef8de0d6940eaa277dcb3e3df302ebd",
+      "requestKey": "94849c1f423bf3cf5442541abaf343a7",
+      "packageDigest": "1bf9522629bd04a898823c954e78fc383f1e5d729564b7ddc8c3f0e9ba1200c2",
       "op": "appeal",
-      "txHash": "0x50f2e49cee3af3f79357453692ba4d90415856dc3e112580b31b08d41febbef2",
+      "txHash": "0x9f26a7927297178492dd76f27a7cea87de03759ab3ac7770516a60b207f6fd18",
       "finality": "FINALIZED_SUCCESS",
       "caseStatus": "appealed",
       "tier": 2,
       "verdict": {
         "winnerIndex": 1,
         "scores": [
-          57,
-          73
+          80,
+          90
         ],
         "jurorVotes": [
           1,
@@ -1576,10 +1577,10 @@
           1,
           1,
           1,
-          0
+          1
         ],
-        "split": "6-1",
-        "reason": "Entry 1 is punchier and more pointed, while Entry 0’s familiar bug comparison feels less original.",
+        "split": "7-0",
+        "reason": "Second entry is more original and cleverly targets a specific developer behavior rather than just general criticism.",
         "jurors": 7
       },
       "provenance": [
@@ -1595,38 +1596,38 @@
       "provenanceLabel": "All takes relayed by the stream host; authorship not verified. The receipt number proves which takes were judged, not that the verdict is correct.",
       "destination": {
         "network": "studionet",
-        "contractAddress": "0x3f867934247d88Aa3134d897a9246cfB1324B1Fa"
+        "contractAddress": "0xEe9AB3e45005E97dA53BFE570412f30D6F2C1e64"
       },
-      "observedAt": "2026-10-31T20:09:23.489Z",
-      "recordHash": "23e419abe119659eb172141429d9828816c5ef6d581e45a57c8c7ff2933a906a"
+      "observedAt": "2026-11-01T02:07:29.135Z",
+      "recordHash": "acf9b58e3165acfa8b19959a8204dbd0396c0c442aedf1f9af9a8082504d60ea"
     },
     {
       "schema": "verdict.verdict-receipt.v1",
       "seq": 6,
-      "prevHash": "23e419abe119659eb172141429d9828816c5ef6d581e45a57c8c7ff2933a906a",
+      "prevHash": "acf9b58e3165acfa8b19959a8204dbd0396c0c442aedf1f9af9a8082504d60ea",
       "caseId": 3,
-      "requestKey": "19debc62326cc36d1a57f104d947cb34",
-      "packageDigest": "05ceb5420f6ad332eaa3d5063cb7e66ce53c811aee8f769464acf05ffdb235cc",
+      "requestKey": "1b7cd22ef21029d1f20705725dd544bc",
+      "packageDigest": "f8d7bd2d5dbe08adb7366f1e0dc0ee577453600a098fc8807dc29fe46017715d",
       "op": "judge",
-      "txHash": "0x6f4b2f84e3274c53e56c0c2716be24c5bf786aa025d2e703a020a9682f119e9a",
+      "txHash": "0x5a067ee197dce39f60c9fb0e0e9b99329435302acfb4e8b1d6d8e0be55128877",
       "finality": "FINALIZED_SUCCESS",
       "caseStatus": "judged",
       "tier": 1,
       "verdict": {
         "winnerIndex": 1,
         "scores": [
-          68,
-          76
+          30,
+          80
         ],
         "jurorVotes": [
           1,
-          0,
           1,
-          0,
+          1,
+          1,
           1
         ],
-        "split": "3-2",
-        "reason": "The birthday threat-free promise of calculated future neglect is a masterclass in passive-aggressive precision and delay",
+        "split": "5-0",
+        "reason": "Entry 1 is more impressively petty with its passive-aggressive birthday reminder threat, while Entry 0 is too brief to s",
         "jurors": 5
       },
       "provenance": [
@@ -1642,12 +1643,12 @@
       "provenanceLabel": "All takes submitted by an API client; authorship not verified. The receipt number proves which takes were judged, not that the verdict is correct.",
       "destination": {
         "network": "studionet",
-        "contractAddress": "0x3f867934247d88Aa3134d897a9246cfB1324B1Fa"
+        "contractAddress": "0xEe9AB3e45005E97dA53BFE570412f30D6F2C1e64"
       },
-      "observedAt": "2026-10-31T20:12:06.688Z",
-      "recordHash": "340d97e6b02b0caf266870fa4ab58de0e2a189106bcc99664694e8bb6ae3dbd8"
+      "observedAt": "2026-11-01T02:10:14.960Z",
+      "recordHash": "b8709ddfac696b726fc63a0932d6b95e679176823409e4b18052b3d40e8f6631"
     }
   ],
-  "finishedAt": "2026-10-31T20:13:26.253Z",
-  "elapsedSec": 904
+  "finishedAt": "2026-11-01T02:11:28.410Z",
+  "elapsedSec": 827
 }

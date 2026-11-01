@@ -1,10 +1,10 @@
 {
   "_comment": "Operator-maintained list of JudgeRouter case ids the web app shows without any text (verdict numbers, receipt and tx links stay). Merged into dist/evidence.json at build. Hiding is display-only: the text stays on-chain.",
-  "contract": "0x3f867934247d88Aa3134d897a9246cfB1324B1Fa",
+  "contract": "0xEe9AB3e45005E97dA53BFE570412f30D6F2C1e64",
   "hidden": [
     {
       "id": 3,
-      "reason": "Hidden from VERDICT's gallery after a takedown request (docs/LIVE_EVIDENCE.md, case 3). The text remains in the public blockchain's history and cannot be erased."
+      "reason": "Hidden from VERDICT's gallery after a takedown request in the evidence run (docs/LIVE_EVIDENCE.md, case 3). The text remains in the public blockchain's history and cannot be erased."
     }
   ]
 }

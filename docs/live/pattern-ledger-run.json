@@ -1,6 +1,203 @@
 {
- "about": "Scam Pattern Ledger (contracts/pattern_ledger.py) live run on studionet. All three summaries are synthetic and fully fictional. 'current' is the deployment to use; 'run1_superseded' is kept as evidence of the defect it found.",
+ "about": "Scam Pattern Ledger (contracts/pattern_ledger.py) live runs on studionet. All summaries are synthetic and fully fictional (staff-written, derived from no user paste). 'current' is the owner deployment (deployed from the owner's own wallet in GenLayer Studio; the relayer key holds the relayer role). 'throwaway_deployment' is the earlier deployment owned by the throwaway relayer key. 'run1_superseded' is kept as evidence of the defect it found.",
  "current": {
+  "network": "studionet",
+  "contract": "0x59C6047571bCE66828C733330fc9B5C88afEaE4D",
+  "owner": "0x920fbbCf2106B693A857D1995c198e341220a46A",
+  "relayer": "0x34653Fb290480a8C99B4D92D4857123B5624c37d",
+  "contract_file": "contracts/pattern_ledger.py",
+  "contract_code_sha256": "63c2e2d400df0656cf0fb099ecddca2c2c66064051e73ce1c08ea4336c60ad93",
+  "startedAt": "2026-11-01T01:57:03.879Z",
+  "deploy": {
+   "tx": "0x89a0c790e7bc0db5730d2b88e57d10c05e02da0d7f54cb6ae445c33ed03a435e",
+   "by": "owner wallet via GenLayer Studio (MetaMask)"
+  },
+  "submissions": [
+   {
+    "label": "1-new",
+    "intent": "new pattern",
+    "request_key": "live_9165fbd1c97043844e062137",
+    "flag_codes": [
+     "urgency",
+     "upfront_payment",
+     "link_pressure"
+    ],
+    "category": "delivery",
+    "summary": "A text claims a parcel is on hold and asks for a small redelivery fee through a link before it is sent back.",
+    "tx": "0x175d40a86a567e24b6114958b00d7197227ae5426f372483706d91232c6f28df",
+    "status": "ACCEPTED",
+    "execution": "SUCCESS",
+    "revert": null,
+    "at": "2026-11-01T01:57:26.675Z",
+    "final_status": "FINALIZED",
+    "final_execution": "SUCCESS",
+    "finality": "FINALIZED_SUCCESS"
+   },
+   {
+    "label": "2-dedup",
+    "intent": "same pattern as #1 (dedup sighting)",
+    "request_key": "live_75fdae3563287c3cb57f9fbc",
+    "flag_codes": [
+     "urgency",
+     "link_pressure",
+     "threat_of_loss"
+    ],
+    "category": "delivery",
+    "summary": "A message says a parcel delivery failed and demands a small fee paid through a link, or the parcel is returned.",
+    "tx": "0xe0719186fbcb1ccdc3e007d205c29541b8626cb9d99150421d51658bd0c58c2c",
+    "status": "ACCEPTED",
+    "execution": "SUCCESS",
+    "revert": null,
+    "at": "2026-11-01T01:57:44.710Z",
+    "final_status": "FINALIZED",
+    "final_execution": "SUCCESS",
+    "finality": "FINALIZED_SUCCESS"
+   },
+   {
+    "label": "3-pii",
+    "intent": "deliberately rejected for PII (digits and an email-like handle)",
+    "request_key": "live_431dac56b553d00424e25a01",
+    "flag_codes": [
+     "code_request",
+     "impersonation_claim"
+    ],
+    "category": "account-lock",
+    "summary": "Pretends to be support at help@fictional and asks for the 6 digit code sent by text.",
+    "tx": "0xc66ed87412db89f8b2fd651e29cc327080e709ecbdf2b214c23841cc1639643d",
+    "status": "ACCEPTED",
+    "execution": "ERROR",
+    "revert": "[REJECTED] summary contains identifying data (digits)",
+    "at": "2026-11-01T01:57:49.446Z",
+    "final_status": "FINALIZED",
+    "final_execution": "ERROR",
+    "finality": "FINALIZED_ERROR"
+   }
+  ],
+  "reads": {
+   "get_pattern_1": {
+    "category": "delivery",
+    "first_seen": "2026-11-01T01:57:04Z",
+    "flag_codes": [
+     "urgency",
+     "upfront_payment",
+     "link_pressure"
+    ],
+    "history": [
+     {
+      "at": "2026-11-01T01:57:04Z",
+      "flag_codes": [
+       "urgency",
+       "upfront_payment",
+       "link_pressure"
+      ],
+      "kind": "new"
+     },
+     {
+      "at": "2026-11-01T01:57:26Z",
+      "flag_codes": [
+       "urgency",
+       "link_pressure",
+       "threat_of_loss"
+      ],
+      "kind": "sighting"
+     }
+    ],
+    "id": 1,
+    "last_seen": "2026-11-01T01:57:26Z",
+    "sightings": 2,
+    "summary": "A text claims a parcel is on hold and asks for a small redelivery fee through a link before it is sent back."
+   },
+   "list_recent": [
+    {
+     "category": "delivery",
+     "first_seen": "2026-11-01T01:57:04Z",
+     "flag_codes": [
+      "urgency",
+      "upfront_payment",
+      "link_pressure"
+     ],
+     "id": 1,
+     "last_seen": "2026-11-01T01:57:26Z",
+     "sightings": 2,
+     "summary": "A text claims a parcel is on hold and asks for a small redelivery fee through a link before it is sent back."
+    }
+   ],
+   "top_patterns_since": [
+    {
+     "category": "delivery",
+     "first_seen": "2026-11-01T01:57:04Z",
+     "flag_codes": [
+      "urgency",
+      "upfront_payment",
+      "link_pressure"
+     ],
+     "id": 1,
+     "last_seen": "2026-11-01T01:57:26Z",
+     "sightings": 2,
+     "sightings_since": 2,
+     "summary": "A text claims a parcel is on hold and asks for a small redelivery fee through a link before it is sent back."
+    }
+   ],
+   "get_config": {
+    "categories": [
+     "delivery",
+     "account-lock",
+     "romance",
+     "job",
+     "prize",
+     "investment",
+     "impersonation",
+     "other"
+    ],
+    "dedup_candidates": 10,
+    "flag_codes": [
+     "urgency",
+     "too_good_to_be_true",
+     "upfront_payment",
+     "crypto_only",
+     "off_platform_move",
+     "link_pressure",
+     "code_request",
+     "stranger_friendly",
+     "pay_to_get_paid",
+     "impersonation_claim",
+     "secrecy",
+     "guaranteed_returns",
+     "cant_meet",
+     "threat_of_loss",
+     "talks_to_the_ai",
+     "money_offer"
+    ],
+    "history_cap": 100,
+    "max_summary_chars": 200,
+    "next_id": 2,
+    "owner": "0x920fbbCf2106B693A857D1995c198e341220a46A",
+    "paused": false,
+    "relayer": "0x34653Fb290480a8C99B4D92D4857123B5624c37d",
+    "schema": "verdict.pattern-ledger.v1"
+   },
+   "get_by_request_key_1-new": {
+    "outcome": "new",
+    "pattern_id": 1
+   },
+   "get_by_request_key_2-dedup": {
+    "outcome": "sighting",
+    "pattern_id": 1
+   },
+   "get_by_request_key_3-pii": {
+    "outcome": "",
+    "pattern_id": 0
+   }
+  },
+  "code_pin": {
+   "raw_sha256": "816b0be383a291d37682e7bbed2e4606b150209c52ad786720b0347a2ce809b6",
+   "canonical_sha256": "63c2e2d400df0656cf0fb099ecddca2c2c66064051e73ce1c08ea4336c60ad93",
+   "source_sha256": "63c2e2d400df0656cf0fb099ecddca2c2c66064051e73ce1c08ea4336c60ad93",
+   "state": "match"
+  },
+  "finishedAt": "2026-11-01T01:58:23.840Z"
+ },
+ "throwaway_deployment": {
   "network": "studionet",
   "contract": "0x8af622094205440f120F4096151F0aaBBcf14fDF",
   "owner_and_relayer": "0x34653Fb290480a8C99B4D92D4857123B5624c37d",

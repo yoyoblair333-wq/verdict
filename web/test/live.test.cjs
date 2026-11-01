@@ -76,7 +76,9 @@ async function main() {
       assert.ok(ids.length >= 1, "no cases");
       assert.ok(ids.includes(1), "case #1 from the evidence run is missing (it is pinned, so spam cannot push it off)");
       assert.equal(await page.locator('.case[data-case-id="1"]').getAttribute("data-origin"), "relayer");
-      assert.equal(await page.locator('.case[data-case-id="5"]').getAttribute("data-origin"), "visitor", "the demo case is a visitor case");
+      const demoId = JSON.parse(fs.readFileSync(path.resolve(__dirname, "../../docs/live/demo-case.json"), "utf8")).case_id;
+      await page.waitForSelector(`.case[data-case-id="${demoId}"]`, { state: "attached", timeout: 30_000 });
+      assert.equal(await page.locator(`.case[data-case-id="${demoId}"]`).getAttribute("data-origin"), "visitor", "the demo case is a visitor case");
       const c1 = page.locator('.case[data-case-id="1"]');
       assert.match(await c1.locator(".split").innerText(), /^\d+-\d+$/);
       assert.ok((await c1.locator(".seat").count()) >= 5, "juror votes missing");

@@ -10,7 +10,7 @@ import { studionet } from "genlayer-js/chains";
 import { transactionsStatusNumberToName } from "genlayer-js/types";
 import * as C from "./config.js";
 import { h } from "./lib/dom.js";
-import { sha256Hex } from "./lib/package.js";
+import { codeDigest, sha256Hex } from "./lib/package.js";
 import {
   APPEAL_TESTS, cleanSummary, compareCode, DOES_NOT_PROVE, gh, GARBLED_TESTS, GENLAYER_DOCS, INJECTION_TESTS, juryChecks, KIND_LABEL, NOT_YET,
   RAW_SOURCE_URL, REVOKE_TESTS, revokeChecks, sha256Bytes, shortAddr, SOURCE_PATH, summarizeTx, tally, testCount, trustPlan, VALIDATOR_TESTS,
@@ -118,10 +118,10 @@ async function liveCode() {
     fetch(RAW_SOURCE_URL, { cache: "no-store" }).then(async (r) => {
       if (!r.ok) throw new Error(`GitHub answered ${r.status}`);
       const buf = await r.arrayBuffer();
-      return { digest: await sha256Bytes(buf), bytes: buf.byteLength };
+      return { digest: await codeDigest(new TextDecoder().decode(buf)), raw: await sha256Bytes(buf), bytes: buf.byteLength };
     }),
   ]);
-  return { chain: { digest: await sha256Hex(code), chars: code.length }, github: gh };
+  return { chain: { digest: await codeDigest(code), raw: await sha256Hex(code), chars: code.length }, github: gh };
 }
 
 async function loadCode() {
@@ -134,7 +134,8 @@ async function loadCode() {
       const chain = typeof s.pin?.digest === "string" ? s.pin.digest : "";
       const github = typeof s.trust?.github?.digest === "string" ? s.trust.github.digest : "";
       if (!chain || !github) throw new Error("snapshot has no code digests");
-      return { chain: { digest: chain }, github: { digest: github }, src: { kind: "snapshot", at: s.trust?.at ?? s.snapshotAt, error: e.message } };
+      const raw = (x) => (typeof x === "string" ? x : undefined);
+      return { chain: { digest: chain, raw: raw(s.pin?.rawDigest) }, github: { digest: github, raw: raw(s.trust?.github?.rawDigest) }, src: { kind: "snapshot", at: s.trust?.at ?? s.snapshotAt, error: e.message } };
     } catch (e2) {
       return { chain: null, github: null, src: { kind: "error", error: `${e.message}; ${e2.message}` } };
     }
@@ -211,6 +212,11 @@ function renderNetwork(plan, res) {
   box.append(h("p", { class: "note" }, "Scope: on-chain cases only. Quick Verdicts and the games are not checked by the network and say so."));
 }
 
+/** The unnormalised hash, shown only when it differs from the compared one. */
+function rawNote(side) {
+  return side?.raw && side.raw !== side.digest ? h("small", { class: "raw" }, h("br"), `raw bytes: ${side.raw}`) : "";
+}
+
 function renderCode(res) {
   const box = $("code-body");
   box.replaceChildren();
@@ -230,10 +236,11 @@ function renderCode(res) {
           : "One of the two hashes is missing."),
     ),
     h("dl", { class: "facts digests" },
-      h("dt", {}, "Deployed"), h("dd", {}, h("code", { "data-digest": "chain" }, res.chain.digest), h("small", {}, ` sha256 of gen_getContractCode at ${C.CONTRACT_ADDRESS}`)),
-      h("dt", {}, "GitHub"), h("dd", {}, h("code", { "data-digest": "github" }, res.github.digest), h("small", {}, " sha256 of "), h("a", { href: gh(SOURCE_PATH), target: "_blank", rel: "noopener" }, `${SOURCE_PATH} at main`)),
+      h("dt", {}, "Deployed"), h("dd", {}, h("code", { "data-digest": "chain" }, res.chain.digest), h("small", {}, ` sha256 of gen_getContractCode at ${C.CONTRACT_ADDRESS}`), rawNote(res.chain)),
+      h("dt", {}, "GitHub"), h("dd", {}, h("code", { "data-digest": "github" }, res.github.digest), h("small", {}, " sha256 of "), h("a", { href: gh(SOURCE_PATH), target: "_blank", rel: "noopener" }, `${SOURCE_PATH} at main`), rawNote(res.github)),
       h("dt", {}, "Pinned"), h("dd", {}, h("code", {}, C.CONTRACT_CODE_DIGEST), h("small", {}, cmp.pinnedToo ? " the digest this site was built with (also matches)" : " the digest this site was built with")),
     ),
+    h("p", { class: "note", "data-note": "line-endings" }, "Both sides are hashed after turning Windows line endings into plain ones and keeping one final newline, because pasting a file into GenLayer Studio on Windows changes those. That can't hide any change to the code itself."),
     h("p", { class: "meta" }, "Check it yourself in a terminal:"),
     h("pre", { class: "cmd" }, h("code", {}, `curl -s ${RAW_SOURCE_URL} | sha256sum`)),
     h("ul", { class: "claims" },

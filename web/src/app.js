@@ -6,7 +6,7 @@ import { createAccount, createClient, generatePrivateKey } from "genlayer-js";
 import { studionet } from "genlayer-js/chains";
 import { transactionsStatusNumberToName } from "genlayer-js/types";
 import * as C from "./config.js";
-import { buildPackage, localCheck, preflight, randomRequestKey, sha256Hex } from "./lib/package.js";
+import { buildPackage, codeDigest, localCheck, preflight, randomRequestKey, sha256Hex } from "./lib/package.js";
 import { classifyTx, revertReason, voteSummary } from "./lib/finality.js";
 import { hideDecision } from "./lib/display.js";
 import { h } from "./lib/dom.js";
@@ -123,8 +123,8 @@ async function loadEvidence() {
 async function checkPin() {
   try {
     const code = await read.getContractCode(C.CONTRACT_ADDRESS);
-    const digest = await sha256Hex(code);
-    return { state: digest === C.CONTRACT_CODE_DIGEST ? "match" : "mismatch", digest };
+    const digest = await codeDigest(code);
+    return { state: digest === C.CONTRACT_CODE_DIGEST ? "match" : "mismatch", digest, rawDigest: await sha256Hex(code) };
   } catch (e) {
     return { state: "error", detail: e.message };
   }
@@ -223,7 +223,7 @@ function renderFacts() {
     return;
   }
   const p = state.pin;
-  if (p?.state === "match") add("Code pin", h("span", { class: "pin-ok" }, "Match "), h("code", {}, short(p.digest, 8)), " = sha256 of contracts/judge_router.py");
+  if (p?.state === "match") add("Code pin", h("span", { class: "pin-ok" }, "Match "), h("code", {}, short(p.digest, 8)), " = contracts/judge_router.py (line endings normalised)");
   else if (p?.state === "mismatch") add("Code pin", h("span", { class: "pin-bad" }, "MISMATCH "), h("code", {}, short(p.digest, 8)));
   else add("Code pin", h("span", { class: "pin-bad" }, "Not checked"), p?.detail ? ` (${p.detail})` : "");
   const cfg = state.config ?? {};

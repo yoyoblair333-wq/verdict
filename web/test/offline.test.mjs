@@ -19,7 +19,7 @@ import pw from "playwright";
 import { CONTRACT_ADDRESS, CONTRACT_CODE_DIGEST, RELAYER_ADDRESS } from "../src/config.js";
 import { hideDecision } from "../src/lib/display.js";
 import { groupCases, idsToFetch, isRelayerCase, provenanceLabel, receiptDisplay, tierStatus, VISITOR_LINE } from "../src/lib/gallery.js";
-import { buildPackage, canonicalize, sanitiseText, sha256Hex } from "../src/lib/package.js";
+import { buildPackage, canonicalCodeText, canonicalize, codeDigest, sanitiseText, sha256Hex } from "../src/lib/package.js";
 import { ALL_TEST_REFS, BANNED, compareCode, juryChecks, NOT_YET, revokeChecks, summarizeTx, tally, trustPlan } from "../src/lib/trust.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -101,14 +101,21 @@ test("display filter: PII hides a case's text; the operator list wins", () => {
   assert.equal(hideDecision({ id: 9, entries: ["Tabs are better.", "Spaces are better."], rubric: "Who's right?", reason: "fine" }), null);
 });
 
-test("build: evidence.json indexes the relayer run AND the browser-signed demo case 5; pinned = evidence cases; case 3 hidden", () => {
+test("build: evidence.json indexes the relayer run AND the browser-signed demo case; pinned = evidence cases; the taken-down case hidden", () => {
   const ev = JSON.parse(fs.readFileSync(path.join(DIST, "evidence.json"), "utf8"));
   assert.equal(ev.contract.toLowerCase(), CONTRACT_ADDRESS.toLowerCase());
-  assert.deepEqual(ev.pinned, [1, 2, 3, 5]);
-  const demo = JSON.parse(fs.readFileSync(path.join(ROOT, "docs/live/demo-case.json"), "utf8"));
-  assert.deepEqual(ev.cases["5"].map((t) => t.hash), demo.transactions.map((t) => t.hash));
-  assert.ok(ev.hidden.some((x) => x.id === 3));
-  assert.equal(demo.creator_burner.toLowerCase() === RELAYER_ADDRESS.toLowerCase(), false, "case 5 is a visitor case and must be labelled as one");
+  const run = JSON.parse(fs.readFileSync(path.join(ROOT, "docs/live/studionet-run.json"), "utf8"));
+  assert.equal(run.contract.toLowerCase(), CONTRACT_ADDRESS.toLowerCase(), "the web app and the evidence run name the same contract");
+  const demoPath = path.join(ROOT, "docs/live/demo-case.json");
+  const demo = fs.existsSync(demoPath) ? JSON.parse(fs.readFileSync(demoPath, "utf8")) : null;
+  const runIds = run.cases.map((c) => c.caseId);
+  assert.deepEqual(ev.pinned, [...runIds, ...(demo ? [demo.case_id] : [])].sort((a, b) => a - b));
+  if (demo) {
+    assert.equal(demo.contract.toLowerCase(), CONTRACT_ADDRESS.toLowerCase());
+    assert.deepEqual(ev.cases[String(demo.case_id)].map((t) => t.hash), demo.transactions.map((t) => t.hash));
+    assert.equal(demo.creator_burner.toLowerCase() === RELAYER_ADDRESS.toLowerCase(), false, "the demo case is a visitor case and must be labelled as one");
+  }
+  assert.ok(ev.hidden.some((x) => x.id === runIds[2]), "the run's taken-down case (its third) is hidden");
 });
 
 // ---------------------------------------------------------- browser tier
@@ -149,7 +156,8 @@ const VERIFIED = [{ entry_source: "participant_submitted", assurance: "verified_
 const spam = Array.from({ length: 50 }, (_, i) => base(6 + i, { entries: [`spam ${i}`, "spam"], confirmed_tier: 1 }));
 const stub = {
   snapshotAt: "2026-10-31T19:00:00Z", contract: CONTRACT_ADDRESS,
-  pin: { state: "match", digest: CONTRACT_CODE_DIGEST },
+  // Owner deployment: stored with CRLF and no final newline, so the raw bytes hash differently.
+  pin: { state: "match", digest: CONTRACT_CODE_DIGEST, rawDigest: "6bfe51a77be80254a1572899044403bc54d193e32679226c7d6eabb33753f4da" },
   config: { owner: IMG, relayer: RELAYER_ADDRESS, paused: false, next_id: 911, tier_jurors: { 1: 5, 2: 7, 3: 9 } },
   cases: [
     ...spam,
@@ -178,6 +186,9 @@ async function stubbedPage(width = 375) {
   // No network at all: every non-local request is refused; snapshot.json is the stub.
   await ctx.route((u) => !u.href.startsWith(url), (r) => r.abort());
   await page.route("**/verdict/snapshot.json", (r) => r.fulfill({ contentType: "application/json", body: JSON.stringify(stub) }));
+  // The stub's own evidence ids (1, 2, 3 and a browser-signed 5), independent of the live run's numbering.
+  const ev = JSON.parse(fs.readFileSync(path.join(DIST, "evidence.json"), "utf8"));
+  await page.route("**/verdict/evidence.json", (r) => r.fulfill({ contentType: "application/json", body: JSON.stringify({ ...ev, pinned: [1, 2, 3, 5], hidden: [{ id: 3, reason: "takedown" }] }) }));
   await page.goto(url, { waitUntil: "domcontentloaded" });
   await page.waitForSelector('#source[data-state="snapshot"]', { timeout: 30_000 });
   await page.click("#visitors > summary");
@@ -323,13 +334,23 @@ test("trust: tx summary, checks and code comparison", () => {
   assert.equal(compareCode(a, "<img>", a).state, "incomplete");
 });
 
+test("code digest: Windows line endings and a missing final newline hash the same; real edits do not", async () => {
+  const lf = "a = 1\nb = 2\n";
+  const want = await sha256Hex(lf);
+  assert.equal(await codeDigest(lf), want, "an LF file with one final newline hashes as plain sha256");
+  for (const v of ["a = 1\r\nb = 2", "a = 1\r\nb = 2\r\n", "a = 1\rb = 2", "a = 1\nb = 2\n\n"]) assert.equal(await codeDigest(v), want, JSON.stringify(v));
+  for (const v of ["a = 1\nb = 3\n", "a = 1\n\nb = 2\n", "a = 1 \nb = 2\n"]) assert.notEqual(await codeDigest(v), want, JSON.stringify(v));
+  assert.equal(canonicalCodeText("x\r\ny"), "x\ny\n");
+});
+
 test("build: evidence.json names the trust page's transactions (Tier 1 juries of cases 1-3, revoke on case 3)", () => {
   const ev = JSON.parse(fs.readFileSync(path.join(DIST, "evidence.json"), "utf8"));
   const plan = trustPlan(ev);
   assert.deepEqual(plan.jury.map((j) => j.caseId), [1, 2, 3]);
   assert.ok(plan.jury.every((j) => j.fn === "judge"));
   assert.equal(plan.revoke.caseId, 3);
-  assert.equal(plan.revoke.hash, "0xfcecc671e08106833d11e92c495cdada542ce9012e7d8673b2ebea6fb29984c4");
+  const run = JSON.parse(fs.readFileSync(path.join(ROOT, "docs/live/studionet-run.json"), "utf8"));
+  assert.equal(plan.revoke.hash, run.transactions.find((t) => t.fn === "revoke").hash);
   assert.ok(fs.readFileSync(path.join(ROOT, "contracts/judge_router.py"), "utf8").includes(plan.expectRevoke));
   assert.deepEqual(trustPlan({ trust: { jury: [{ caseId: 1, hash: "<img>" }], revoke: { caseId: "x", hash: "0x1" } } }), { jury: [], revoke: null, expectRevoke: "" });
 });
@@ -400,6 +421,8 @@ test("browser (offline): trust page renders from the stub, labelled as a snapsho
   assert.equal(await page.getAttribute("#appeals .txcard", "data-revoke"), "refused");
   assert.match(await page.locator("#appeals [data-reason]").innerText(), /verdict is final; request an off-chain takedown instead/);
   assert.equal(await page.getAttribute("#code [data-code]", "data-code"), "match");
+  assert.equal(await page.locator('#code [data-note="line-endings"]').count(), 1);
+  assert.match(await page.locator("#code small.raw").innerText(), /raw bytes: 6bfe51a7/);
   // live claims fall back to "Snapshot", never "Live"
   assert.equal(await page.locator('#network .claim[data-kind="live"], #code .claim[data-kind="live"], #appeals .claim[data-kind="live"]').count(), 0);
   assert.ok((await page.locator('.claim[data-kind="snapshot"]').count()) >= 3);
