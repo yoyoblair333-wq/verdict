@@ -10,6 +10,7 @@ import { buildPackage, codeDigest, localCheck, preflight, randomRequestKey, sha2
 import { classifyTx, revertReason, voteSummary } from "./lib/finality.js";
 import { hideDecision } from "./lib/display.js";
 import { pickProof, proofSentence, proofVotes } from "./lib/proof.js";
+import { categoryLabel, flagLabel, sinceIso, submissionLabel, writersLine } from "./lib/ledger.js";
 import { h } from "./lib/dom.js";
 import { groupCases, idsToFetch, isRelayerCase, provenanceLabel, receiptDisplay, RELAYER_CHIP, tierStatus, VISITOR_CHIP } from "./lib/gallery.js";
 
@@ -84,6 +85,7 @@ const state = {
   pinned: [], // evidence case ids (evidence.json): always fetched by id and listed first
   cases: [],
   nextBefore: 1, // "Load older" cursor: ids below this are not fetched yet
+  ledger: null, // evidence.json ledger block: recorded PatternLedger submissions
 };
 
 const myCases = () => store(C.MY_CASES_KEY) ?? [];
@@ -114,6 +116,7 @@ async function loadEvidence() {
         state.evidence = j.cases ?? {};
         state.hidden = Array.isArray(j.hidden) ? j.hidden : [];
         state.pinned = Array.isArray(j.pinned) ? j.pinned : Object.keys(state.evidence).map(Number);
+        if (j.ledger?.contract?.toLowerCase() === C.LEDGER_ADDRESS.toLowerCase()) state.ledger = j.ledger;
       }
     }
   } catch {
@@ -719,6 +722,74 @@ async function onSubmit(ev) {
   }
 }
 
+// ---------------------------------------------------- scam pattern ledger
+
+async function ledgerView(functionName, args = []) {
+  return plain(await read.readContract({ address: C.LEDGER_ADDRESS, functionName, args }));
+}
+
+function patternCard(p, weekCount) {
+  return h(
+    "article",
+    { class: "pattern", "data-pattern-id": p.id },
+    h("p", { class: "rubric" }, h("b", {}, categoryLabel(p.category)), ` · pattern #${p.id} · first seen ${fmtTime(p.first_seen)}`),
+    h("p", { class: "reason" }, `“${p.summary}”`),
+    h("div", { class: "chips" }, (p.flag_codes ?? []).map((f) => h("span", { class: "chip" }, flagLabel(f)))),
+    h(
+      "p",
+      { class: "sightings" },
+      h("b", {}, String(p.sightings)),
+      p.sightings === 1 ? " sighting" : " sightings",
+      typeof weekCount === "number" ? ` · ${weekCount} in the last 7 days` : "",
+      ` · last seen ${fmtTime(p.last_seen)}`,
+    ),
+  );
+}
+
+async function renderLedger() {
+  const src = $("ledgersrc");
+  const facts = $("ledgerfacts");
+  const list = $("patterns");
+  const txs = $("ledgertxs");
+  if (!src) return;
+  src.dataset.state = "loading";
+  src.textContent = "Reading the network…";
+  // Recorded submissions: each one checkable live, whatever the read below does.
+  txs.replaceChildren(
+    ...(state.ledger?.submissions ?? []).map((s) => {
+      const { li } = txItem({ fn: "submit_pattern", hash: s.tx });
+      li.querySelector(".row span:not(.fn)")?.replaceChildren(submissionLabel(s));
+      li.dataset.outcome = s.expected ?? "";
+      return li;
+    }),
+  );
+  try {
+    const [cfg, recent, top, code] = await Promise.all([
+      ledgerView("get_config"),
+      ledgerView("list_recent", [10]),
+      ledgerView("top_patterns_since", [sinceIso(new Date(), 7), 50]),
+      read.getContractCode(C.LEDGER_ADDRESS),
+    ]);
+    const digest = await codeDigest(code);
+    const week = new Map((top ?? []).map((r) => [r.id, r.sightings_since]));
+    facts.replaceChildren();
+    const add = (dt, ...dd) => facts.append(h("dt", {}, dt), h("dd", {}, ...dd));
+    add("Address", h("a", { href: C.EXPLORER_ADDRESS(C.LEDGER_ADDRESS), target: "_blank", rel: "noopener" }, h("code", {}, C.LEDGER_ADDRESS)));
+    add("Code pin", digest === C.LEDGER_CODE_DIGEST ? h("span", { class: "pin-ok" }, "Match ") : h("span", { class: "pin-bad" }, "MISMATCH "), h("code", {}, short(digest, 8)), " = contracts/pattern_ledger.py (line endings normalised)");
+    add("Patterns", String(Math.max(0, (cfg.next_id ?? 1) - 1)), cfg.paused ? " · PAUSED" : "");
+    add("Who can write", writersLine(cfg, C.OWNER_ADDRESS, C.RELAYER_ADDRESS));
+    list.replaceChildren(...(recent?.length ? recent.map((p) => patternCard(p, week.get(p.id) ?? 0)) : [h("p", { class: "empty" }, "No patterns recorded yet.")]));
+    src.dataset.state = "live";
+    src.textContent = `Live · read ${new Date().toLocaleTimeString()}`;
+    src.title = `Read from ${C.RPC_URL} by this browser`;
+  } catch (e) {
+    src.dataset.state = "error";
+    src.textContent = "Network unreachable";
+    src.title = e.message;
+    list.replaceChildren(h("p", { class: "empty" }, `This browser could not reach ${C.RPC_URL} to read the ledger (${e.message}). The recorded transactions below can still be opened in the explorer.`));
+  }
+}
+
 // ------------------------------------------------------------------ boot
 
 function wireForm() {
@@ -744,4 +815,8 @@ function wireForm() {
 wireForm();
 initBurner();
 renderWriteGate();
-loadEvidence().then(refresh);
+loadEvidence().then(() => {
+  refresh();
+  renderLedger();
+});
+$("ledgerrefresh")?.addEventListener("click", () => renderLedger());

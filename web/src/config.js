@@ -12,6 +12,15 @@ export const CONTRACT_ADDRESS = "0xEe9AB3e45005E97dA53BFE570412f30D6F2C1e64";
  * The stored bytes have CRLF line endings (raw sha256 6bfe51a7...f4da).
  */
 export const CONTRACT_CODE_DIGEST = "7c18143cf8f5224d6f8cdccebcdcc70b3b584f0b9247bf55c8439d2fac10ca1b";
+/**
+ * PatternLedger (contracts/pattern_ledger.py), the Scam Pattern Ledger. Same
+ * owner wallet; only the owner and the relayer may write (submit_pattern), so
+ * the page reads it and never offers a visitor write. Canonical code digest
+ * of the source; the stored bytes have CRLF line endings (raw 816b0be3...09b6).
+ */
+export const LEDGER_ADDRESS = "0x59C6047571bCE66828C733330fc9B5C88afEaE4D";
+export const LEDGER_CODE_DIGEST = "63c2e2d400df0656cf0fb099ecddca2c2c66064051e73ce1c08ea4336c60ad93";
+export const LEDGER_DEPLOY_TX = "0x89a0c790e7bc0db5730d2b88e57d10c05e02da0d7f54cb6ae445c33ed03a435e";
 /** The contract owner (get_config().owner): the wallet that deployed it. */
 export const OWNER_ADDRESS = "0x920fbbCf2106B693A857D1995c198e341220a46A";
 /**

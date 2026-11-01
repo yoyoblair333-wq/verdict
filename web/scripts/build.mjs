@@ -110,6 +110,20 @@ const trust = {
 };
 if (trust.jury.length < 2 || !trust.revoke) throw new Error("trust: the evidence run no longer has the jury and revoke transactions the trust page reads");
 
+// Scam Pattern Ledger (PatternLedger): the recorded owner-deployment run's
+// submissions, so the page can check each one's status live. Visitors can't
+// write to this contract (relayer or owner only), so these are the only txs.
+const ledgerRun = JSON.parse(await readFile(path.join(root, "docs/live/pattern-ledger-run.json"), "utf8")).current;
+const ledger = ledgerRun
+  ? {
+      contract: ledgerRun.contract,
+      deployTx: ledgerRun.deploy?.tx ?? null,
+      submissions: (ledgerRun.submissions ?? [])
+        .filter((x) => typeof x.tx === "string" && /^0x[0-9a-fA-F]{64}$/.test(x.tx))
+        .map((x) => ({ label: x.label, intent: x.intent, tx: x.tx, expected: x.final_execution ?? x.execution ?? null, revert: x.revert ?? null })),
+    }
+  : null;
+
 const evidence = {
   source: demo ? "docs/live/studionet-run.json + docs/live/demo-case.json" : "docs/live/studionet-run.json",
   network: run.network,
@@ -120,6 +134,7 @@ const evidence = {
   takenDown,
   hidden,
   trust,
+  ledger,
 };
 await writeFile(path.join(dist, "evidence.json"), JSON.stringify(evidence, null, 2));
 console.log(`evidence.json: ${Object.keys(cases).length} cases (pinned ${JSON.stringify(pinned)}), ${Object.values(cases).flat().length} txs, hidden=${JSON.stringify(hidden.map((x) => x.id))}, trust jury=${JSON.stringify(trust.jury.map((j) => j.caseId))} revoke=case ${trust.revoke.caseId}`);

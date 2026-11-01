@@ -16,8 +16,8 @@ import path from "node:path";
 import { test, before, after } from "node:test";
 import { fileURLToPath } from "node:url";
 import pw from "playwright";
-import { CONTRACT_ADDRESS, CONTRACT_CODE_DIGEST, RELAYER_ADDRESS } from "../src/config.js";
-import { hideDecision } from "../src/lib/display.js"; import { pickProof, proofSentence, proofVotes } from "../src/lib/proof.js";
+import { CONTRACT_ADDRESS, CONTRACT_CODE_DIGEST, LEDGER_ADDRESS, OWNER_ADDRESS as OWNER, RELAYER_ADDRESS } from "../src/config.js";
+import { hideDecision } from "../src/lib/display.js"; import { pickProof, proofSentence, proofVotes } from "../src/lib/proof.js"; import { categoryLabel, flagLabel, sinceIso, submissionLabel, writersLine } from "../src/lib/ledger.js";
 import { groupCases, idsToFetch, isRelayerCase, provenanceLabel, receiptDisplay, tierStatus, VISITOR_LINE } from "../src/lib/gallery.js";
 import { buildPackage, canonicalCodeText, canonicalize, codeDigest, sanitiseText, sha256Hex } from "../src/lib/package.js";
 import { ALL_TEST_REFS, BANNED, compareCode, juryChecks, NOT_YET, revokeChecks, summarizeTx, tally, trustPlan } from "../src/lib/trust.js";
@@ -517,6 +517,39 @@ test("browser (offline): trust-first landing states the problem and the proof st
   const line = await page.locator("#proofline").textContent();
   assert.ok(/Network unreachable|No recorded ruling/.test(src), src);
   assert.doesNotMatch(line, /agreed/, "must not claim validator votes it could not read");
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test("ledger: labels, since window, writers line and submission outcomes", () => {
+  assert.equal(categoryLabel("delivery"), "Parcel / delivery");
+  assert.equal(flagLabel("link_pressure"), "Pushes a link");
+  assert.equal(flagLabel("new_code"), "new code");
+  assert.equal(sinceIso(new Date("2026-11-08T12:00:00.123Z"), 7), "2026-11-01T12:00:00Z");
+  const line = writersLine({ owner: OWNER, relayer: RELAYER_ADDRESS.toLowerCase() }, OWNER, RELAYER_ADDRESS);
+  assert.match(line, /Only the owner's wallet and the VERDICT relayer can add patterns/);
+  assert.match(line, /never offers a write/);
+  assert.match(writersLine({ owner: "0xabc", relayer: "0xdef" }, OWNER, RELAYER_ADDRESS), /the owner 0xabc and the relayer 0xdef/);
+  assert.equal(submissionLabel({ label: "1-new", intent: "new pattern", expected: "SUCCESS" }), "New pattern stored");
+  assert.equal(submissionLabel({ label: "2-dedup", intent: "same pattern as #1 (dedup sighting)", expected: "SUCCESS" }), "Counted as a repeat sighting");
+  assert.match(submissionLabel({ label: "3-pii", intent: "identifying data", expected: "ERROR" }), /Rejected as designed/);
+});
+
+test("build: evidence.json carries the owner PatternLedger run (3 recorded submissions)", () => {
+  const ev = JSON.parse(fs.readFileSync(path.join(DIST, "evidence.json"), "utf8"));
+  assert.equal(ev.ledger.contract.toLowerCase(), LEDGER_ADDRESS.toLowerCase());
+  assert.equal(ev.ledger.submissions.length, 3);
+  for (const x of ev.ledger.submissions) assert.match(x.tx, /^0x[0-9a-f]{64}$/i);
+  assert.equal(ev.ledger.submissions[2].expected, "ERROR");
+});
+
+test("browser (offline): scam ledger is read-only, says who can write, admits the network is blocked, lists recorded txs", async () => {
+  const { ctx, page, errors } = await stubbedPage();
+  await page.waitForFunction(() => document.getElementById("ledgersrc")?.dataset.state !== "loading", null, { timeout: 30_000 });
+  assert.match(await page.locator("#ledgersrc").textContent(), /Network unreachable/);
+  assert.equal(await page.locator("#ledgertxs li").count(), 3);
+  assert.equal(await page.locator("#ledger form, #ledger textarea, #ledger input").count(), 0, "the ledger section must not offer a write");
+  assert.match(await page.locator("#ledgertxs").textContent(), /Rejected as designed/);
   assert.deepEqual(errors, []);
   await ctx.close();
 });

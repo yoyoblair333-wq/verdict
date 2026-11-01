@@ -102,6 +102,24 @@ async function main() {
       assert.ok((await page.locator("#proofvotes .vote.agree").count()) >= 1);
     });
 
+    await step(`${w}px: scam ledger reads PatternLedger live (code pin, pattern #1 with 2+ sightings, recorded txs final)`, async () => {
+      await page.waitForSelector('#ledgersrc[data-state="live"], #ledgersrc[data-state="error"]', { timeout: 60_000 });
+      assert.equal(await page.getAttribute("#ledgersrc", "data-state"), "live", await page.getAttribute("#ledgersrc", "title"));
+      assert.match(await page.locator("#ledgerfacts").innerText(), /Match/, "ledger code pin did not match");
+      assert.match(await page.locator("#ledgerfacts").innerText(), /Only the owner's wallet and the VERDICT relayer can add patterns/);
+      const p1 = page.locator('.pattern[data-pattern-id="1"]');
+      await p1.waitFor({ timeout: 30_000 });
+      assert.ok(Number(await p1.locator(".sightings b").textContent()) >= 2, "pattern #1 should have at least 2 sightings");
+      await page.locator("#ledger details.ledgertxs summary").click();
+      const buttons = page.locator("#ledgertxs button");
+      for (let i = 0; i < (await buttons.count()); i++) await buttons.nth(i).click();
+      await page.waitForFunction(() => [...document.querySelectorAll("#ledgertxs .st")].every((e) => /FINALIZED/.test(e.textContent)), null, { timeout: 60_000 });
+      const sts = await page.$$eval("#ledgertxs .st", (els) => els.map((e) => e.textContent));
+      assert.match(sts[0], /SUCCESS/);
+      assert.match(sts[1], /SUCCESS/);
+      assert.match(sts[2], /ERROR/);
+    });
+
     await step(`${w}px: no horizontal scroll`, async () => {
       const { sw, iw } = await page.evaluate(() => ({ sw: document.documentElement.scrollWidth, iw: window.innerWidth }));
       assert.ok(sw <= iw, `scrollWidth ${sw} > innerWidth ${iw}`);

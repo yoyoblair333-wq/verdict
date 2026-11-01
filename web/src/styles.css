@@ -257,3 +257,12 @@ a.plain{font-size:13px;font-weight:700}
 .vote.disagree{color:var(--stamp)}
 .vote.idle{color:var(--muted);border-style:dashed}
 .proofpanel .sub{text-align:left;font-size:13px;color:var(--muted);margin:0;overflow-wrap:anywhere}
+
+/* Scam Pattern Ledger (read-only). */
+.pattern{border:2px solid var(--fg);border-radius:14px;padding:12px 14px;background:var(--surface);margin-top:12px}
+.pattern .rubric{margin:0 0 6px;font-size:14px;color:var(--muted)}
+.pattern .reason{margin:0 0 8px}
+.pattern .sightings{margin:8px 0 0;font-size:14px}
+.pattern .sightings b{font:900 22px/1 var(--display)}
+.ledgertxs{margin-top:14px}
+.ledgertxs summary{cursor:pointer;font-weight:800}
