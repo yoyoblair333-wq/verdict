@@ -2,6 +2,8 @@
 
 `contracts/pattern_ledger.py` is a standalone GenLayer Intelligent Contract. It keeps a **public ledger of abstract scam patterns** that a network of validators has agreed is **privacy-safe** and **coherent**, and it counts repeat sightings of the same pattern instead of storing duplicates. VERDICT uses it behind Red Flag Court's opt-in "Help warn others" step, but nothing in the contract depends on the rest of VERDICT.
 
+The whole contract is **one self-contained file** (about 630 lines, standard library plus the GenLayer SDK), so you can copy it into your own project and deploy it as is.
+
 This guide explains the design so you can reuse the primitive: the problem, the state, the API, how consensus is used, the validator rule, the deterministic gate, the limits, and the live deployment.
 
 ## 1. The problem it solves
@@ -65,9 +67,17 @@ Storage follows the SDK's rules: `TreeMap`, sized integers and strings in storag
 | `top_patterns_since(since, n)` | Patterns ranked by sightings recorded since a timestamp (a weekly "scams going around" digest) |
 | `get_config()` | Owner, relayer, paused, next id, limits, the flag and category lists |
 
-**Errors** are prefixed so callers can branch on them: `[EXPECTED]` bad input or permissions, `[REJECTED]` content the ledger refuses (identifying data, not a coherent pattern), `[LLM_ERROR]` a malformed model reply. Every failure reverts, so a refused record never touches state.
+**Errors** are prefixed so callers can branch on them. Every failure reverts, so a refused record never touches state.
+
+| Prefix | Meaning | Examples |
+|---|---|---|
+| `[EXPECTED]` | Bad input or permissions, decided deterministically | caller is not the relayer or owner; paused; bad request key; unknown flag code or category; empty or over-long summary; instructions aimed at the reviewer; request key reused with a different record |
+| `[REJECTED]` | Content the ledger refuses | `summary contains identifying data (digits / email_or_handle / amount / url)` from the deterministic screen; `summary contains identifying data (review)` or `not a coherent scam pattern` from the consensus review |
+| `[LLM_ERROR]` | The model reply could not be parsed | missing fields, wrong types, a `same_as` that is not a candidate id |
 
 ## 4. How consensus is used, step by step
+
+In one sentence: the leader runs the deterministic gate and the model judgement, each validator re-runs the judgement independently with its own model through `gl.vm.run_nondet_unsafe` and a custom validator that requires an exact match on both privacy/coherence answers and on the dedup decision, and if they disagree the transaction does not store anything.
 
 ```
 submit_pattern(codes, category, summary, request_key)
@@ -123,6 +133,8 @@ The validator also re-checks the leader's payload shape (exact key set, booleans
 - **The PII screen is conservative:** it refuses any digit, so a harmless "two-step code" written as "2-step" is rejected, and must be phrased in words.
 - **Model variance:** a borderline summary can make validators disagree, which costs a leader rotation or a failed transaction rather than a wrong record.
 - **History is capped** at 100 entries per pattern, so `top_patterns_since` counts only within the kept window.
+- **It is a record, not an enforcement tool.** Nothing here feeds blocklists, takedowns or reports to platforms; it only records and counts abstract patterns.
+- **Paraphrasing can flatten novelty.** Reports are summarised off-chain and then judged against existing patterns, so a genuinely new scam type described in familiar words may be counted as a sighting of an older pattern.
 - **Testnet:** the deployment below is on GenLayer studionet; fees there were not measured.
 
 ## 7. Reusing it for other domains (adaptations, not claims)
@@ -134,6 +146,12 @@ The pattern is general: *closed vocabulary + short abstract summary + determinis
 - **Workplace or tenancy issue patterns:** abstract descriptions of recurring problems, counted by sightings, without naming anyone.
 
 To adapt it: edit the two tuples, the prompt's rules 3–4, and the PII screen; keep the validator rule and the bounds. None of these adaptations has been built or deployed here.
+
+### Future version (not built)
+
+- Owner-settable categories and flag codes, instead of fixed tuples in the source.
+- Per-category indexes instead of scanning the newest N ids, which removes the bounded-dedup limit above.
+- Structured error codes alongside the text prefixes, so callers don't parse messages.
 
 ## 8. Running the tests
 
@@ -165,3 +183,25 @@ Recorded run (`docs/live/pattern-ledger-run.json`, section `current`):
 | Summary containing digits | `0xc66ed87412db89f8b2fd651e29cc327080e709ecbdf2b214c23841cc1639643d` | FINALIZED, ERROR as designed: `[REJECTED] summary contains identifying data (digits)` |
 
 Later VERDICT tests added further sightings of pattern 1, so a live read today shows at least 2. You can read any of this yourself: call `get_config()` or `get_pattern(1)` on the contract in GenLayer Studio.
+
+### Check it yourself
+
+Read the live contract with genlayer-js (the same client the VERDICT web app uses; reads are free and need no key):
+
+```js
+import { createClient } from "genlayer-js";
+import { studionet } from "genlayer-js/chains";
+const c = createClient({ chain: studionet });
+const address = "0x59C6047571bCE66828C733330fc9B5C88afEaE4D";
+console.log(await c.readContract({ address, functionName: "get_config", args: [] }));
+console.log(await c.readContract({ address, functionName: "get_pattern", args: [1] }));
+console.log(await c.readContract({ address, functionName: "list_recent", args: [5] }));
+```
+
+What you should see:
+
+1. `get_config()`: owner `0x920f…a46A`, relayer `0x3465…c37d`, `paused: false`, the 16 flag codes and 8 categories.
+2. `get_pattern(1)`: the delivery-fee pattern, `sightings` of at least 2, and its history.
+3. `list_recent(5)`: the newest patterns, without history.
+
+In GenLayer Studio you can make the same calls on studionet: load `contracts/pattern_ledger.py`, point Run and Debug at the address above if your Studio version offers that, and call the three views.
