@@ -11,6 +11,8 @@
 // All messages are fictional. The key is read from the environment and never printed.
 //   set -a; . relayer/.env.local; set +a
 //   PATTERN_LEDGER_ADDRESS=0x... NODE_USE_ENV_PROXY=1 node scripts/redflag_live.mjs <out.json> <rawdir>
+// Against the owner deployment (no deploy; the relayer key is the contract's relayer role):
+//   REDFLAG_ADDRESS=0x... DEPLOY_TX=0x... RUN_NOTE="..." PATTERN_LEDGER_ADDRESS=0x... node scripts/redflag_live.mjs <out.json> <rawdir>
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { createHash, randomBytes } from "node:crypto";
 import path from "node:path";
@@ -78,7 +80,7 @@ if (!address) {
   const dtx = plain(d.tx);
   address = dtx?.data?.contract_address ?? dtx?.txDataDecoded?.contractAddress ?? dtx?.to_address;
 } else {
-  run.note = "Run against an existing deployment (REDFLAG_ADDRESS).";
+  run.note = process.env.RUN_NOTE ?? "Run against an existing deployment (REDFLAG_ADDRESS); this key only calls it.";
 }
 if (!/^0x[0-9a-fA-F]{40}$/.test(address ?? "")) throw new Error("no contract address in the deploy receipt");
 run.contract = address;

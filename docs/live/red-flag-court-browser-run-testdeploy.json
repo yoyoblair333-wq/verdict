@@ -1,0 +1,9 @@
+{
+ "label": "SCAM",
+ "txs": [
+  "0x6a26150cfce0977aba57665f5ac02c60696e2414ce5fbdeffe46289887474203"
+ ],
+ "at": "2026-11-01T16:33:00.309Z",
+ "contract": "0x5eDbd538e7fc22F07a01d86051c0B82e230C14be",
+ "about": "Visitor-signed scam check from the built page with ?redflag=1, driven by Playwright (VERDICT_REDFLAG_WRITE=1 npm run test:live); the status rail ended on Final."
+}

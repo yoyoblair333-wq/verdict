@@ -94,7 +94,9 @@ If you left `relayer` empty at deploy time:
 
 ## I. (Milestone 1) Deploy RedFlagCourt from your wallet
 
-RedFlagCourt (`contracts/red_flag_court.py`) is live today only as a THROWAWAY test deployment from the relayer key (`0x5eDbd538e7fc22F07a01d86051c0B82e230C14be`, docs/LIVE_EVIDENCE.md). To make your wallet the owner and creator:
+**Done 2026-11-01.** RedFlagCourt (`contracts/red_flag_court.py`) is owner-deployed at `0x997E686B2A5A83e1C8f8E9F15CCB487b1893DDb0` (deploy tx `0x8a7adb9c498f422d295fff20515ffc224bc6393124bcc0eb912da776bd0af2a6`, FINALIZED · SUCCESS). `get_config`: owner `0x920fbbCf2106B693A857D1995c198e341220a46A`, relayer `0x34653Fb290480a8C99B4D92D4857123B5624c37d`; code pin match (`19d50b70…cf9e`). `web/src/config.js` points at it and `scripts/redflag_live.mjs` was re-run against it (docs/MILESTONE_1.md). It supersedes the THROWAWAY test deployment from the relayer key, `0x5eDbd538e7fc22F07a01d86051c0B82e230C14be`.
+
+The steps used, kept for a redeploy:
 
 1. In GenLayer Studio, with your wallet connected on the GenLayer Studio network, click the new-file icon next to "Your Contracts".
 2. Open https://raw.githubusercontent.com/yoyoblair333-wq/verdict/milestone-1/contracts/red_flag_court.py , press Ctrl+A, then Ctrl+C.

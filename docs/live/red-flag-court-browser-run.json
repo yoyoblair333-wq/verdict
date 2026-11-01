@@ -1,9 +1,19 @@
 {
  "label": "SCAM",
  "txs": [
-  "0x6a26150cfce0977aba57665f5ac02c60696e2414ce5fbdeffe46289887474203"
+  "0x5efc3a06537416500fd1486e780cf05715751fad76b3b9a0338d0305aabf7410"
  ],
- "at": "2026-11-01T16:33:00.309Z",
- "contract": "0x5eDbd538e7fc22F07a01d86051c0B82e230C14be",
- "about": "Visitor-signed scam check from the built page with ?redflag=1, driven by Playwright (VERDICT_REDFLAG_WRITE=1 npm run test:live); the status rail ended on Final."
+ "at": "2026-11-01T17:55:02.551Z",
+ "contract": "0x997E686B2A5A83e1C8f8E9F15CCB487b1893DDb0",
+ "check_id": 3,
+ "creator": "0x45e170c49b0BBEaC1b3aC6c396Cd0b9A5516A284",
+ "final": {
+  "status": "FINALIZED",
+  "execution": "SUCCESS",
+  "validator_votes": {
+   "agree": 3,
+   "idle": 2
+  }
+ },
+ "about": "Visitor-signed scam check on the OWNER deployment, from the built page with ?redflag=1, driven by Playwright (VERDICT_REDFLAG_WRITE=1 npm run test:live) and signed by a per-browser testnet burner (creator above, not the relayer); the status rail ended on Final. Finality and check 3 re-read over RPC afterwards."
 }

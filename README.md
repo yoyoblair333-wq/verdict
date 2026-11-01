@@ -62,6 +62,7 @@ Deployed on **GenLayer studionet** from the owner's own wallet on 2026-10-31 and
 | Demo video | **TO FILL AFTER DEPLOY**: link (record `deploy/STUDIO_DEPLOY.md` steps 3–6) |
 | Scam Pattern Ledger | `contracts/pattern_ledger.py` on studionet at `0x59C6047571bCE66828C733330fc9B5C88afEaE4D` (owner deployment, deploy tx `0x89a0c790e7bc0db5730d2b88e57d10c05e02da0d7f54cb6ae445c33ed03a435e`, same owner and relayer; code matches the source, canonical digest `63c2e2d4…ad93`). Synthetic records only; the relayer runs it in SHADOW until counsel signs off. Run record (new pattern, dedup sighting, PII refusal): [docs/live/pattern-ledger-run.json](docs/live/pattern-ledger-run.json). Earlier: `0x8af62209…4fDF` (throwaway-owned, same code) |
 | Owner deploy (JudgeRouter + PatternLedger) | **Done 2026-10-31** from the owner's own wallet; both contracts above are the owner deployments and the web app and `relayer/.env.example` point at them. A creator fee share for the deployer: per GenLayer's portal; UNVERIFIED as to form and timing |
+| Owner deploy (RedFlagCourt, Milestone 1) | **Done 2026-11-01** from the owner's own wallet: `contracts/red_flag_court.py` at `0x997E686B2A5A83e1C8f8E9F15CCB487b1893DDb0` (deploy tx `0x8a7adb9c498f422d295fff20515ffc224bc6393124bcc0eb912da776bd0af2a6`, FINALIZED · SUCCESS; same owner and relayer; code pin match `19d50b70…cf9e`). The web app's `?redflag=1` section points at it; run record [docs/live/red-flag-court-run.json](docs/live/red-flag-court-run.json). Supersedes the throwaway test deployment `0x5eDbd538e7fc22F07a01d86051c0B82e230C14be` (relayer key as owner) |
 | Web app (live) | **Deployed:** <https://yoyoblair333-wq.github.io/verdict/> (GitHub Pages, built from `web/` by [.github/workflows/pages.yml](.github/workflows/pages.yml) on every push to `main`). See "The live web app" below |
 | Prototype | `app/` is a separate **static, simulated prototype** (jury simulated in the browser, not wired to the relayer or the contract) |
 | Browser-signed demo case | Case 4 on the owner deployment, opened, judged and confirmed by a per-browser burner key from the web app with no relayer involved: [docs/live/demo-case.json](docs/live/demo-case.json) (3 transactions, all FINALIZED / SUCCESS). The earlier deployment's demo case 5: [docs/live/demo-case-0x3f867934.json](docs/live/demo-case-0x3f867934.json) |
@@ -138,9 +139,9 @@ Three ways in:
 
 ---
 
-## Milestone 1 candidate: Red Flag Court on-chain (branch `milestone-1`)
+## Milestone 1: Red Flag Court on-chain
 
-"Is this message a scam?" as a third Intelligent Contract. The browser redacts the message first, an AI analyst panel rules SCAM, SUS or LEGIT, validators must agree on the label, and the person can appeal to 3, then 5 analysts. They can also opt in to share the abstract pattern with PatternLedger. It is live as a test deployment, and the web section sits behind `?redflag=1`. Details, evidence and honest scope: [docs/MILESTONE_1.md](docs/MILESTONE_1.md).
+"Is this message a scam?" as a third Intelligent Contract. The browser redacts the message first, an AI analyst panel rules SCAM, SUS or LEGIT, validators must agree on the label, and the person can appeal to 3, then 5 analysts. They can also opt in to share the abstract pattern with PatternLedger. It is owner-deployed on studionet at `0x997E686B2A5A83e1C8f8E9F15CCB487b1893DDb0` (eight live transactions plus a browser-signed check, all finalized as designed), and the web section sits behind `?redflag=1`. Details, evidence and honest scope: [docs/MILESTONE_1.md](docs/MILESTONE_1.md).
 
 ## Where VERDICT fits on GenLayer
 

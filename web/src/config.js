@@ -55,9 +55,10 @@ export const TX_TIMEOUT_MS = 15 * 60 * 1000;
 export const BURNER_KEY = "verdict.testnet-burner.v1";
 export const MY_CASES_KEY = "verdict.my-cases.v1";
 
-// Red Flag Court (Milestone 1 candidate, contracts/red_flag_court.py). THROWAWAY
-// test deployment from the relayer key; the owner deployment is a later step
-// (deploy/OWNER_DEPLOY.md). The section is off unless REDFLAG_ENABLED or the
-// page URL carries ?redflag=1.
-export const REDFLAG_ADDRESS = "0x5eDbd538e7fc22F07a01d86051c0B82e230C14be";
+// Red Flag Court (Milestone 1, contracts/red_flag_court.py). OWNER deployment,
+// deployed 2026-11-01 from the owner's wallet (owner 0x920fbbCf…a46A, relayer
+// 0x34653Fb2…c37d; deploy/OWNER_DEPLOY.md section I). Supersedes the throwaway
+// test deployment 0x5eDbd538e7fc22F07a01d86051c0B82e230C14be. The section is off
+// unless REDFLAG_ENABLED or the page URL carries ?redflag=1.
+export const REDFLAG_ADDRESS = "0x997E686B2A5A83e1C8f8E9F15CCB487b1893DDb0";
 export const REDFLAG_ENABLED = false;

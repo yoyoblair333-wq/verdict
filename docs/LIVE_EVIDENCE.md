@@ -149,11 +149,18 @@ Rendered by hand from [`docs/live/pattern-ledger-run.json`](live/pattern-ledger-
 
 The earlier PatternLedger `0x8af622094205440f120F4096151F0aaBBcf14fDF` (owned by the throwaway key, same code) and its runs are kept in the same file under `throwaway_deployment` and `run1_superseded`. The relayer still runs the ledger in SHADOW until counsel signs off (ADR-020); these runs are staff-written synthetic records.
 
-## Red Flag Court (Milestone 1 candidate, throwaway deployment)
+## Red Flag Court (Milestone 1, owner deployment)
 
-`contracts/red_flag_court.py` at `0x5eDbd538e7fc22F07a01d86051c0B82e230C14be`, deployed from the relayer key as a **test** deployment (deploy tx `0xd9be31214f49bb82687f0e4d1c750a976a9ffe12b2370554bd6be9cfac636dae`, FINALIZED). Code pin: match. Eight transactions: SCAM, LEGIT, an unredacted text refused on-chain, an appeal to 3 analysts (SCAM 3-0), an opt-in, the relayer sharing the abstract pattern to the owner PatternLedger (counted as a sighting of pattern #1), and `mark_shared`. Plus one browser-signed check (SCAM). All are listed with hashes and results in [docs/MILESTONE_1.md](MILESTONE_1.md). Raw record: [docs/live/red-flag-court-run.json](live/red-flag-court-run.json).
+| Item | Value |
+|---|---|
+| Contract | `contracts/red_flag_court.py` at `0x997E686B2A5A83e1C8f8E9F15CCB487b1893DDb0` (deployed 2026-11-01 from the owner wallet in GenLayer Studio) |
+| Deploy tx | `0x8a7adb9c498f422d295fff20515ffc224bc6393124bcc0eb912da776bd0af2a6`: FINALIZED, execution SUCCESS; validators agree 4, idle 1 |
+| `get_config` roles | owner `0x920fbbCf2106B693A857D1995c198e341220a46A`, relayer `0x34653Fb290480a8C99B4D92D4857123B5624c37d` |
+| Code pin | canonical sha256 `19d50b70cdc8e760212394c70972c9c0c23170e9d0a20b7b7d227e97b1b6cf9e` = sha256 of `contracts/red_flag_court.py` (**match**; the raw stored bytes hash the same, no line-ending normalisation needed) |
+| Run (relayer key as the relayer role, no deploy) | Eight transactions, all FINALIZED: SCAM `0x00d76b89…dd44`, LEGIT `0x982d51ca…a0be`, an unredacted text refused on-chain (FINALIZED_ERROR, `[REJECTED] text is not redacted (digits)`) `0x30137368…3891`, an appeal to 3 analysts (SCAM 3-0) `0xb6e3c6ba…271d`, an opt-in `0x2a8bb72c…9e0a`, the relayer sharing the abstract pattern to the owner PatternLedger (counted as a sighting of pattern #1) `0xcfb5b6fe…77ce`, and `mark_shared(1, 1)` `0x59936850…806d`. Plus one browser-signed check by a visitor burner (check 3, SCAM, FINALIZED_SUCCESS) `0x5efc3a06…7410` |
+| Records | [docs/live/red-flag-court-run.json](live/red-flag-court-run.json), [docs/live/red-flag-court-browser-run.json](live/red-flag-court-browser-run.json); full hashes and results in [docs/MILESTONE_1.md](MILESTONE_1.md) |
 
-It replaces the first test deployment `0xBaF13Ec3fe990868804f69aB2b53558F0ADE81CE`. The only source change is that the zero-width and bidi characters `_INVISIBLE_RE` strips are now written as `\u` escapes, so GitHub shows no hidden-Unicode warning on this file. The earlier run is kept in `docs/live/red-flag-court-run-0xBaF13Ec3.json`.
+It supersedes two throwaway test deployments made from the relayer key (owner = relayer key): `0x5eDbd538e7fc22F07a01d86051c0B82e230C14be` (same code; deploy tx `0xd9be31214f49bb82687f0e4d1c750a976a9ffe12b2370554bd6be9cfac636dae`, same 8-step run plus a browser check; records kept as `docs/live/red-flag-court-run-testdeploy.json` and `docs/live/red-flag-court-browser-run-testdeploy.json`) and, before it, `0xBaF13Ec3fe990868804f69aB2b53558F0ADE81CE` (the previous source, with literal zero-width and bidi characters in `_INVISIBLE_RE` instead of `\u` escapes; records `docs/live/red-flag-court-run-0xBaF13Ec3.json`). The web app points at the owner deployment.
 
 ## Earlier deployment (2026-10-31, `0x3f867934247d88Aa3134d897a9246cfB1324B1Fa`)
 
