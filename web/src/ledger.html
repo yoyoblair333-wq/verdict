@@ -119,6 +119,15 @@
     <ul class="txs" id="ledgertxs"></ul>
   </section>
 
+  <section class="panel rigsect" id="study" aria-labelledby="study-h">
+    <div class="panelhead">
+      <h2 id="study-h">Consensus study transactions</h2>
+      <span class="proof" data-kind="recorded">Recorded</span>
+    </div>
+    <p class="lede">The 15 submissions of the <a id="study-link" href="https://github.com/yoyoblair333-wq/verdict/blob/main/docs/PATTERN_LEDGER_STUDY.md" target="_blank" rel="noopener">consensus study</a> (one run on 2026-11-01, fictional summaries written by the project): three base patterns each followed by two rewordings, two other new patterns, and four summaries that should be refused. In that run all 11 new-or-repeat decisions and all 4 refusals came out as expected. That is a small, easy set (n = 15, one candidate per category), not an accuracy figure; the study lists its limits. Each row shows what the study expected and what it recorded; "Check live" asks studionet for the transaction now.</p>
+    <ul class="txs" id="studytxs"></ul>
+  </section>
+
   <section class="rigsect" id="build" aria-labelledby="build-h">
     <h2 class="sect" id="build-h">Build with it</h2>
     <ul class="links" id="buildlinks">
@@ -127,6 +136,9 @@
       <li><a href="https://github.com/yoyoblair333-wq/verdict/blob/main/contracts/tests/direct/test_pattern_ledger.py" target="_blank" rel="noopener">Contract tests</a> <span>contracts/tests/direct/test_pattern_ledger.py, run on the GenVM SDK in direct mode.</span></li>
       <li><a href="https://github.com/yoyoblair333-wq/verdict/blob/main/fixtures/pattern-screen.json" target="_blank" rel="noopener">Identifying-data screen fixture</a> <span>fixtures/pattern-screen.json, shared by the contract and the relayer.</span></li>
       <li><a href="https://github.com/yoyoblair333-wq/verdict/blob/main/docs/live/pattern-ledger-run.json" target="_blank" rel="noopener">Recorded run</a> <span>docs/live/pattern-ledger-run.json, the source of the transactions above.</span></li>
+      <li><a href="https://github.com/yoyoblair333-wq/verdict/blob/main/docs/PATTERN_LEDGER_STUDY.md" target="_blank" rel="noopener">Consensus study</a> <span>docs/PATTERN_LEDGER_STUDY.md and docs/live/pattern-ledger-study.json, the source of the study transactions above.</span></li>
+      <li><a href="https://github.com/yoyoblair333-wq/verdict/blob/main/docs/PATTERN_LEDGER_THREATS.md" target="_blank" rel="noopener">Adversarial tests and known gaps</a> <span>docs/PATTERN_LEDGER_THREATS.md: what the attack suite shows, including the attacks that still get past the fixed screen.</span></li>
+      <li><a href="https://github.com/yoyoblair333-wq/verdict/blob/main/examples/pattern-ledger/README.md" target="_blank" rel="noopener">Reuse kit</a> <span>examples/pattern-ledger/: read clients, an operator write example and two fork templates (not deployed).</span></li>
       <li><a href="https://docs.genlayer.com/" target="_blank" rel="noopener">GenLayer docs</a> <span>Intelligent Contracts and the equivalence principle.</span></li>
     </ul>
   </section>

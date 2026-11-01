@@ -290,8 +290,8 @@ key reuse with different content, the injection screen, the caller
 restriction, and the phishing owner "cleared" path. Two hand mutations were
 tried and each was caught by a failing test (removing the product-line scope
 from defect dedup; making the phishing validator ignore the plausibility
-boolean). These tests are not part of `scripts/verify.sh`, which only collects
-`contracts/tests`.
+boolean). `scripts/verify.sh` runs these tests as its own step ("PatternLedger
+reuse-kit template tests"), so CI runs them on every push.
 
 ## Scope
 

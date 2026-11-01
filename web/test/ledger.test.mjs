@@ -21,7 +21,7 @@ import { LEDGER_ADDRESS, LEDGER_CODE_DIGEST, LEDGER_DEPLOY_TX, OWNER_ADDRESS, RE
 import { codeDigest } from "../src/lib/package.js";
 import { BANNED } from "../src/lib/trust.js";
 import {
-  barRows, chartSummary, cleanPattern, countTests, historyLine, LEDGER_SOURCE, LEDGER_TEST_FILE, LEDGER_TESTS, matchesRecord, pinState, SOURCE_LINES, txPlan,
+  barRows, chartSummary, cleanPattern, countTests, historyLine, LEDGER_SOURCE, LEDGER_TEST_FILE, LEDGER_TESTS, matchesRecord, pinState, SOURCE_LINES, studyPlan, txPlan,
 } from "../src/ledger.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -89,6 +89,19 @@ test("ledger page: recorded tx plan is the deploy plus the evidence run's submis
   assert.match(plan.at(-1).label, /Rejected as designed/);
   const other = txPlan({ ledger: { ...ev.ledger, contract: `0x${"9".repeat(40)}` } }, LEDGER_DEPLOY_TX);
   assert.deepEqual(other.map((t) => t.kind), ["deploy"], "another contract's submissions are ignored");
+});
+
+test("ledger page: study tx plan is the consensus study's records, with expected and recorded outcomes, for this contract only", () => {
+  const ev = JSON.parse(fs.readFileSync(path.join(DIST, "evidence.json"), "utf8"));
+  const plan = studyPlan(ev);
+  const study = JSON.parse(fs.readFileSync(path.join(ROOT, "docs/live/pattern-ledger-study.json"), "utf8"));
+  assert.equal(plan.length, 15);
+  assert.deepEqual(plan.map((t) => t.hash), study.records.map((r) => r.tx));
+  assert.deepEqual(plan.map((t) => t.expected), study.records.map((r) => r.final_execution));
+  assert.equal(plan[1].intent, "expected a sighting of A0-job-base; recorded sighting of #2 (now 2)");
+  assert.equal(plan[13].revert, "[REJECTED] not a coherent scam pattern");
+  assert.deepEqual(studyPlan({ ledger: { ...ev.ledger, contract: `0x${"9".repeat(40)}` } }), [], "another contract's study is ignored");
+  assert.deepEqual(studyPlan(null), []);
 });
 
 test("build: dist has the ledger page, its script and stylesheet; no banned wording", () => {
@@ -239,6 +252,7 @@ test("browser (fake RPC): every recorded tx is checkable live and compared with 
     assert.match(await page.locator("#ledgertxs .st").nth(i).textContent(), /FINALIZED .* as recorded/);
   }
   assert.match(await page.locator("#ledgertxs .st").nth(3).textContent(), /\[REJECTED\] summary contains identifying data/);
+  assert.equal(await page.locator("#studytxs li").count(), 15, "the consensus study's submissions are listed too");
   await ctx.close();
 });
 

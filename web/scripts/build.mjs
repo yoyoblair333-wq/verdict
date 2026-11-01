@@ -125,6 +125,25 @@ const ledger = ledgerRun
     }
   : null;
 
+// PatternLedger consensus study (docs/PATTERN_LEDGER_STUDY.md): its 15
+// synthetic submissions to the same contract, listed separately on the page.
+const studyRun = JSON.parse(await readFile(path.join(root, "docs/live/pattern-ledger-study.json"), "utf8"));
+const studyExpect = (e) =>
+  e?.kind === "new" ? "a new pattern"
+  : e?.kind === "sighting" ? `a sighting of ${e.of}`
+  : e?.kind === "refuse" ? (e.by === "gate" ? "refused by the deterministic gate" : "refused by the validators' review")
+  : "";
+const studyOutcome = (o) => (o?.outcome === "new" ? `new pattern #${o.pattern_id}` : o?.outcome === "sighting" ? `sighting of #${o.pattern_id} (now ${o.sightings})` : "");
+if (ledger && String(studyRun.contract ?? "").toLowerCase() === String(ledger.contract ?? "").toLowerCase()) {
+  ledger.study = {
+    source: "docs/live/pattern-ledger-study.json",
+    startedAt: studyRun.startedAt ?? null,
+    records: (studyRun.records ?? [])
+      .filter((x) => typeof x.tx === "string" && /^0x[0-9a-fA-F]{64}$/.test(x.tx))
+      .map((x) => ({ label: x.label, expect: studyExpect(x.expect), outcome: studyOutcome(x.outcome), tx: x.tx, expected: x.final_execution ?? null, revert: x.revert ?? null })),
+  };
+}
+
 const evidence = {
   source: demo ? "docs/live/studionet-run.json + docs/live/demo-case.json" : "docs/live/studionet-run.json",
   network: run.network,

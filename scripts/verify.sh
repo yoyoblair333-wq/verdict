@@ -3,7 +3,9 @@
 #   bash scripts/verify.sh
 # Installs pinned deps (contracts/.venv, relayer/node_modules, web/node_modules
 # + Playwright's Chromium), then runs:
-#   1 contract tests (pytest: direct-mode GenVM SDK + static schema tier)
+#   1 contract tests (pytest: direct-mode GenVM SDK + static schema tier;
+#     includes the PatternLedger unit and adversarial suites in contracts/tests/direct)
+#   1b PatternLedger reuse-kit template tests (examples/pattern-ledger/tests)
 #   2 genvm-lint check      3 genvm-lint typecheck   (both contracts)
 #   4 relayer typecheck     5 relayer tests (unit + stand-in; live tier skips)
 #   6 offline demo (one full case through the relayer)
@@ -68,6 +70,7 @@ step "setup: python venv + pinned requirements" bash -c "$PY -m venv contracts/.
 step "setup: relayer npm ci (package-lock.json)" bash -c "cd relayer && npm ci --no-audit --no-fund --loglevel=error"
 step "setup: web npm ci + Playwright Chromium" bash -c "cd web && npm ci --no-audit --no-fund --loglevel=error && npx --no-install playwright install chromium"
 step "contract tests (pytest)" bash -c "cd contracts && ../contracts/.venv/bin/python -m pytest -q"
+step "PatternLedger reuse-kit template tests (pytest)" bash -c "contracts/.venv/bin/python -m pytest -q -p no:cacheprovider examples/pattern-ledger/tests"
 step "genvm-lint check (both contracts)" bash -c "cd contracts && .venv/bin/genvm-lint check judge_router.py && .venv/bin/genvm-lint check pattern_ledger.py"
 step "genvm-lint typecheck (both contracts)" bash -c "cd contracts && PATH=\"$PWD/contracts/.venv/bin:\$PATH\" .venv/bin/genvm-lint typecheck judge_router.py && PATH=\"$PWD/contracts/.venv/bin:\$PATH\" .venv/bin/genvm-lint typecheck pattern_ledger.py"
 step "relayer typecheck (tsc --noEmit)" bash -c "cd relayer && npm run --silent typecheck"

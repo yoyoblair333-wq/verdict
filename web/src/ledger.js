@@ -27,6 +27,7 @@ import { gh } from "./lib/trust.js";
 export const LEDGER_SOURCE = "contracts/pattern_ledger.py";
 export const LEDGER_TEST_FILE = "contracts/tests/direct/test_pattern_ledger.py";
 export const GUIDE_PATH = "docs/PATTERN_LEDGER.md";
+export const STUDY_PATH = "docs/PATTERN_LEDGER_STUDY.md";
 
 /** Lines of the (frozen) contract the page links to; the tests check each still says `has`. */
 export const SOURCE_LINES = {
@@ -152,6 +153,21 @@ export function txPlan(ev, fallbackDeploy) {
       if (!HASH.test(str(s?.tx))) continue;
       out.push({ kind: "submit", label: submissionLabel(s), intent: str(s.intent), hash: s.tx, expected: str(s.expected) || null, revert: str(s.revert) });
     }
+  }
+  return out;
+}
+
+/** The consensus study's synthetic submissions to this contract (docs/PATTERN_LEDGER_STUDY.md). */
+export function studyPlan(ev) {
+  const HASH = /^0x[0-9a-fA-F]{64}$/;
+  const l = ev?.ledger;
+  if (typeof l?.contract !== "string" || l.contract.toLowerCase() !== C.LEDGER_ADDRESS.toLowerCase()) return [];
+  const out = [];
+  for (const r of l.study?.records ?? []) {
+    if (!HASH.test(str(r?.tx))) continue;
+    const exp = str(r.expect), got = str(r.outcome);
+    const intent = [exp ? `expected ${exp}` : "", got ? `recorded ${got}` : ""].filter(Boolean).join("; ");
+    out.push({ kind: "study", label: str(r.label), intent, hash: r.tx, expected: str(r.expected) || null, revert: str(r.revert) });
   }
   return out;
 }
@@ -323,12 +339,12 @@ async function checkTx(t, st) {
   }
 }
 
-function renderTxs(plan) {
-  $("ledgertxs").replaceChildren(...plan.map((t) => {
+function renderTxs(plan, target = "ledgertxs") {
+  $(target).replaceChildren(...plan.map((t) => {
     const st = h("span", { class: "st", role: "status" });
     const li = h("li", { "data-hash": t.hash, "data-kind": t.kind, "data-outcome": t.expected ?? "" },
       h("span", { class: "row" }, h("span", { class: "fn" }, t.kind === "deploy" ? "deploy" : "submit_pattern"), h("span", {}, t.label)),
-      t.intent ? h("span", { class: "intent" }, `Test intent: ${t.intent}`) : null,
+      t.intent ? h("span", { class: "intent" }, t.kind === "study" ? `Study: ${t.intent}` : `Test intent: ${t.intent}`) : null,
       t.revert ? h("span", { class: "intent" }, "Recorded revert: ", h("code", {}, t.revert)) : null,
       h("code", {}, t.hash),
       h("span", { class: "row" },
@@ -370,7 +386,11 @@ function boot() {
   }
   $("ledgerrefresh").addEventListener("click", () => renderAll());
   renderTxs(txPlan(null, C.LEDGER_DEPLOY_TX));
-  loadEvidence().then((ev) => renderTxs(txPlan(ev, C.LEDGER_DEPLOY_TX)));
+  if ($("study-link")) $("study-link").href = gh(STUDY_PATH);
+  loadEvidence().then((ev) => {
+    renderTxs(txPlan(ev, C.LEDGER_DEPLOY_TX));
+    if ($("studytxs")) renderTxs(studyPlan(ev), "studytxs");
+  });
   renderAll();
 }
 

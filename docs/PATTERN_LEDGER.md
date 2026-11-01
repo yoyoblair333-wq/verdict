@@ -6,6 +6,15 @@ The whole contract is **one self-contained file** (about 630 lines, standard lib
 
 This guide explains the design so you can reuse the primitive: the problem, the state, the API, how consensus is used, the validator rule, the deterministic gate, the limits, and the live deployment.
 
+Companion material:
+
+| Page | What it adds |
+|---|---|
+| [PATTERN_LEDGER_STUDY.md](PATTERN_LEDGER_STUDY.md) | A live consensus study: 15 synthetic transactions on studionet, one run |
+| [PATTERN_LEDGER_THREATS.md](PATTERN_LEDGER_THREATS.md) | The adversarial test suite and the known gaps it records |
+| [examples/pattern-ledger/README.md](../examples/pattern-ledger/README.md) | Reuse kit: read clients, an operator write example, two fork templates |
+| [ledger.html](https://yoyoblair333-wq.github.io/verdict/ledger.html) | Ledger explorer: the live ledger read in your browser, the code pin, and the recorded and study transactions |
+
 ## 1. The problem it solves
 
 Crowd-reported data is useful exactly because many people contribute it, and dangerous for the same reason: a "report" can carry a name, a phone number, a link, or an accusation against a real person. A regex can catch digits, emails and URLs. It cannot tell whether *"the guy from the gym said his cousin runs it"* identifies someone, or whether a summary describes a real scam technique or is a joke.
@@ -145,7 +154,7 @@ The pattern is general: *closed vocabulary + short abstract summary + determinis
 - **Phishing-technique ledger:** same shape, with categories for channels (SMS, email, social); the deterministic URL screen already keeps actual domains off-chain, so the ledger records techniques rather than targets.
 - **Workplace or tenancy issue patterns:** abstract descriptions of recurring problems, counted by sightings, without naming anyone.
 
-To adapt it: edit the two tuples, the prompt's rules 3–4, and the PII screen; keep the validator rule and the bounds. None of these adaptations has been built or deployed here.
+To adapt it: edit the two tuples, the prompt's rules 3–4, and the PII screen; keep the validator rule and the bounds. The first two exist as fork templates in the [reuse kit](../examples/pattern-ledger/README.md) (`adapt_phishing_domain_ledger.py`, `adapt_product_defect_ledger.py`), checked with `genvm-lint` and 25 direct-mode tests; neither is deployed, and none of the three adaptations has been tested against real models.
 
 ### Future version (not built)
 
@@ -159,10 +168,35 @@ To adapt it: edit the two tuples, the prompt's rules 3–4, and the PII screen; 
 git clone https://github.com/yoyoblair333-wq/verdict.git && cd verdict
 bash scripts/verify.sh          # full repo check, ends with VERIFY: PASS
 # PatternLedger only, after verify.sh has created contracts/.venv:
-cd contracts && .venv/bin/pytest -q tests/direct/test_pattern_ledger.py
+cd contracts && .venv/bin/pytest -q tests/direct/test_pattern_ledger.py tests/direct/test_pattern_ledger_adversarial.py
+cd .. && GENVM_VERSION=v0.2.16 contracts/.venv/bin/python -m pytest -q examples/pattern-ledger/tests
 ```
 
-`tests/direct/test_pattern_ledger.py` runs **116 tests** against the real GenVM v0.2.16 Python SDK in direct mode, with the model mocked (116 passed on 2026-11-01). They cover the deterministic gate (codes, categories, length, injection phrases, every PII rule), idempotency and replay, the parser, the validator rule (including leader errors, tampered payloads and validator model failure), new vs sighting storage, same-category dedup candidates, the views and the admin methods, and that the flag and category lists match the relayer's copies. `verify.sh` also runs `genvm-lint check` and `genvm-lint typecheck` on the contract, and CI runs `verify.sh` on every push.
+All three files run against the real GenVM v0.2.16 Python SDK in direct mode, with the model mocked. Counts from running them on 2026-11-01:
+
+| File | Result | What it covers |
+|---|---|---|
+| `contracts/tests/direct/test_pattern_ledger.py` | **116 passed** | The deterministic gate (codes, categories, length, injection phrases, every PII rule), idempotency and replay, the parser, the validator rule (including leader errors, tampered payloads and validator model failure), new vs sighting storage, same-category dedup candidates, the views and the admin methods, and that the flag and category lists match the relayer's copies |
+| `contracts/tests/direct/test_pattern_ledger_adversarial.py` | **184 passed, 35 xfailed** | Attacks on every gate. Each xfail is a strict test of an attack that still gets past the deterministic screen today (PII and injection-phrase gaps, symbol-only text, sighting farming with fresh keys, candidate-window eviction, the default relayer after an ownership transfer); see [PATTERN_LEDGER_THREATS.md](PATTERN_LEDGER_THREATS.md) |
+| `examples/pattern-ledger/tests/test_templates.py` | **25 passed** | The two fork templates in the reuse kit (not the deployed contract) |
+
+Together: **325 passed, 35 xfailed, 0 failed.** The two `contracts/tests/direct` files are collected by `scripts/verify.sh`'s contract-test step, which runs all of `contracts/tests`; the reuse-kit tests are a separate `verify.sh` step. `verify.sh` also runs `genvm-lint check` and `genvm-lint typecheck` on the contract, and CI runs `verify.sh` on every push.
+
+Direct mode replaces the model with a regex mock, so these tests show the mechanism (the gate, the validator rule, storage) and not how a real model judges a given text. For that, see the live study below.
+
+### Live consensus study
+
+[PATTERN_LEDGER_STUDY.md](PATTERN_LEDGER_STUDY.md) sent 15 fictional summaries to the deployed contract on studionet in one run on 2026-11-01: three base patterns each followed by two rewordings, two other new patterns, and four that should be refused. Headline numbers, recomputed from `docs/live/pattern-ledger-study.json` by `node scripts/pattern_study.mjs --metrics docs/live/pattern-ledger-study.json`:
+
+| Metric | Value |
+|---|---|
+| Dedup accuracy (11 valid txs) | **11 / 11** |
+| Refusal accuracy (4 probes) | **4 / 4** (2 by the deterministic gate, 2 by the consensus review) |
+| Validator agreement rate (agree / cast) | **32 / 32 = 1.00** (28 of 60 non-leader votes were idle and are not counted) |
+| Latency to ACCEPTED (client, n = 15) | median **12.5 s**, p90 **15.0 s** |
+| Latency to FINALIZED (client, n = 15) | median **42.6 s**, p90 **52.0 s** |
+
+This is a small, easy set (n = 15, each study category held only its own base pattern, staff-written text), not a benchmark; the study lists its limits.
 
 ## 9. Live deployment (owner wallet, GenLayer studionet)
 
@@ -182,7 +216,7 @@ Recorded run (`docs/live/pattern-ledger-run.json`, section `current`):
 | Same scam, reworded | `0xe0719186fbcb1ccdc3e007d205c29541b8626cb9d99150421d51658bd0c58c2c` | FINALIZED, SUCCESS: counted as a sighting of pattern 1 |
 | Summary containing digits | `0xc66ed87412db89f8b2fd651e29cc327080e709ecbdf2b214c23841cc1639643d` | FINALIZED, ERROR as designed: `[REJECTED] summary contains identifying data (digits)` |
 
-Later VERDICT tests added further sightings of pattern 1, so a live read today shows at least 2. You can read any of this yourself: call `get_config()` or `get_pattern(1)` on the contract in GenLayer Studio.
+Later VERDICT tests added further sightings of pattern 1, so a live read today shows at least 2 (4 on 2026-11-01). The consensus study then added patterns 2 to 6; their transactions are listed in [PATTERN_LEDGER_STUDY.md](PATTERN_LEDGER_STUDY.md) and on the [ledger explorer](https://yoyoblair333-wq.github.io/verdict/ledger.html). You can read any of this yourself: call `get_config()` or `get_pattern(1)` on the contract in GenLayer Studio.
 
 ### Check it yourself
 
@@ -202,6 +236,8 @@ What you should see:
 
 1. `get_config()`: owner `0x920f…a46A`, relayer `0x3465…c37d`, `paused: false`, the 16 flag codes and 8 categories.
 2. `get_pattern(1)`: the delivery-fee pattern, `sightings` of at least 2, and its history.
-3. `list_recent(5)`: the newest patterns, without history.
+3. `list_recent(5)`: the newest patterns, without history (on 2026-11-01, after the study: patterns 6, 5, 4, 3, 2; `get_config()` reported `next_id` 7).
+
+The reuse kit's [`read_ledger.mjs` and `read_ledger.py`](../examples/pattern-ledger/README.md) are ready-to-run versions of these reads.
 
 In GenLayer Studio you can make the same calls on studionet: load `contracts/pattern_ledger.py`, point Run and Debug at the address above if your Studio version offers that, and call the three views.

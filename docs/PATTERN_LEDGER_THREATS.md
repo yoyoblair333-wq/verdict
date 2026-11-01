@@ -170,11 +170,13 @@ before the model is called.
 Idempotency is per request key, not per record. The same summary sent under new keys
 is reviewed again and, if the model says "same", adds a sighting each time. Only the
 relayer or owner can submit, so this needs the relayer to send it; the per-user limits
-live off-chain (V-PL-09 cap, built; V-PL-14 one sighting per user per pattern, **not
-built**, see `docs/SPEC.md`).
+live off-chain (V-PL-09 cap; V-PL-14 one sighting per user per pattern per 30 days,
+both built in the relayer: `relayer/src/lib/pattern.ts`, tested in
+`relayer/test/standin/redflag_warn.test.ts`).
 Fix: on-chain, keep a short per-pattern list of recent record fingerprints and refuse a
-sighting whose fingerprint was seen in the last N days. The real fix is V-PL-14 in the
-relayer, since the chain does not know users (by design).
+sighting whose fingerprint was seen in the last N days. The per-user defence has to
+stay in the relayer (V-PL-14, above), since the chain does not know users (by design);
+anyone reusing the contract with their own submitter needs an equivalent.
 
 ### L-05 Candidate-window eviction (1 xfail, `TestValidatorDedupDisagreement::test_old_pattern_stays_a_candidate_after_flood`)
 
