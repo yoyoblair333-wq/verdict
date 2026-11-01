@@ -328,3 +328,18 @@ Times are seconds after broadcast, as observed by the relayer's poller (3 s inte
 * An overturn on appeal (all three ladders upheld the first verdict), a leader rotation, an UNDETERMINED or timeout outcome, and Twitch (no Partner/Affiliate channel).
 * Wall-clock variance: one run of three cases; treat the latencies as indicative.
 
+
+## Owner deployment (JudgeRouter), 2026-10-31
+
+Deployed through GenLayer Studio from the owner's own wallet (MetaMask), with the relayer key passed as the `relayer` constructor role.
+
+| Item | Value |
+|---|---|
+| Contract | `0xEe9AB3e45005E97dA53BFE570412f30D6F2C1e64` |
+| Deploy tx | `0x83f46b045911a63ecdfcfb0992ef91a719037dd271f9a8c30f94f84a697c8a88` (consensus reached, contract deployed) |
+| Owner (creator) | `0x920fbbCf2106B693A857D1995c198e341220a46A` (read live from `get_config`) |
+| Relayer | `0x34653Fb290480a8C99B4D92D4857123B5624c37d` (read live from `get_config`) |
+| Constructor | `daily_limit = 0`, `relayer = 0x34653F…c37d` |
+| Code check | The stored code is `contracts/judge_router.py` with Windows line endings (CRLF) and no final newline, because it was pasted in the Studio editor on Windows. After normalising line endings and the trailing newline, it is byte-identical to the source. Raw sha256 of the stored code: `6bfe51a77be80254a1572899044403bc54d193e32679226c7d6eabb33753f4da`. |
+
+The 3-case evidence run above still uses the throwaway-key deployment `0x3f867934247d88Aa3134d897a9246cfB1324B1Fa`, whose stored code matches the source byte for byte. This owner deployment has had no cases run against it yet.
