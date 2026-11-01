@@ -139,7 +139,7 @@ CONTROL_PATTERNS = (
 )
 _CONTROL_RE = re.compile("|".join("(?:" + p + ")" for p in CONTROL_PATTERNS), re.IGNORECASE)
 
-_INVISIBLE_RE = re.compile("[​-‏‪-‮⁠-⁤﻿]")
+_INVISIBLE_RE = re.compile("[\u200b-\u200f\u202a-\u202e\u2060-\u2064\ufeff]")
 
 # Deterministic PII screen: identical rules to pattern_ledger._pii_reason.
 _TLD = "com|net|org|io|co|app|xyz|info|biz|me|ly|gg|link|site|online|top|shop|club|live|vip|us|uk|ru|cn|cc|tk|ml"

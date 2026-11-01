@@ -1,13 +1,13 @@
 {
  "network": "studionet",
  "contract_file": "contracts/red_flag_court.py",
- "contract_code_sha256": "1691108ad0e62672f97827a69837266bfe3d974da016492e46f9def4ca5b67a7",
+ "contract_code_sha256": "19d50b70cdc8e760212394c70972c9c0c23170e9d0a20b7b7d227e97b1b6cf9e",
  "deployer": "0x34653Fb290480a8C99B4D92D4857123B5624c37d",
  "note": "THROWAWAY test deployment from the relayer key. The owner deployment (from the owner's wallet) is a later step: deploy/OWNER_DEPLOY.md.",
  "pattern_ledger": "0x59C6047571bCE66828C733330fc9B5C88afEaE4D",
- "startedAt": "2026-11-01T04:31:31.421Z",
+ "startedAt": "2026-11-01T16:28:36.755Z",
  "deploy": {
-  "tx": "0x6402a08ed36f2cbd0e6600e80f1c3a4162905d3f5521622c8fe08ef21708613b",
+  "tx": "0xd9be31214f49bb82687f0e4d1c750a976a9ffe12b2370554bd6be9cfac636dae",
   "status": "ACCEPTED",
   "execution": "SUCCESS",
   "final_status": "FINALIZED",
@@ -18,16 +18,16 @@
    "label": "1-scam",
    "intent": "redacted parcel-fee message (expect SCAM or SUS)",
    "fn": "open_check",
-   "contract": "0xBaF13Ec3fe990868804f69aB2b53558F0ADE81CE",
-   "tx": "0xaba4140bbfd5c7a63f9caff373e25584d8dbcfd50fe33f313ff4e4bfa6ac711c",
+   "contract": "0x5eDbd538e7fc22F07a01d86051c0B82e230C14be",
+   "tx": "0xdd4cbe199ec2ac28f87d747899efe66ed688258386d16db1f45728c217524c3b",
    "status": "ACCEPTED",
    "execution": "SUCCESS",
    "revert": null,
    "votes": {
-    "idle": 2,
-    "agree": 3
+    "agree": 4,
+    "idle": 1
    },
-   "at": "2026-11-01T04:31:50.995Z",
+   "at": "2026-11-01T16:29:12.259Z",
    "final_status": "FINALIZED",
    "final_execution": "SUCCESS",
    "finality": "FINALIZED_SUCCESS"
@@ -36,16 +36,16 @@
    "label": "2-legit",
    "intent": "ordinary message between friends (expect LEGIT)",
    "fn": "open_check",
-   "contract": "0xBaF13Ec3fe990868804f69aB2b53558F0ADE81CE",
-   "tx": "0xb5da0e9736471f8009ece660e5318f6c9a6d0457b50a49fdc879212b671412af",
+   "contract": "0x5eDbd538e7fc22F07a01d86051c0B82e230C14be",
+   "tx": "0x554c497106445bdf7af510ed196927641548957dfa19f99ccad033c84b686fe6",
    "status": "ACCEPTED",
    "execution": "SUCCESS",
    "revert": null,
    "votes": {
-    "idle": 2,
-    "agree": 3
+    "agree": 3,
+    "idle": 2
    },
-   "at": "2026-11-01T04:32:05.735Z",
+   "at": "2026-11-01T16:29:26.980Z",
    "final_status": "FINALIZED",
    "final_execution": "SUCCESS",
    "finality": "FINALIZED_SUCCESS"
@@ -54,16 +54,16 @@
    "label": "3-unredacted",
    "intent": "unredacted message with digits and a domain (expect [REJECTED])",
    "fn": "open_check",
-   "contract": "0xBaF13Ec3fe990868804f69aB2b53558F0ADE81CE",
-   "tx": "0x68ed1308bed4919ddccb4bca67ca7117e41f101d55b818b04b40aee925db4a63",
+   "contract": "0x5eDbd538e7fc22F07a01d86051c0B82e230C14be",
+   "tx": "0x471245103b36340c9e9aa5df28cbe99fc3b35c836ef3c70c13a37768455be19e",
    "status": "ACCEPTED",
    "execution": "ERROR",
    "revert": "[REJECTED] text is not redacted (digits); redact it first",
    "votes": {
-    "agree": 3,
-    "idle": 2
+    "idle": 2,
+    "agree": 3
    },
-   "at": "2026-11-01T04:32:11.614Z",
+   "at": "2026-11-01T16:29:33.036Z",
    "final_status": "FINALIZED",
    "final_execution": "ERROR",
    "finality": "FINALIZED_ERROR"
@@ -72,16 +72,17 @@
    "label": "4-appeal",
    "intent": "appeal check 1 to the 3-analyst panel",
    "fn": "appeal",
-   "contract": "0xBaF13Ec3fe990868804f69aB2b53558F0ADE81CE",
-   "tx": "0x90b427731df32f185dd45db0da3ba7e537ecd5ab6baade67e5ecd1b650c56d3a",
+   "contract": "0x5eDbd538e7fc22F07a01d86051c0B82e230C14be",
+   "tx": "0xf495737edb9f712fc7945b229dea523b08e359547a1136bac0e052a8bc52bb2d",
    "status": "ACCEPTED",
    "execution": "SUCCESS",
    "revert": null,
    "votes": {
-    "idle": 2,
-    "agree": 3
+    "agree": 3,
+    "idle": 1,
+    "disagree": 1
    },
-   "at": "2026-11-01T04:32:38.094Z",
+   "at": "2026-11-01T16:30:07.786Z",
    "final_status": "FINALIZED",
    "final_execution": "SUCCESS",
    "finality": "FINALIZED_SUCCESS"
@@ -90,16 +91,16 @@
    "label": "5-share-optin",
    "intent": "creator opts in to share the abstract pattern",
    "fn": "set_share",
-   "contract": "0xBaF13Ec3fe990868804f69aB2b53558F0ADE81CE",
-   "tx": "0xb4a8e744fb5d09c05c8f1dc83c60a54b96711d91b5b8648a4138a6fc333bb1fb",
+   "contract": "0x5eDbd538e7fc22F07a01d86051c0B82e230C14be",
+   "tx": "0xa60d9028beb7a863df7a0cceeb60c72b1c2b4130e9127ad56eee8ca78acbf485",
    "status": "ACCEPTED",
    "execution": "SUCCESS",
    "revert": null,
    "votes": {
-    "agree": 3,
-    "idle": 2
+    "idle": 2,
+    "agree": 3
    },
-   "at": "2026-11-01T04:32:44.056Z",
+   "at": "2026-11-01T16:30:13.621Z",
    "final_status": "FINALIZED",
    "final_execution": "SUCCESS",
    "finality": "FINALIZED_SUCCESS"
@@ -109,15 +110,15 @@
    "intent": "relayer submits the abstract pattern to the owner PatternLedger",
    "fn": "submit_pattern",
    "contract": "0x59C6047571bCE66828C733330fc9B5C88afEaE4D",
-   "tx": "0x0281b4d7cc547dd35e3e10bbf144d37c08a47cf391e510cff98eedd319c2b0a2",
+   "tx": "0x47b6b0e3248d9c28bdb6f52914e2b372010f67b5f31d9b1734feb8e5970221bc",
    "status": "ACCEPTED",
    "execution": "SUCCESS",
    "revert": null,
    "votes": {
-    "agree": 3,
-    "idle": 2
+    "idle": 2,
+    "agree": 3
    },
-   "at": "2026-11-01T04:32:54.479Z",
+   "at": "2026-11-01T16:30:32.561Z",
    "final_status": "FINALIZED",
    "final_execution": "SUCCESS",
    "finality": "FINALIZED_SUCCESS"
@@ -126,16 +127,16 @@
    "label": "7-mark-shared",
    "intent": "link the check to its PatternLedger id",
    "fn": "mark_shared",
-   "contract": "0xBaF13Ec3fe990868804f69aB2b53558F0ADE81CE",
-   "tx": "0x4b1980174e885ce97e485cfa3a847a79000e42ec9c2928bda1172fc3fe5089af",
+   "contract": "0x5eDbd538e7fc22F07a01d86051c0B82e230C14be",
+   "tx": "0xd12332d0952f9e7643edfa91f56d4cf16d7be291b021f1d82ce3e2d082b2858d",
    "status": "ACCEPTED",
    "execution": "SUCCESS",
    "revert": null,
    "votes": {
-    "agree": 4,
-    "idle": 1
+    "agree": 3,
+    "idle": 2
    },
-   "at": "2026-11-01T04:33:04.741Z",
+   "at": "2026-11-01T16:30:46.666Z",
    "final_status": "FINALIZED",
    "final_execution": "SUCCESS",
    "finality": "FINALIZED_SUCCESS"
@@ -145,18 +146,17 @@
   "check_1_tier1": {
    "analysts": 1,
    "category": "delivery",
-   "created_at": "2026-11-01T04:31:37Z",
+   "created_at": "2026-11-01T16:28:46Z",
    "creator": "0x34653Fb290480a8C99B4D92D4857123B5624c37d",
    "flag_codes": [
     "urgency",
     "upfront_payment",
     "link_pressure",
-    "impersonation_claim",
     "threat_of_loss"
    ],
    "history": [
     {
-     "at": "2026-11-01T04:31:37Z",
+     "at": "2026-11-01T16:28:46Z",
      "label": "SCAM",
      "tier": 1,
      "votes": [
@@ -166,15 +166,15 @@
    ],
    "id": 1,
    "label": "SCAM",
-   "pattern_summary": "Impersonates a delivery service to pressure victims into paying a small fee via a link under an urgent deadline, harvesting payment details.",
-   "reason": "Fake delivery notice demands a small fee via a link under tight time pressure, a classic parcel phishing technique.",
-   "request_key": "live_0ffea72d3615dea10e025b09",
+   "pattern_summary": "Uses time pressure and a fake fee to trick recipients into clicking a link and entering payment details for a non-existent delivery issue.",
+   "reason": "Demands immediate payment via a link to avoid losing a held parcel, a common scam tactic.",
+   "request_key": "live_675e90c019f112acdc0c96e1",
    "share_opt_in": false,
    "shared_pattern_id": 0,
    "status": "judged",
    "text": "Your parcel is on hold. Pay the small redelivery fee of [AMOUNT] at [LINK] within the hour or it goes back to the sender.",
    "tier": 1,
-   "updated_at": "2026-11-01T04:31:37Z",
+   "updated_at": "2026-11-01T16:28:46Z",
    "votes": [
     "SCAM"
    ]
@@ -182,12 +182,12 @@
   "check_2": {
    "analysts": 1,
    "category": "other",
-   "created_at": "2026-11-01T04:31:52Z",
+   "created_at": "2026-11-01T16:29:13Z",
    "creator": "0x34653Fb290480a8C99B4D92D4857123B5624c37d",
    "flag_codes": [],
    "history": [
     {
-     "at": "2026-11-01T04:31:52Z",
+     "at": "2026-11-01T16:29:13Z",
      "label": "LEGIT",
      "tier": 1,
      "votes": [
@@ -198,14 +198,14 @@
    "id": 2,
    "label": "LEGIT",
    "pattern_summary": "",
-   "reason": "This is a normal logistical message with no meaningful scam indicators.",
-   "request_key": "live_c5e061dd7117daa177b97794",
+   "reason": "The message is a standard interpersonal communication regarding a meeting time with no requests for money, links, or sensitive information.",
+   "request_key": "live_894686ec77ab1ec94bdfde57",
    "share_opt_in": false,
    "shared_pattern_id": 0,
    "status": "judged",
    "text": "Hey, running late, see you at the cafe in ten minutes. Save me a seat please.",
    "tier": 1,
-   "updated_at": "2026-11-01T04:31:52Z",
+   "updated_at": "2026-11-01T16:29:13Z",
    "votes": [
     "LEGIT"
    ]
@@ -213,17 +213,18 @@
   "check_1_tier2": {
    "analysts": 3,
    "category": "delivery",
-   "created_at": "2026-11-01T04:31:37Z",
+   "created_at": "2026-11-01T16:28:46Z",
    "creator": "0x34653Fb290480a8C99B4D92D4857123B5624c37d",
    "flag_codes": [
     "urgency",
     "upfront_payment",
     "link_pressure",
+    "impersonation_claim",
     "threat_of_loss"
    ],
    "history": [
     {
-     "at": "2026-11-01T04:31:37Z",
+     "at": "2026-11-01T16:28:46Z",
      "label": "SCAM",
      "tier": 1,
      "votes": [
@@ -231,7 +232,7 @@
      ]
     },
     {
-     "at": "2026-11-01T04:32:11Z",
+     "at": "2026-11-01T16:29:33Z",
      "label": "SCAM",
      "tier": 2,
      "votes": [
@@ -243,15 +244,15 @@
    ],
    "id": 1,
    "label": "SCAM",
-   "pattern_summary": "A fake delivery problem is used to rush the reader into paying a small fee through a link to avoid losing a parcel.",
-   "reason": "It uses delivery trouble, a rushed deadline, a payment demand, and a link to pressure the reader.",
-   "request_key": "live_0ffea72d3615dea10e025b09",
+   "pattern_summary": "A fake delivery issue creates urgency and threat of loss to push a small payment through a link.",
+   "reason": "It uses a fake delivery problem to rush you into paying a fee through a link.",
+   "request_key": "live_675e90c019f112acdc0c96e1",
    "share_opt_in": false,
    "shared_pattern_id": 0,
    "status": "judged",
    "text": "Your parcel is on hold. Pay the small redelivery fee of [AMOUNT] at [LINK] within the hour or it goes back to the sender.",
    "tier": 2,
-   "updated_at": "2026-11-01T04:32:11Z",
+   "updated_at": "2026-11-01T16:29:33Z",
    "votes": [
     "SCAM",
     "SCAM",
@@ -265,10 +266,11 @@
      "urgency",
      "upfront_payment",
      "link_pressure",
+     "impersonation_claim",
      "threat_of_loss"
     ],
     "id": 1,
-    "pattern_summary": "A fake delivery problem is used to rush the reader into paying a small fee through a link to avoid losing a parcel."
+    "pattern_summary": "A fake delivery issue creates urgency and threat of loss to push a small payment through a link."
    }
   ],
   "ledger_by_request_key": {
@@ -278,17 +280,18 @@
   "check_1_shared": {
    "analysts": 3,
    "category": "delivery",
-   "created_at": "2026-11-01T04:31:37Z",
+   "created_at": "2026-11-01T16:28:46Z",
    "creator": "0x34653Fb290480a8C99B4D92D4857123B5624c37d",
    "flag_codes": [
     "urgency",
     "upfront_payment",
     "link_pressure",
+    "impersonation_claim",
     "threat_of_loss"
    ],
    "history": [
     {
-     "at": "2026-11-01T04:31:37Z",
+     "at": "2026-11-01T16:28:46Z",
      "label": "SCAM",
      "tier": 1,
      "votes": [
@@ -296,7 +299,7 @@
      ]
     },
     {
-     "at": "2026-11-01T04:32:11Z",
+     "at": "2026-11-01T16:29:33Z",
      "label": "SCAM",
      "tier": 2,
      "votes": [
@@ -308,15 +311,15 @@
    ],
    "id": 1,
    "label": "SCAM",
-   "pattern_summary": "A fake delivery problem is used to rush the reader into paying a small fee through a link to avoid losing a parcel.",
-   "reason": "It uses delivery trouble, a rushed deadline, a payment demand, and a link to pressure the reader.",
-   "request_key": "live_0ffea72d3615dea10e025b09",
+   "pattern_summary": "A fake delivery issue creates urgency and threat of loss to push a small payment through a link.",
+   "reason": "It uses a fake delivery problem to rush you into paying a fee through a link.",
+   "request_key": "live_675e90c019f112acdc0c96e1",
    "share_opt_in": true,
    "shared_pattern_id": 1,
    "status": "judged",
    "text": "Your parcel is on hold. Pay the small redelivery fee of [AMOUNT] at [LINK] within the hour or it goes back to the sender.",
    "tier": 2,
-   "updated_at": "2026-11-01T04:32:55Z",
+   "updated_at": "2026-11-01T16:30:33Z",
    "votes": [
     "SCAM",
     "SCAM",
@@ -388,12 +391,12 @@
    {
     "analysts": 1,
     "category": "other",
-    "created_at": "2026-11-01T04:31:52Z",
+    "created_at": "2026-11-01T16:29:13Z",
     "creator": "0x34653Fb290480a8C99B4D92D4857123B5624c37d",
     "flag_codes": [],
     "history": [
      {
-      "at": "2026-11-01T04:31:52Z",
+      "at": "2026-11-01T16:29:13Z",
       "label": "LEGIT",
       "tier": 1,
       "votes": [
@@ -404,14 +407,14 @@
     "id": 2,
     "label": "LEGIT",
     "pattern_summary": "",
-    "reason": "This is a normal logistical message with no meaningful scam indicators.",
-    "request_key": "live_c5e061dd7117daa177b97794",
+    "reason": "The message is a standard interpersonal communication regarding a meeting time with no requests for money, links, or sensitive information.",
+    "request_key": "live_894686ec77ab1ec94bdfde57",
     "share_opt_in": false,
     "shared_pattern_id": 0,
     "status": "judged",
     "text": "Hey, running late, see you at the cafe in ten minutes. Save me a seat please.",
     "tier": 1,
-    "updated_at": "2026-11-01T04:31:52Z",
+    "updated_at": "2026-11-01T16:29:13Z",
     "votes": [
      "LEGIT"
     ]
@@ -419,17 +422,18 @@
    {
     "analysts": 3,
     "category": "delivery",
-    "created_at": "2026-11-01T04:31:37Z",
+    "created_at": "2026-11-01T16:28:46Z",
     "creator": "0x34653Fb290480a8C99B4D92D4857123B5624c37d",
     "flag_codes": [
      "urgency",
      "upfront_payment",
      "link_pressure",
+     "impersonation_claim",
      "threat_of_loss"
     ],
     "history": [
      {
-      "at": "2026-11-01T04:31:37Z",
+      "at": "2026-11-01T16:28:46Z",
       "label": "SCAM",
       "tier": 1,
       "votes": [
@@ -437,7 +441,7 @@
       ]
      },
      {
-      "at": "2026-11-01T04:32:11Z",
+      "at": "2026-11-01T16:29:33Z",
       "label": "SCAM",
       "tier": 2,
       "votes": [
@@ -449,15 +453,15 @@
     ],
     "id": 1,
     "label": "SCAM",
-    "pattern_summary": "A fake delivery problem is used to rush the reader into paying a small fee through a link to avoid losing a parcel.",
-    "reason": "It uses delivery trouble, a rushed deadline, a payment demand, and a link to pressure the reader.",
-    "request_key": "live_0ffea72d3615dea10e025b09",
+    "pattern_summary": "A fake delivery issue creates urgency and threat of loss to push a small payment through a link.",
+    "reason": "It uses a fake delivery problem to rush you into paying a fee through a link.",
+    "request_key": "live_675e90c019f112acdc0c96e1",
     "share_opt_in": true,
     "shared_pattern_id": 1,
     "status": "judged",
     "text": "Your parcel is on hold. Pay the small redelivery fee of [AMOUNT] at [LINK] within the hour or it goes back to the sender.",
     "tier": 2,
-    "updated_at": "2026-11-01T04:32:55Z",
+    "updated_at": "2026-11-01T16:30:33Z",
     "votes": [
      "SCAM",
      "SCAM",
@@ -466,11 +470,11 @@
    }
   ]
  },
- "contract": "0xBaF13Ec3fe990868804f69aB2b53558F0ADE81CE",
+ "contract": "0x5eDbd538e7fc22F07a01d86051c0B82e230C14be",
  "code_pin": {
-  "canonical_sha256": "1691108ad0e62672f97827a69837266bfe3d974da016492e46f9def4ca5b67a7",
-  "source_sha256": "1691108ad0e62672f97827a69837266bfe3d974da016492e46f9def4ca5b67a7",
+  "canonical_sha256": "19d50b70cdc8e760212394c70972c9c0c23170e9d0a20b7b7d227e97b1b6cf9e",
+  "source_sha256": "19d50b70cdc8e760212394c70972c9c0c23170e9d0a20b7b7d227e97b1b6cf9e",
   "state": "match"
  },
- "finishedAt": "2026-11-01T04:33:34.885Z"
+ "finishedAt": "2026-11-01T16:31:16.228Z"
 }

@@ -291,3 +291,7 @@ a.plain{font-size:13px;font-weight:700}
 .rf-SUS{color:var(--warn)}
 .rf-LEGIT{color:var(--ok)}
 .rfacts{display:grid;gap:8px;padding:0 14px 14px}
+
+#rf-rail{margin:14px auto 4px}
+#rf-rail[hidden]{display:none}
+#rf-count[data-over="true"]{color:var(--stamp-text);font-weight:700}
