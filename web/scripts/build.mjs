@@ -1,7 +1,8 @@
 // Build the static site into web/dist/:
 //   app.js, rig.js  the court record and the "Try to rig it." trust page,
 //                   bundled for the browser by esbuild (genlayer-js shared in chunks/)
-//   index.html, rig.html, styles.css, favicon.svg
+//   ledger.js       the standalone Scam Pattern Ledger page (PatternLedger)
+//   index.html, rig.html, ledger.html, styles.css, ledger.css, favicon.svg
 //   evidence.json   tx-hash index for the recorded studionet run
 //                   (docs/live/studionet-run.json) and the browser-signed demo
 //                   case (docs/live/demo-case.json); the contract does not store
@@ -22,7 +23,7 @@ const dist = path.join(web, "dist");
 await mkdir(dist, { recursive: true });
 
 await build({
-  entryPoints: [path.join(web, "src/app.js"), path.join(web, "src/rig.js")],
+  entryPoints: [path.join(web, "src/app.js"), path.join(web, "src/rig.js"), path.join(web, "src/ledger.js")],
   outdir: dist,
   entryNames: "[name]",
   chunkNames: "chunks/[name]-[hash]",
@@ -37,7 +38,7 @@ await build({
   logLevel: "info",
 });
 
-for (const f of ["index.html", "rig.html", "review.html", "styles.css"]) await copyFile(path.join(web, "src", f), path.join(dist, f));
+for (const f of ["index.html", "rig.html", "review.html", "ledger.html", "styles.css", "ledger.css"]) await copyFile(path.join(web, "src", f), path.join(dist, f));
 await copyFile(path.join(root, "brand/logo-mark.svg"), path.join(dist, "favicon.svg"));
 // Demo video (docs/demo/verdict-demo.mp4), served at <site>/demo/verdict-demo.mp4.
 const demoVideo = path.join(root, "docs/demo/verdict-demo.mp4");
