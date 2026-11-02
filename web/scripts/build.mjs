@@ -13,7 +13,7 @@
 // snapshot.json is written separately by scripts/snapshot.mjs (Pages workflow).
 import { build } from "esbuild";
 import { existsSync } from "node:fs";
-import { copyFile, mkdir, readFile, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -48,9 +48,10 @@ if (existsSync(demoVideo)) {
 }
 await writeFile(path.join(dist, ".nojekyll"), "");
 // Evidence Court test pages (docs/evidence-pages/), served at <site>/evidence/:
-// the honest notice, the off-topic page and the adversarial injection page.
+// the honest notice, the off-topic page, the adversarial injection page and the
+// six attack-gallery pages (attack-*.html).
 await mkdir(path.join(dist, "evidence"), { recursive: true });
-for (const f of ["garden-notice.html", "bread-recipe.html", "injection-notice.html"]) await copyFile(path.join(root, "docs/evidence-pages", f), path.join(dist, "evidence", f));
+for (const f of (await readdir(path.join(root, "docs/evidence-pages"))).filter((n) => n.endsWith(".html"))) await copyFile(path.join(root, "docs/evidence-pages", f), path.join(dist, "evidence", f));
 
 // Evidence index: caseId -> ordered [{fn, hash}], from the recorded live run.
 const run = JSON.parse(await readFile(path.join(root, "docs/live/studionet-run.json"), "utf8"));

@@ -70,7 +70,9 @@ test("evidence: decidedLine says the contract counted the labels", () => {
 });
 
 test("build: the committed evidence pages are served at <site>/evidence/, byte for byte", () => {
-  for (const f of ["garden-notice.html", "bread-recipe.html", "injection-notice.html"]) {
+  const pages = fs.readdirSync(path.join(ROOT, "docs/evidence-pages")).filter((n) => n.endsWith(".html"));
+  assert.equal(pages.filter((n) => n.startsWith("attack-")).length, 6, "the six attack-gallery pages");
+  for (const f of pages) {
     assert.equal(fs.readFileSync(path.join(DIST, "evidence", f), "utf8"), fs.readFileSync(path.join(ROOT, "docs/evidence-pages", f), "utf8"), f);
   }
 });
