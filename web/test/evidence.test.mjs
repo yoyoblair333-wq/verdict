@@ -2,7 +2,8 @@
 // RPC is blocked. Covers:
 //   - the browser link screen equals the contract's (fixtures/evidence-urls.json)
 //   - the build serves the committed evidence pages, byte for byte
-//   - the section is hidden unless ?evidence=1, and with the flag: the form,
+//   - the section is on by default (?evidence=1 kept as a fallback); the main
+//     Who's right? form routes cases with links to it; the form,
 //     the sample buttons, the per-link refusal messages, the consent gate
 //   - the ruling view renders the RECORDED live run (docs/live/evidence-court-run.json):
 //     every label, the injection flag, the verified excerpt, "decided by the evidence"
@@ -35,13 +36,13 @@ test("evidence: the browser link screen is the contract's link screen (fixtures/
   for (const c of fx.cases) assert.equal(linkProblem(c.url), c.reason, c.url);
 });
 
-test("evidence: config points at the recorded deployment and the section ships behind the flag", () => {
+test("evidence: config points at the recorded deployment and the section is on by default", () => {
   assert.equal(EVIDENCE_ADDRESS.toLowerCase(), RUN.contract.toLowerCase());
-  assert.equal(EVIDENCE_ENABLED, false);
+  assert.equal(EVIDENCE_ENABLED, true);
   assert.equal(RUN.code_pin.state, "match");
 });
 
-test("evidence: the recorded live run has all five steps FINALIZED with the designed outcomes", () => {
+test("evidence: the recorded live run has all six steps FINALIZED with the designed outcomes", () => {
   for (const s of RUN.steps) assert.equal(s.finality, "FINALIZED_SUCCESS", s.label);
   const d1 = finalDispute("1-evidence-decides");
   assert.equal(d1.history[0].ruling, "B");
@@ -61,6 +62,14 @@ test("evidence: the recorded live run has all five steps FINALIZED with the desi
   const ap = stepOf("5-appeal");
   assert.equal(ap.dispute.tier, 2);
   assert.equal(ap.dispute.jurors, 3);
+  // step 6: three attack-gallery pages in one dispute, all flagged on-chain
+  const d6 = finalDispute("6-attack-gallery");
+  assert.deepEqual(d6.evidence.map((e) => e.injection), [true, true, true, false]);
+  assert.deepEqual(d6.evidence.map((e) => e.label), ["IRRELEVANT", "IRRELEVANT", "IRRELEVANT", "SUPPORTS_B"]);
+  assert.match(d6.evidence[0].injection_reason, /^hidden comment:/);
+  assert.equal(d6.ruling, "B");
+  assert.equal(d6.decided_by, "evidence");
+  assert.equal(RUN.steps.length, 6);
 });
 
 test("evidence: decidedLine says the contract counted the labels", () => {
@@ -126,11 +135,45 @@ async function axeScan(page, selector = "#evidence") {
   return r.violations.filter((v) => v.impact === "serious" || v.impact === "critical").map((v) => `${v.id}: ${v.nodes.slice(0, 3).map((n) => n.target.join(" ")).join(" | ")}`);
 }
 
-test("browser (offline): Evidence Court stays hidden unless ?evidence=1", async () => {
+test("browser (offline): Evidence Court is on the main page by default, and the main form routes cases with links to it", async () => {
   const { ctx, page, errors } = await offlinePage("light", "");
-  await page.waitForLoadState("load");
-  assert.equal(await page.locator("#evidence").isHidden(), true);
-  assert.equal(await page.locator("#nav-evidence").isHidden(), true);
+  await page.waitForSelector("#evidence:not([hidden])", { timeout: 30_000 });
+  assert.equal(await page.locator("#nav-evidence").isVisible(), true);
+  // the main "Who's right?" form: the evidence step
+  await page.click("#evstep summary");
+  assert.match(await page.locator("#evroute").textContent(), /JudgeRouter \(no links yet\)/);
+  await page.click("#evstep-sample");
+  assert.match(await page.inputValue("#evb1"), /\/evidence\/garden-notice\.html$/);
+  assert.equal(await page.locator("#evroute").getAttribute("data-route"), "evidence");
+  assert.match(await page.locator("#evroute").textContent(), /Evidence Court \(1 link\)/);
+  // the same link screen as the contract, before anything is signed
+  await page.fill("#eva1", "https://garden.internal/notice");
+  assert.equal(await page.locator("#eva1-err").textContent(), "Would be refused: a private host.");
+  await page.check("#consent");
+  await page.check("#adult");
+  await page.click("#submit");
+  assert.match(await page.locator("#formerr").textContent(), /Fix the evidence links first/);
+  assert.equal(await page.locator("#run").isHidden(), true, "nothing went to JudgeRouter");
+  // another contest: links are ignored, the route says so
+  await page.click('label[for="r2"]');
+  assert.equal(await page.locator("#evroute").getAttribute("data-route"), "judge");
+  assert.equal(await page.locator("#evstep-off").isVisible(), true);
+  await page.click('label[for="r1"]');
+  await page.fill("#eva1", "");
+  await page.click("#submit");
+  // handed to Evidence Court: same takes, question and links; consent carried over
+  await page.waitForSelector("#ev-routed:not([hidden])", { timeout: 10_000 });
+  assert.equal(await page.inputValue("#ev-q"), await page.inputValue("#evq"));
+  assert.equal(await page.inputValue("#ev-ca"), await page.inputValue("#ta"));
+  assert.equal(await page.inputValue("#ev-b1"), await page.inputValue("#evb1"));
+  assert.equal(await page.locator("#ev-consent").isChecked(), true);
+  assert.equal(await page.locator("#run").isHidden(), true, "the JudgeRouter run never started");
+  // offline, so the signed send fails; it must fail visibly, inside Evidence Court
+  await page.locator('#ev-err .errbox[role="alert"]').waitFor({ timeout: 30_000 });
+  const ax = await axeScan(page, "#try");
+  assert.deepEqual(ax, [], ax.join("; "));
+  const { sw, iw } = await page.evaluate(() => ({ sw: document.documentElement.scrollWidth, iw: window.innerWidth }));
+  assert.ok(sw <= iw, `scrollWidth ${sw} > ${iw}`);
   assert.deepEqual(errors, []);
   await ctx.close();
 });

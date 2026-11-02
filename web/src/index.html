@@ -36,6 +36,7 @@
   <section class="hero">
     <h1>AI rulings you<br>don't take on faith.</h1>
     <p class="problem"><b>The problem:</b> when one company's AI settles an argument, both sides have to trust that company's model, prompt and servers, and nobody can check or appeal the call.</p>
+    <p class="newbadge"><b>New: show your sources.</b> In a "Who's right?" case each side can now cite web pages. Every validator fetches them itself and the contract counts the verified evidence. <a href="#try">Try it with evidence links</a> · <a href="#evidence">Evidence Court</a></p>
     <p><b>VERDICT:</b> five AI jurors rule, then independent GenLayer validators re-run the same jury with their own AI models. The ruling only stands if they agree, and the losing side can appeal to 7, then 9 jurors. Everything below is read from the contract by your browser, right now.</p>
   </section>
 
@@ -85,10 +86,11 @@
     </details>
   </section>
 
-  <section id="evidence" class="try" aria-labelledby="evidence-h" hidden>
-    <h2 class="sect" id="evidence-h">Who's right? Show your sources.</h2>
+  <section id="evidence" class="try" aria-labelledby="evcourt-h" hidden>
+    <h2 class="sect" id="evcourt-h">Who's right? Show your sources.</h2>
     <p class="lede"><b>New in Milestone 2: Evidence Court.</b> Each side may cite up to two public web pages. Every GenLayer validator fetches each page itself, an AI juror labels it (supports A, supports B, or irrelevant) and must quote the page word for word, and the contract checks every quote against the page. Then the <b>contract counts the labels</b>: the side with more verified evidence wins. A page that tries to give the court orders is flagged and hidden from the jurors, so it cannot decide anything.</p>
     <p class="sub">Contract: <span id="ev-addr"></span> · EvidenceCourt on studionet (a testnet), no real value.</p>
+    <p class="gate" id="ev-routed" hidden>Sent here from the "Who's right?" form because you added evidence links. Your takes are the two claims below.</p>
     <form id="ev-form" class="caseform" novalidate>
       <div class="evsamples">
         <button class="link" id="ev-sample" type="button">Fill in a sample dispute</button>
@@ -192,6 +194,23 @@
         <textarea name="b" id="tb" maxlength="280" rows="3" required placeholder="The other take"></textarea>
         <span class="count" data-for="tb"></span>
       </label>
+      <details class="evstep" id="evstep">
+        <summary><b>Add evidence links</b> <span class="sub">optional · "Who's right?" only · validators fetch every page</span></summary>
+        <p class="sub" id="evstep-why">With at least one link, this case goes to <b>Evidence Court</b> (a second contract) instead of the 5-juror JudgeRouter: every validator fetches the pages, an AI juror labels each one and must quote it word for word, and the contract counts the verified labels. No links: the case goes to JudgeRouter as usual.</p>
+        <p class="sub" id="evstep-off" hidden>Evidence links work with the "Who's right?" contest only. Pick it above to use them.</p>
+        <button class="link" id="evstep-sample" type="button">Fill in the sample (B cites a public notice)</button>
+        <label class="slip"><span class="tag">The question</span>
+          <input id="evq" maxlength="200" autocomplete="off" placeholder="What are the two of you arguing about?">
+        </label>
+        <fieldset class="evlinks">
+          <legend>Links (https only, up to 2 per side)</legend>
+          <label><span>Take A, link 1</span><input id="eva1" type="url" inputmode="url" placeholder="https://" autocomplete="off"><span class="err" id="eva1-err"></span></label>
+          <label><span>Take A, link 2</span><input id="eva2" type="url" inputmode="url" placeholder="https://" autocomplete="off"><span class="err" id="eva2-err"></span></label>
+          <label><span>Take B, link 1</span><input id="evb1" type="url" inputmode="url" placeholder="https://" autocomplete="off"><span class="err" id="evb1-err"></span></label>
+          <label><span>Take B, link 2</span><input id="evb2" type="url" inputmode="url" placeholder="https://" autocomplete="off"><span class="err" id="evb2-err"></span></label>
+        </fieldset>
+        <p class="sub route" id="evroute" aria-live="polite">Route: JudgeRouter (no links yet).</p>
+      </details>
       <label class="check"><input type="checkbox" id="consent"> <span>I understand these takes will be published on a <b>public test blockchain</b> (GenLayer studionet) and <b>cannot be erased</b> from its history. I have the right to publish both takes, and they contain no one's personal data.</span></label>
       <label class="check"><input type="checkbox" id="adult"> <span>I am <b>18 or older</b>.</span></label>
       <p class="err" id="formerr" role="alert"></p>

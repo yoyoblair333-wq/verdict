@@ -66,7 +66,8 @@ export const REDFLAG_ENABLED = false;
 // Evidence Court (Milestone 2, contracts/evidence_court.py). Owner = the owner's
 // wallet 0x920fbbCf…a46A (constructor `owner`), relayer = the VERDICT relayer
 // key, which deployed it; stored code matches the source (canonical sha256
-// in docs/live/evidence-court-run.json). The section is off unless
-// EVIDENCE_ENABLED or the page URL carries ?evidence=1.
+// in docs/live/evidence-court-run.json). On by default: the section shows on
+// the main page and the main "Who's right?" form routes cases that cite links
+// to it. `?evidence=1` still forces it on if this is ever switched off.
 export const EVIDENCE_ADDRESS = "0x893aF11134BA268f922aB454DDd53123DF82A3E5";
-export const EVIDENCE_ENABLED = false;
+export const EVIDENCE_ENABLED = true;

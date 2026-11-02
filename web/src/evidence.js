@@ -1,5 +1,8 @@
-// Evidence Court (Milestone 2). Loaded only when the feature flag is on:
-// `?evidence=1` in the URL, or EVIDENCE_ENABLED in config.js.
+// Evidence Court (Milestone 2). Loaded when EVIDENCE_ENABLED is on in
+// config.js (the default since the main-flow integration) or the URL carries
+// `?evidence=1` (the original flag, kept as a fallback). The main "Who's
+// right?" form in app.js hands cases that cite links to this module
+// (handoff below): that routing is done in the web app, not by JudgeRouter.
 // Talks to contracts/evidence_court.py straight from the browser with the
 // page's own testnet burner. Each side may cite up to two https links; every
 // GenLayer validator fetches them itself, the juror panel labels each page,
@@ -258,9 +261,31 @@ async function renderRecent() {
   }
 }
 
+/**
+ * Called by the main "Who's right?" form (app.js) when the visitor added
+ * evidence links: the same takes become the two claims, and the case is sent
+ * to EvidenceCourt instead of JudgeRouter. Consent and 18+ were ticked there.
+ */
+export function handoff({ question, a, b, linksA, linksB, consent, adult }) {
+  if (!started) throw new Error("Evidence Court is not available on this page");
+  $("ev-q").value = question;
+  $("ev-ca").value = a;
+  $("ev-cb").value = b;
+  ["ev-a1", "ev-a2"].forEach((id, i) => ($(id).value = linksA[i] ?? ""));
+  ["ev-b1", "ev-b2"].forEach((id, i) => ($(id).value = linksB[i] ?? ""));
+  $("ev-consent").checked = consent;
+  $("ev-adult").checked = adult;
+  checkLinks();
+  $("ev-routed").hidden = false;
+  $("evidence").scrollIntoView({ behavior: "smooth", block: "start" });
+  $("ev-form").requestSubmit();
+}
+
+let started = false;
 export function init() {
   const sec = $("evidence");
-  if (!sec || !C.EVIDENCE_ADDRESS) return;
+  if (started || !sec || !C.EVIDENCE_ADDRESS) return;
+  started = true;
   sec.hidden = false;
   $("nav-evidence")?.removeAttribute("hidden");
   read = createClient({ chain: studionet, endpoint: C.RPC_URL });

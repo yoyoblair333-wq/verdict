@@ -1,0 +1,78 @@
+{
+ "network": "studionet",
+ "contract": "0x893aF11134BA268f922aB454DDd53123DF82A3E5",
+ "note": "A dispute opened from the MAIN VERDICT 'Who's right?' form with one evidence link, routed by the web app to EvidenceCourt and signed in the browser by the page's own testnet burner (not the relayer). Driven by scripts/m2_demo.mjs (Playwright, the built web/dist served locally, live studionet), which also recorded docs/media/m2-demo.gif. Fictional dispute.",
+ "flow": "main form #try -> Add evidence links -> Fill in the sample -> consent + 18+ -> Send to the Evidence Court -> evidence.js handoff -> open_dispute",
+ "recordedAt": "2026-11-02T04:45:53.007Z",
+ "capture": {
+  "startedAt": "2026-11-02T04:43:51.135Z",
+  "finishedAt": "2026-11-02T04:44:45.940Z",
+  "secondsToFinal": 47,
+  "webStatus": "Ask the Evidence Court: final · validators agree 3, idle 2"
+ },
+ "tx": "0xb66a036bcc7fe22fc971fa243dee7fa4ad4a8d3f0a8e34f3f1695de8e866eb60",
+ "from": "0x468Ff1a784Ce984a5257B8755A12BD1A77d2e6F2",
+ "chainStatus": "FINALIZED",
+ "execution": "SUCCESS",
+ "finality": "FINALIZED_SUCCESS",
+ "votes": {
+  "agree": 3,
+  "idle": 2
+ },
+ "dispute_id": 6,
+ "dispute": {
+  "claim_a": "The plant swap is on Saturday, November 8, as first announced.",
+  "claim_b": "It moved to Sunday, November 9, because of the marathon road closure.",
+  "created_at": "2026-11-02T04:43:56Z",
+  "creator": "0x468Ff1a784Ce984a5257B8755A12BD1A77d2e6F2",
+  "decided_by": "evidence",
+  "evidence": [
+   {
+    "excerpt": "The fall plant swap will now take place on Sunday, November 9, from 10 am to 1 pm at the garden gate.",
+    "fetch": "ok",
+    "id": "E1",
+    "injection": false,
+    "injection_reason": "",
+    "label": "SUPPORTS_B",
+    "side": "B",
+    "text_sha256": "ebbc35c9fff31f546f179d78ab6351977ac6b73643921f4715835088e387ab15",
+    "url": "https://yoyoblair333-wq.github.io/verdict/evidence/garden-notice.html",
+    "votes": [
+     "SUPPORTS_B"
+    ]
+   }
+  ],
+  "history": [
+   {
+    "at": "2026-11-02T04:43:56Z",
+    "decided_by": "evidence",
+    "labels": [
+     "SUPPORTS_B"
+    ],
+    "ruling": "B",
+    "tier": 1
+   }
+  ],
+  "id": 6,
+  "jurors": 1,
+  "links": [
+   {
+    "id": "E1",
+    "side": "B",
+    "url": "https://yoyoblair333-wq.github.io/verdict/evidence/garden-notice.html"
+   }
+  ],
+  "panel_votes": [
+   "B"
+  ],
+  "question": "Is the Riverside Community Garden fall plant swap on Saturday or on Sunday?",
+  "reason": "Evidence states the swap was moved to Sunday, confirming side B's claim.",
+  "request_key": "web_724bfc646c94baf23751df7a",
+  "ruling": "B",
+  "status": "judged",
+  "support_a": 0,
+  "support_b": 1,
+  "tier": 1,
+  "updated_at": "2026-11-02T04:43:56Z"
+ }
+}

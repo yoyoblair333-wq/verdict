@@ -327,3 +327,14 @@ a.plain{font-size:13px;font-weight:700}
 .slip input{display:block;width:100%;box-sizing:border-box;border:0;background:transparent;font-size:16px;line-height:1.45;padding:6px 0;color:var(--robe)}
 .slip input::placeholder{color:rgba(27,19,64,.55)}
 #evidence .slip textarea{min-height:56px}
+/* Milestone 2: evidence links inside the main "Who's right?" flow */
+.newbadge{border-left:4px solid var(--pad);background:var(--surface);border-radius:0 10px 10px 0;padding:8px 12px;font-size:15px}
+.newbadge a{color:var(--fg);font-weight:800;text-underline-offset:3px}
+.evstep{border:2px solid var(--fg);border-radius:12px;padding:10px 12px;margin:12px 0;background:var(--surface);min-width:0}
+.evstep summary{cursor:pointer;display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline;list-style-position:inside}
+.evstep summary::before{content:"+";font-weight:900;margin-right:2px}
+.evstep[open] summary::before{content:"\2212"}
+.evstep summary::-webkit-details-marker{display:none}
+.evstep .route{font-weight:800}
+.evstep .route[data-route="evidence"]{color:var(--ok)}
+.evstep.off{opacity:.7}

@@ -12,6 +12,7 @@ import { hideDecision } from "./lib/display.js";
 import { pickProof, proofSentence, proofVotes } from "./lib/proof.js";
 import { categoryLabel, flagLabel, sinceIso, submissionLabel, writersLine } from "./lib/ledger.js";
 import { h } from "./lib/dom.js";
+import { linkProblem } from "./lib/evidencelinks.js";
 import { classifyError, readTimeoutMs, withTimeout } from "./lib/errors.js";
 import { groupCases, idsToFetch, isRelayerCase, provenanceLabel, receiptDisplay, RELAYER_CHIP, tierStatus, VISITOR_CHIP } from "./lib/gallery.js";
 
@@ -460,7 +461,7 @@ function renderCases() {
   }
   const g = groupCases(state.cases, state.pinned, C.RELAYER_ADDRESS);
   if (g.evidence.length) {
-    box.append(h("h3", { class: "group", id: "evidence-h" }, "Evidence cases (pinned)"),
+    box.append(h("h3", { class: "group", id: "pinned-h" }, "Evidence cases (pinned)"),
       h("p", { class: "meta" }, "The recorded runs in docs/LIVE_EVIDENCE.md, fetched by id so newer cases can never push them off this page."));
     const ev = h("div", { class: "group", "data-group": "evidence" });
     g.evidence.forEach((c) => ev.append(caseCard(c)));
@@ -531,8 +532,11 @@ function renderWriteGate() {
   if (state.source?.kind !== "live") why = "Write mode needs the live network; it is unreachable from this browser right now.";
   else if (state.pin?.state !== "match") why = "Write mode is off: the deployed contract code does not match the pinned digest.";
   else if (state.config?.paused) why = "The contract owner has paused new cases.";
-  if (why) g.append(h("p", { class: "gate" }, why));
-  $("submit").disabled = !!why || running;
+  // A case with evidence links goes to EvidenceCourt, which evidence.js
+  // checks on its own; the JudgeRouter gate does not apply to it.
+  const toEvidence = $("evroute")?.dataset.route === "evidence";
+  if (why) g.append(h("p", { class: "gate" }, toEvidence ? `${why} (JudgeRouter only: this case goes to Evidence Court.)` : why));
+  $("submit").disabled = (!!why && !toEvidence) || running;
 }
 
 // status rail
@@ -690,6 +694,67 @@ async function runAppeal(kase) {
   }
 }
 
+// ------------------------------------------------- evidence links (Milestone 2)
+// The main "Who's right?" form can cite links. With at least one link the case
+// is routed, in the web app, to EvidenceCourt (evidence.js handoff); without
+// links it goes to JudgeRouter exactly as before. JudgeRouter is unchanged.
+const EV_IDS = ["eva1", "eva2", "evb1", "evb2"];
+const EV_PAGES = "https://yoyoblair333-wq.github.io/verdict/evidence/";
+let evidenceMod = null;
+function loadEvidenceCourt() {
+  evidenceMod ??= import("./evidence.js").then((m) => (m.init(), m));
+  return evidenceMod;
+}
+const evValues = (side) => EV_IDS.filter((id) => id.startsWith(`ev${side}`)).map((id) => $(id).value.trim()).filter(Boolean);
+const rubricNow = () => new FormData($("caseform")).get("rubric");
+/** Per-link refusal reasons (same screen as the contract) and the route line. Returns the first problem. */
+function evCheck() {
+  let bad = "";
+  const seen = new Set();
+  for (const id of EV_IDS) {
+    const v = $(id).value.trim();
+    let why = v ? linkProblem(v) : "";
+    if (!why && v) {
+      if (seen.has(v.toLowerCase())) why = "the same link is cited twice";
+      seen.add(v.toLowerCase());
+    }
+    $(`${id}-err`).textContent = why ? `Would be refused: ${why}.` : "";
+    $(id).setAttribute("aria-invalid", String(!!why));
+    if (why && !bad) bad = why;
+  }
+  const n = evValues("a").length + evValues("b").length;
+  const on = rubricNow() === "whos_right";
+  $("evstep").classList.toggle("off", !on);
+  $("evstep-off").hidden = on;
+  const route = $("evroute");
+  route.dataset.route = on && n ? "evidence" : "judge";
+  route.textContent = !n
+    ? "Route: JudgeRouter (no links yet)."
+    : on
+      ? `Route: Evidence Court (${n} link${n === 1 ? "" : "s"}). Validators will fetch ${n === 1 ? "it" : "them"} before ruling.`
+      : "Route: JudgeRouter. Links are ignored for this contest.";
+  $("submit").textContent = route.dataset.route === "evidence" ? "Send to the Evidence Court" : "Send to the jury";
+  renderWriteGate();
+  return bad;
+}
+
+async function routeToEvidence(a, b, consent, adult) {
+  const err = $("formerr");
+  const bad = evCheck();
+  if (bad) return (err.textContent = `Fix the evidence links first (${bad}).`);
+  const question = $("evq").value.trim();
+  if (question.length < 5) {
+    $("evq").focus();
+    return (err.textContent = "Add the question your links answer (at least 5 characters).");
+  }
+  try {
+    const m = await loadEvidenceCourt();
+    m.handoff({ question, a: a.trim(), b: b.trim(), linksA: evValues("a"), linksB: evValues("b"), consent, adult });
+  } catch (e) {
+    err.textContent = `Evidence Court could not load (${e.message}). Remove the links to send this case to JudgeRouter.`;
+  }
+}
+
 async function onSubmit(ev) {
   ev.preventDefault();
   if (running) return;
@@ -704,6 +769,7 @@ async function onSubmit(ev) {
   if (!adult) return (err.textContent = "VERDICT is 18+ only.");
   const bad = localCheck(a, "Take A") ?? localCheck(b, "Take B");
   if (bad) return (err.textContent = bad);
+  if (rubric === "whos_right" && evValues("a").length + evValues("b").length) return routeToEvidence(a, b, consent, adult);
 
   running = true;
   renderWriteGate();
@@ -902,6 +968,19 @@ function wireForm() {
   });
   $("caseform").addEventListener("submit", onSubmit);
   $("refresh").addEventListener("click", () => refresh());
+  for (const id of EV_IDS) $(id).addEventListener("input", evCheck);
+  for (const r of document.querySelectorAll('input[name="rubric"]')) r.addEventListener("change", evCheck);
+  $("evstep-sample").addEventListener("click", () => {
+    document.querySelector('input[name="rubric"][value="whos_right"]').checked = true;
+    $("ta").value = "The plant swap is on Saturday, November 8, as first announced.";
+    $("tb").value = "It moved to Sunday, November 9, because of the marathon road closure.";
+    $("evq").value = "Is the Riverside Community Garden fall plant swap on Saturday or on Sunday?";
+    for (const id of EV_IDS) $(id).value = "";
+    $("evb1").value = `${EV_PAGES}garden-notice.html`;
+    for (const id of ["ta", "tb"]) $(id).dispatchEvent(new Event("input"));
+    evCheck();
+  });
+  evCheck();
 }
 
 wireForm();
@@ -917,6 +996,6 @@ if (C.REDFLAG_ENABLED || new URLSearchParams(location.search).get("redflag") ===
 }
 // Feature flag: Evidence Court (Milestone 2).
 if (C.EVIDENCE_ENABLED || new URLSearchParams(location.search).get("evidence") === "1") {
-  import("./evidence.js").then((m) => m.init()).catch((e) => console.warn("evidence court failed to load", e));
+  loadEvidenceCourt().catch((e) => console.warn("evidence court failed to load", e));
 }
 $("ledgerrefresh")?.addEventListener("click", () => renderLedger());
