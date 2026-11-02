@@ -47,7 +47,7 @@ web-live: web/node_modules
 test: contract-test relayer-test web-test
 
 lint: setup
-	cd contracts && for c in judge_router.py pattern_ledger.py red_flag_court.py; do PATH="$(CURDIR)/$(VBIN):$$PATH" ../$(VBIN)/genvm-lint check $$c && PATH="$(CURDIR)/$(VBIN):$$PATH" ../$(VBIN)/genvm-lint typecheck $$c || exit 1; done
+	cd contracts && for c in judge_router.py pattern_ledger.py red_flag_court.py evidence_court.py; do PATH="$(CURDIR)/$(VBIN):$$PATH" ../$(VBIN)/genvm-lint check $$c && PATH="$(CURDIR)/$(VBIN):$$PATH" ../$(VBIN)/genvm-lint typecheck $$c || exit 1; done
 	cd relayer && npm run typecheck
 
 demo: relayer/node_modules

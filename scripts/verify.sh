@@ -4,7 +4,8 @@
 # Installs pinned deps (contracts/.venv, relayer/node_modules, web/node_modules
 # + Playwright's Chromium), then runs:
 #   1 contract tests (pytest: direct-mode GenVM SDK + static schema tier;
-#     includes the PatternLedger unit and adversarial suites in contracts/tests/direct)
+#     includes the PatternLedger unit and adversarial suites and the EvidenceCourt
+#     suite in contracts/tests/direct)
 #   1b PatternLedger reuse-kit template tests (examples/pattern-ledger/tests)
 #   2 genvm-lint check      3 genvm-lint typecheck   (both contracts)
 #   4 relayer typecheck     5 relayer tests (unit + stand-in; live tier skips)
@@ -71,8 +72,8 @@ step "setup: relayer npm ci (package-lock.json)" bash -c "cd relayer && npm ci -
 step "setup: web npm ci + Playwright Chromium" bash -c "cd web && npm ci --no-audit --no-fund --loglevel=error && npx --no-install playwright install chromium"
 step "contract tests (pytest)" bash -c "cd contracts && ../contracts/.venv/bin/python -m pytest -q"
 step "PatternLedger reuse-kit template tests (pytest)" bash -c "contracts/.venv/bin/python -m pytest -q -p no:cacheprovider examples/pattern-ledger/tests"
-step "genvm-lint check (all contracts)" bash -c "cd contracts && .venv/bin/genvm-lint check judge_router.py && .venv/bin/genvm-lint check pattern_ledger.py && .venv/bin/genvm-lint check red_flag_court.py"
-step "genvm-lint typecheck (all contracts)" bash -c "cd contracts && PATH=\"$PWD/contracts/.venv/bin:\$PATH\" .venv/bin/genvm-lint typecheck judge_router.py && PATH=\"$PWD/contracts/.venv/bin:\$PATH\" .venv/bin/genvm-lint typecheck pattern_ledger.py && PATH=\"$PWD/contracts/.venv/bin:\$PATH\" .venv/bin/genvm-lint typecheck red_flag_court.py"
+step "genvm-lint check (all contracts)" bash -c "cd contracts && .venv/bin/genvm-lint check judge_router.py && .venv/bin/genvm-lint check pattern_ledger.py && .venv/bin/genvm-lint check red_flag_court.py && .venv/bin/genvm-lint check evidence_court.py"
+step "genvm-lint typecheck (all contracts)" bash -c "cd contracts && PATH=\"$PWD/contracts/.venv/bin:\$PATH\" .venv/bin/genvm-lint typecheck judge_router.py && PATH=\"$PWD/contracts/.venv/bin:\$PATH\" .venv/bin/genvm-lint typecheck pattern_ledger.py && PATH=\"$PWD/contracts/.venv/bin:\$PATH\" .venv/bin/genvm-lint typecheck red_flag_court.py && PATH=\"$PWD/contracts/.venv/bin:\$PATH\" .venv/bin/genvm-lint typecheck evidence_court.py"
 step "relayer typecheck (tsc --noEmit)" bash -c "cd relayer && npm run --silent typecheck"
 step "relayer tests (node --test)" bash -c "cd relayer && npm test > \"$LOGDIR/relayer-tests.raw\" 2>&1; s=\$?; grep -E '^# (tests|pass|fail|skipped)|^not ok' \"$LOGDIR/relayer-tests.raw\"; [ \$s -eq 0 ] || tail -n 80 \"$LOGDIR/relayer-tests.raw\"; exit \$s"
 step "offline demo (make demo)" bash -c "cd relayer && npm run --silent demo"
