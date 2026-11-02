@@ -47,6 +47,10 @@ if (existsSync(demoVideo)) {
   await copyFile(demoVideo, path.join(dist, "demo/verdict-demo.mp4"));
 }
 await writeFile(path.join(dist, ".nojekyll"), "");
+// Evidence Court test pages (docs/evidence-pages/), served at <site>/evidence/:
+// the honest notice, the off-topic page and the adversarial injection page.
+await mkdir(path.join(dist, "evidence"), { recursive: true });
+for (const f of ["garden-notice.html", "bread-recipe.html", "injection-notice.html"]) await copyFile(path.join(root, "docs/evidence-pages", f), path.join(dist, "evidence", f));
 
 // Evidence index: caseId -> ordered [{fn, hash}], from the recorded live run.
 const run = JSON.parse(await readFile(path.join(root, "docs/live/studionet-run.json"), "utf8"));

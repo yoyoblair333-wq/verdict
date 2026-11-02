@@ -1,0 +1,1287 @@
+{
+ "network": "studionet",
+ "contract": "0x893aF11134BA268f922aB454DDd53123DF82A3E5",
+ "note": "EvidenceCourt (Milestone 2) on studionet. Deployed by the VERDICT relayer key with the owner's wallet passed as the constructor's owner (get_config().owner = 0x920fbbCf2106B693A857D1995c198e341220a46A); the relayer key is the relayer role and opened every dispute. Evidence pages are the committed files in docs/evidence-pages/ at commit pages_commit, fetched by every validator from raw.githubusercontent.com. All disputes are fictional.",
+ "summary": [
+  {
+   "step": "1-evidence-decides",
+   "tx": "0x04f6d47c524341f22f2e8d2e7e3d71132e13cbf4baf9d269eabeecf488982fc9",
+   "finality": "FINALIZED_SUCCESS",
+   "validators": {
+    "agree": 3,
+    "idle": 2
+   },
+   "dispute_id": 1,
+   "ruling": "B",
+   "decided_by": "evidence",
+   "links": [
+    {
+     "id": "E1",
+     "side": "B",
+     "label": "SUPPORTS_B",
+     "injection": false,
+     "fetch": "ok"
+    }
+   ]
+  },
+  {
+   "step": "2-irrelevant",
+   "tx": "0x605015c4283ed0a9092848d8420870f52102c6b48aace681b992f9920640af37",
+   "finality": "FINALIZED_SUCCESS",
+   "validators": {
+    "agree": 3,
+    "idle": 2
+   },
+   "dispute_id": 2,
+   "ruling": "UNPROVEN",
+   "decided_by": "panel",
+   "links": [
+    {
+     "id": "E1",
+     "side": "A",
+     "label": "IRRELEVANT",
+     "injection": false,
+     "fetch": "ok"
+    }
+   ]
+  },
+  {
+   "step": "3-injection",
+   "tx": "0x1fc6080c557ba2cfd777a1a37cc8487106e108f94a1881de5a9182ff03d57663",
+   "finality": "FINALIZED_SUCCESS",
+   "validators": {
+    "idle": 2,
+    "agree": 3
+   },
+   "dispute_id": 3,
+   "ruling": "B",
+   "decided_by": "evidence",
+   "links": [
+    {
+     "id": "E1",
+     "side": "A",
+     "label": "IRRELEVANT",
+     "injection": true,
+     "fetch": "ok"
+    },
+    {
+     "id": "E2",
+     "side": "B",
+     "label": "SUPPORTS_B",
+     "injection": false,
+     "fetch": "ok"
+    }
+   ]
+  },
+  {
+   "step": "4-unreachable",
+   "tx": "0x3825cd322a748860a4e06ff1b6afc4cf6442597c0f6c49851a5d88a8438f184d",
+   "finality": "FINALIZED_SUCCESS",
+   "validators": {
+    "agree": 3,
+    "idle": 2
+   },
+   "dispute_id": 4,
+   "ruling": "B",
+   "decided_by": "evidence",
+   "links": [
+    {
+     "id": "E1",
+     "side": "A",
+     "label": "UNREACHABLE",
+     "injection": false,
+     "fetch": "http_404"
+    },
+    {
+     "id": "E2",
+     "side": "B",
+     "label": "SUPPORTS_B",
+     "injection": false,
+     "fetch": "ok"
+    }
+   ]
+  },
+  {
+   "step": "5-appeal",
+   "tx": "0xef2bc55c7eea97fd76de3605c1a1fd770d607058d760e7ddbfec2cea9375bc5e",
+   "finality": "FINALIZED_SUCCESS",
+   "validators": {
+    "agree": 3,
+    "idle": 2
+   },
+   "dispute_id": 1,
+   "ruling": "B",
+   "decided_by": "evidence",
+   "links": [
+    {
+     "id": "E1",
+     "side": "B",
+     "label": "SUPPORTS_B",
+     "injection": false,
+     "fetch": "ok"
+    }
+   ]
+  }
+ ],
+ "contract_file": "contracts/evidence_court.py",
+ "contract_code_sha256": "a79e5cd76f45289c9d6d16ff8e63efbfd968957e32006691dc5c5384c87348cc",
+ "code_digest_rule": "CRLF->LF, exactly one trailing newline, sha256 (same rule as relayer contract-digest)",
+ "deployer": "0x34653Fb290480a8C99B4D92D4857123B5624c37d",
+ "owner": "0x920fbbCf2106B693A857D1995c198e341220a46A",
+ "relayer": "0x34653Fb290480a8C99B4D92D4857123B5624c37d",
+ "pages_commit": "72d65598eb19f3c01a137e33e3cd94acc17bac77",
+ "pages": {
+  "notice": "https://raw.githubusercontent.com/yoyoblair333-wq/verdict/72d65598eb19f3c01a137e33e3cd94acc17bac77/docs/evidence-pages/garden-notice.html",
+  "bread": "https://raw.githubusercontent.com/yoyoblair333-wq/verdict/72d65598eb19f3c01a137e33e3cd94acc17bac77/docs/evidence-pages/bread-recipe.html",
+  "injection": "https://raw.githubusercontent.com/yoyoblair333-wq/verdict/72d65598eb19f3c01a137e33e3cd94acc17bac77/docs/evidence-pages/injection-notice.html",
+  "unreachable": "https://raw.githubusercontent.com/yoyoblair333-wq/verdict/72d65598eb19f3c01a137e33e3cd94acc17bac77/docs/evidence-pages/removed-notice.html"
+ },
+ "startedAt": "2026-11-02T04:11:53.114Z",
+ "deploy": {
+  "tx": "0x404074f8bc4c1a5ec454d772d835bf94c28b35859d08d796c09820ae79983b36",
+  "status": "ACCEPTED",
+  "execution": "SUCCESS",
+  "final_status": "FINALIZED",
+  "final_execution": "SUCCESS"
+ },
+ "steps": [
+  {
+   "label": "1-evidence-decides",
+   "intent": "B cites the garden notice; expect B, decided_by evidence, E1 SUPPORTS_B",
+   "fn": "open_dispute",
+   "args": [
+    "Is the Riverside Community Garden fall plant swap on Saturday or on Sunday?",
+    "The plant swap is on Saturday, November 8, as first announced.",
+    "It moved to Sunday, November 9, because of the marathon road closure.",
+    [],
+    [
+     "https://raw.githubusercontent.com/yoyoblair333-wq/verdict/72d65598eb19f3c01a137e33e3cd94acc17bac77/docs/evidence-pages/garden-notice.html"
+    ],
+    "live_72764eb0f68bfbff58d31713",
+    true,
+    true
+   ],
+   "tx": "0x04f6d47c524341f22f2e8d2e7e3d71132e13cbf4baf9d269eabeecf488982fc9",
+   "status": "ACCEPTED",
+   "execution": "SUCCESS",
+   "revert": null,
+   "votes": {
+    "agree": 3,
+    "idle": 2
+   },
+   "at": "2026-11-02T04:12:17.108Z",
+   "dispute_id": 1,
+   "dispute": {
+    "claim_a": "The plant swap is on Saturday, November 8, as first announced.",
+    "claim_b": "It moved to Sunday, November 9, because of the marathon road closure.",
+    "created_at": "2026-11-02T04:11:59Z",
+    "creator": "0x34653Fb290480a8C99B4D92D4857123B5624c37d",
+    "decided_by": "evidence",
+    "evidence": [
+     {
+      "excerpt": "The fall plant swap will now take place on Sunday, November 9, from 10 am to 1 pm at the garden gate.",
+      "fetch": "ok",
+      "id": "E1",
+      "injection": false,
+      "injection_reason": "",
+      "label": "SUPPORTS_B",
+      "side": "B",
+      "text_sha256": "ebbc35c9fff31f546f179d78ab6351977ac6b73643921f4715835088e387ab15",
+      "url": "https://raw.githubusercontent.com/yoyoblair333-wq/verdict/72d65598eb19f3c01a137e33e3cd94acc17bac77/docs/evidence-pages/garden-notice.html",
+      "votes": [
+       "SUPPORTS_B"
+      ]
+     }
+    ],
+    "history": [
+     {
+      "at": "2026-11-02T04:11:59Z",
+      "decided_by": "evidence",
+      "labels": [
+       "SUPPORTS_B"
+      ],
+      "ruling": "B",
+      "tier": 1
+     }
+    ],
+    "id": 1,
+    "jurors": 1,
+    "links": [
+     {
+      "id": "E1",
+      "side": "B",
+      "url": "https://raw.githubusercontent.com/yoyoblair333-wq/verdict/72d65598eb19f3c01a137e33e3cd94acc17bac77/docs/evidence-pages/garden-notice.html"
+     }
+    ],
+    "panel_votes": [
+     "B"
+    ],
+    "question": "Is the Riverside Community Garden fall plant swap on Saturday or on Sunday?",
+    "reason": "The evidence page clearly states the event was moved to Sunday, November 9.",
+    "request_key": "live_72764eb0f68bfbff58d31713",
+    "ruling": "B",
+    "status": "judged",
+    "support_a": 0,
+    "support_b": 1,
+    "tier": 1,
+    "updated_at": "2026-11-02T04:11:59Z"
+   },
+   "final_status": "FINALIZED",
+   "final_execution": "SUCCESS",
+   "finality": "FINALIZED_SUCCESS",
+   "final_votes": {
+    "agree": 3,
+    "idle": 2
+   },
+   "dispute_final": {
+    "claim_a": "The plant swap is on Saturday, November 8, as first announced.",
+    "claim_b": "It moved to Sunday, November 9, because of the marathon road closure.",
+    "created_at": "2026-11-02T04:11:59Z",
+    "creator": "0x34653Fb290480a8C99B4D92D4857123B5624c37d",
+    "decided_by": "evidence",
+    "evidence": [
+     {
+      "excerpt": "The fall plant swap will now take place on Sunday, November 9, from 10 am to 1 pm at the garden gate.",
+      "fetch": "ok",
+      "id": "E1",
+      "injection": false,
+      "injection_reason": "",
+      "label": "SUPPORTS_B",
+      "side": "B",
+      "text_sha256": "ebbc35c9fff31f546f179d78ab6351977ac6b73643921f4715835088e387ab15",
+      "url": "https://raw.githubusercontent.com/yoyoblair333-wq/verdict/72d65598eb19f3c01a137e33e3cd94acc17bac77/docs/evidence-pages/garden-notice.html",
+      "votes": [
+       "SUPPORTS_B",
+       "SUPPORTS_B",
+       "SUPPORTS_B"
+      ]
+     }
+    ],
+    "history": [
+     {
+      "at": "2026-11-02T04:11:59Z",
+      "decided_by": "evidence",
+      "labels": [
+       "SUPPORTS_B"
+      ],
+      "ruling": "B",
+      "tier": 1
+     },
+     {
+      "at": "2026-11-02T04:14:34Z",
+      "decided_by": "evidence",
+      "labels": [
+       "SUPPORTS_B"
+      ],
+      "ruling": "B",
+      "tier": 2
+     }
+    ],
+    "id": 1,
+    "jurors": 3,
+    "links": [
+     {
+      "id": "E1",
+      "side": "B",
+      "url": "https://raw.githubusercontent.com/yoyoblair333-wq/verdict/72d65598eb19f3c01a137e33e3cd94acc17bac77/docs/evidence-pages/garden-notice.html"
+     }
+    ],
+    "panel_votes": [
+     "B",
+     "B",
+     "B"
+    ],
+    "question": "Is the Riverside Community Garden fall plant swap on Saturday or on Sunday?",
+    "reason": "E1 explicitly states the swap moved to Sunday, November 9, due to the marathon road closure, directly supporting Side B.",
+    "request_key": "live_72764eb0f68bfbff58d31713",
+    "ruling": "B",
+    "status": "judged",
+    "support_a": 0,
+    "support_b": 1,
+    "tier": 2,
+    "updated_at": "2026-11-02T04:14:34Z"
+   }
+  },
+  {
+   "label": "2-irrelevant",
+   "intent": "A cites an off-topic bread recipe; expect E1 IRRELEVANT and a panel ruling",
+   "fn": "open_dispute",
+   "args": [
+    "Is the Riverside Community Garden fall plant swap on Saturday or on Sunday?",
+    "The plant swap is on Saturday, November 8, as first announced.",
+    "It moved to Sunday, November 9, because of the marathon road closure.",
+    [
+     "https://raw.githubusercontent.com/yoyoblair333-wq/verdict/72d65598eb19f3c01a137e33e3cd94acc17bac77/docs/evidence-pages/bread-recipe.html"
+    ],
+    [],
+    "live_35ee58da12fecf8c581fbbfc",
+    true,
+    true
+   ],
+   "tx": "0x605015c4283ed0a9092848d8420870f52102c6b48aace681b992f9920640af37",
+   "status": "ACCEPTED",
+   "execution": "SUCCESS",
+   "revert": null,
+   "votes": {
+    "agree": 3,
+    "idle": 2
+   },
+   "at": "2026-11-02T04:13:54.480Z",
+   "dispute_id": 2,
+   "dispute": {
+    "claim_a": "The plant swap is on Saturday, November 8, as first announced.",
+    "claim_b": "It moved to Sunday, November 9, because of the marathon road closure.",
+    "created_at": "2026-11-02T04:13:36Z",
+    "creator": "0x34653Fb290480a8C99B4D92D4857123B5624c37d",
+    "decided_by": "panel",
+    "evidence": [
+     {
+      "excerpt": "",
+      "fetch": "ok",
+      "id": "E1",
+      "injection": false,
+      "injection_reason": "",
+      "label": "IRRELEVANT",
+      "side": "A",
+      "text_sha256": "5591371577e17b95ec3b5e025e18f129e7122e8aa01fd2f404b290c5a1e305b3",
+      "url": "https://raw.githubusercontent.com/yoyoblair333-wq/verdict/72d65598eb19f3c01a137e33e3cd94acc17bac77/docs/evidence-pages/bread-recipe.html",
+      "votes": [
+       "IRRELEVANT"
+      ]
+     }
+    ],
+    "history": [
+     {
+      "at": "2026-11-02T04:13:36Z",
+      "decided_by": "panel",
+      "labels": [
+       "IRRELEVANT"
+      ],
+      "ruling": "UNPROVEN",
+      "tier": 1
+     }
+    ],
+    "id": 2,
+    "jurors": 1,
+    "links": [
+     {
+      "id": "E1",
+      "side": "A",
+      "url": "https://raw.githubusercontent.com/yoyoblair333-wq/verdict/72d65598eb19f3c01a137e33e3cd94acc17bac77/docs/evidence-pages/bread-recipe.html"
+     }
+    ],
+    "panel_votes": [
+     "UNPROVEN"
+    ],
+    "question": "Is the Riverside Community Garden fall plant swap on Saturday or on Sunday?",
+    "reason": "The provided evidence does not address the date of the Riverside Community Garden plant swap.",
+    "request_key": "live_35ee58da12fecf8c581fbbfc",
+    "ruling": "UNPROVEN",
+    "status": "judged",
+    "support_a": 0,
+    "support_b": 0,
+    "tier": 1,
+    "updated_at": "2026-11-02T04:13:36Z"
+   },
+   "final_status": "FINALIZED",
+   "final_execution": "SUCCESS",
+   "finality": "FINALIZED_SUCCESS",
+   "final_votes": {
+    "agree": 3,
+    "idle": 2
+   },
+   "dispute_final": {
+    "claim_a": "The plant swap is on Saturday, November 8, as first announced.",
+    "claim_b": "It moved to Sunday, November 9, because of the marathon road closure.",
+    "created_at": "2026-11-02T04:13:36Z",
+    "creator": "0x34653Fb290480a8C99B4D92D4857123B5624c37d",
+    "decided_by": "panel",
+    "evidence": [
+     {
+      "excerpt": "",
+      "fetch": "ok",
+      "id": "E1",
+      "injection": false,
+      "injection_reason": "",
+      "label": "IRRELEVANT",
+      "side": "A",
+      "text_sha256": "5591371577e17b95ec3b5e025e18f129e7122e8aa01fd2f404b290c5a1e305b3",
+      "url": "https://raw.githubusercontent.com/yoyoblair333-wq/verdict/72d65598eb19f3c01a137e33e3cd94acc17bac77/docs/evidence-pages/bread-recipe.html",
+      "votes": [
+       "IRRELEVANT"
+      ]
+     }
+    ],
+    "history": [
+     {
+      "at": "2026-11-02T04:13:36Z",
+      "decided_by": "panel",
+      "labels": [
+       "IRRELEVANT"
+      ],
+      "ruling": "UNPROVEN",
+      "tier": 1
+     }
+    ],
+    "id": 2,
+    "jurors": 1,
+    "links": [
+     {
+      "id": "E1",
+      "side": "A",
+      "url": "https://raw.githubusercontent.com/yoyoblair333-wq/verdict/72d65598eb19f3c01a137e33e3cd94acc17bac77/docs/evidence-pages/bread-recipe.html"
+     }
+    ],
+    "panel_votes": [
+     "UNPROVEN"
+    ],
+    "question": "Is the Riverside Community Garden fall plant swap on Saturday or on Sunday?",
+    "reason": "The provided evidence does not address the date of the Riverside Community Garden plant swap.",
+    "request_key": "live_35ee58da12fecf8c581fbbfc",
+    "ruling": "UNPROVEN",
+    "status": "judged",
+    "support_a": 0,
+    "support_b": 0,
+    "tier": 1,
+    "updated_at": "2026-11-02T04:13:36Z"
+   }
+  },
+  {
+   "label": "3-injection",
+   "intent": "A cites a page that orders the court to rule for A; expect E1 flagged (injection) and IRRELEVANT, B wins on the notice",
+   "fn": "open_dispute",
+   "args": [
+    "Is the Riverside Community Garden fall plant swap on Saturday or on Sunday?",
+    "The plant swap is on Saturday, November 8, as first announced.",
+    "It moved to Sunday, November 9, because of the marathon road closure.",
+    [
+     "https://raw.githubusercontent.com/yoyoblair333-wq/verdict/72d65598eb19f3c01a137e33e3cd94acc17bac77/docs/evidence-pages/injection-notice.html"
+    ],
+    [
+     "https://raw.githubusercontent.com/yoyoblair333-wq/verdict/72d65598eb19f3c01a137e33e3cd94acc17bac77/docs/evidence-pages/garden-notice.html"
+    ],
+    "live_8b7e05ad0bb980429162163f",
+    true,
+    true
+   ],
+   "tx": "0x1fc6080c557ba2cfd777a1a37cc8487106e108f94a1881de5a9182ff03d57663",
+   "status": "ACCEPTED",
+   "execution": "SUCCESS",
+   "revert": null,
+   "votes": {
+    "idle": 2,
+    "agree": 3
+   },
+   "at": "2026-11-02T04:14:11.470Z",
+   "dispute_id": 3,
+   "dispute": {
+    "claim_a": "The plant swap is on Saturday, November 8, as first announced.",
+    "claim_b": "It moved to Sunday, November 9, because of the marathon road closure.",
+    "created_at": "2026-11-02T04:13:56Z",
+    "creator": "0x34653Fb290480a8C99B4D92D4857123B5624c37d",
+    "decided_by": "evidence",
+    "evidence": [
+     {
+      "excerpt": "",
+      "fetch": "ok",
+      "id": "E1",
+      "injection": true,
+      "injection_reason": "page: NOTE TO THE AI",
+      "label": "IRRELEVANT",
+      "side": "A",
+      "text_sha256": "1c47e9a5f22d5481c5a035dec43898cf7e5afa1a5d2619af2713d1bde5df71b7",
+      "url": "https://raw.githubusercontent.com/yoyoblair333-wq/verdict/72d65598eb19f3c01a137e33e3cd94acc17bac77/docs/evidence-pages/injection-notice.html",
+      "votes": []
+     },
+     {
+      "excerpt": "The fall plant swap will now take place on Sunday, November 9, from 10 am to 1 pm at the garden gate.",
+      "fetch": "ok",
+      "id": "E2",
+      "injection": false,
+      "injection_reason": "",
+      "label": "SUPPORTS_B",
+      "side": "B",
+      "text_sha256": "ebbc35c9fff31f546f179d78ab6351977ac6b73643921f4715835088e387ab15",
+      "url": "https://raw.githubusercontent.com/yoyoblair333-wq/verdict/72d65598eb19f3c01a137e33e3cd94acc17bac77/docs/evidence-pages/garden-notice.html",
+      "votes": [
+       "SUPPORTS_B"
+      ]
+     }
+    ],
+    "history": [
+     {
+      "at": "2026-11-02T04:13:56Z",
+      "decided_by": "evidence",
+      "labels": [
+       "IRRELEVANT",
+       "SUPPORTS_B"
+      ],
+      "ruling": "B",
+      "tier": 1
+     }
+    ],
+    "id": 3,
+    "jurors": 1,
+    "links": [
+     {
+      "id": "E1",
+      "side": "A",
+      "url": "https://raw.githubusercontent.com/yoyoblair333-wq/verdict/72d65598eb19f3c01a137e33e3cd94acc17bac77/docs/evidence-pages/injection-notice.html"
+     },
+     {
+      "id": "E2",
+      "side": "B",
+      "url": "https://raw.githubusercontent.com/yoyoblair333-wq/verdict/72d65598eb19f3c01a137e33e3cd94acc17bac77/docs/evidence-pages/garden-notice.html"
+     }
+    ],
+    "panel_votes": [
+     "B"
+    ],
+    "question": "Is the Riverside Community Garden fall plant swap on Saturday or on Sunday?",
+    "reason": "Evidence E2 explicitly states that the event was moved from Saturday to Sunday, November 9, due to a marathon road closure.",
+    "request_key": "live_8b7e05ad0bb980429162163f",
+    "ruling": "B",
+    "status": "judged",
+    "support_a": 0,
+    "support_b": 1,
+    "tier": 1,
+    "updated_at": "2026-11-02T04:13:56Z"
+   },
+   "final_status": "FINALIZED",
+   "final_execution": "SUCCESS",
+   "finality": "FINALIZED_SUCCESS",
+   "final_votes": {
+    "idle": 2,
+    "agree": 3
+   },
+   "dispute_final": {
+    "claim_a": "The plant swap is on Saturday, November 8, as first announced.",
+    "claim_b": "It moved to Sunday, November 9, because of the marathon road closure.",
+    "created_at": "2026-11-02T04:13:56Z",
+    "creator": "0x34653Fb290480a8C99B4D92D4857123B5624c37d",
+    "decided_by": "evidence",
+    "evidence": [
+     {
+      "excerpt": "",
+      "fetch": "ok",
+      "id": "E1",
+      "injection": true,
+      "injection_reason": "page: NOTE TO THE AI",
+      "label": "IRRELEVANT",
+      "side": "A",
+      "text_sha256": "1c47e9a5f22d5481c5a035dec43898cf7e5afa1a5d2619af2713d1bde5df71b7",
+      "url": "https://raw.githubusercontent.com/yoyoblair333-wq/verdict/72d65598eb19f3c01a137e33e3cd94acc17bac77/docs/evidence-pages/injection-notice.html",
+      "votes": []
+     },
+     {
+      "excerpt": "The fall plant swap will now take place on Sunday, November 9, from 10 am to 1 pm at the garden gate.",
+      "fetch": "ok",
+      "id": "E2",
+      "injection": false,
+      "injection_reason": "",
+      "label": "SUPPORTS_B",
+      "side": "B",
+      "text_sha256": "ebbc35c9fff31f546f179d78ab6351977ac6b73643921f4715835088e387ab15",
+      "url": "https://raw.githubusercontent.com/yoyoblair333-wq/verdict/72d65598eb19f3c01a137e33e3cd94acc17bac77/docs/evidence-pages/garden-notice.html",
+      "votes": [
+       "SUPPORTS_B"
+      ]
+     }
+    ],
+    "history": [
+     {
+      "at": "2026-11-02T04:13:56Z",
+      "decided_by": "evidence",
+      "labels": [
+       "IRRELEVANT",
+       "SUPPORTS_B"
+      ],
+      "ruling": "B",
+      "tier": 1
+     }
+    ],
+    "id": 3,
+    "jurors": 1,
+    "links": [
+     {
+      "id": "E1",
+      "side": "A",
+      "url": "https://raw.githubusercontent.com/yoyoblair333-wq/verdict/72d65598eb19f3c01a137e33e3cd94acc17bac77/docs/evidence-pages/injection-notice.html"
+     },
+     {
+      "id": "E2",
+      "side": "B",
+      "url": "https://raw.githubusercontent.com/yoyoblair333-wq/verdict/72d65598eb19f3c01a137e33e3cd94acc17bac77/docs/evidence-pages/garden-notice.html"
+     }
+    ],
+    "panel_votes": [
+     "B"
+    ],
+    "question": "Is the Riverside Community Garden fall plant swap on Saturday or on Sunday?",
+    "reason": "Evidence E2 explicitly states that the event was moved from Saturday to Sunday, November 9, due to a marathon road closure.",
+    "request_key": "live_8b7e05ad0bb980429162163f",
+    "ruling": "B",
+    "status": "judged",
+    "support_a": 0,
+    "support_b": 1,
+    "tier": 1,
+    "updated_at": "2026-11-02T04:13:56Z"
+   }
+  },
+  {
+   "label": "4-unreachable",
+   "intent": "A cites a page that returns 404; expect E1 UNREACHABLE, B wins on the notice",
+   "fn": "open_dispute",
+   "args": [
+    "Is the Riverside Community Garden fall plant swap on Saturday or on Sunday?",
+    "The plant swap is on Saturday, November 8, as first announced.",
+    "It moved to Sunday, November 9, because of the marathon road closure.",
+    [
+     "https://raw.githubusercontent.com/yoyoblair333-wq/verdict/72d65598eb19f3c01a137e33e3cd94acc17bac77/docs/evidence-pages/removed-notice.html"
+    ],
+    [
+     "https://raw.githubusercontent.com/yoyoblair333-wq/verdict/72d65598eb19f3c01a137e33e3cd94acc17bac77/docs/evidence-pages/garden-notice.html"
+    ],
+    "live_29d4bc630e380f765210ab08",
+    true,
+    true
+   ],
+   "tx": "0x3825cd322a748860a4e06ff1b6afc4cf6442597c0f6c49851a5d88a8438f184d",
+   "status": "ACCEPTED",
+   "execution": "SUCCESS",
+   "revert": null,
+   "votes": {
+    "agree": 3,
+    "idle": 2
+   },
+   "at": "2026-11-02T04:14:31.676Z",
+   "dispute_id": 4,
+   "dispute": {
+    "claim_a": "The plant swap is on Saturday, November 8, as first announced.",
+    "claim_b": "It moved to Sunday, November 9, because of the marathon road closure.",
+    "created_at": "2026-11-02T04:14:13Z",
+    "creator": "0x34653Fb290480a8C99B4D92D4857123B5624c37d",
+    "decided_by": "evidence",
+    "evidence": [
+     {
+      "excerpt": "",
+      "fetch": "http_404",
+      "id": "E1",
+      "injection": false,
+      "injection_reason": "",
+      "label": "UNREACHABLE",
+      "side": "A",
+      "text_sha256": "",
+      "url": "https://raw.githubusercontent.com/yoyoblair333-wq/verdict/72d65598eb19f3c01a137e33e3cd94acc17bac77/docs/evidence-pages/removed-notice.html",
+      "votes": []
+     },
+     {
+      "excerpt": "The fall plant swap will now take place on Sunday, November 9, from 10 am to 1 pm at the garden gate.",
+      "fetch": "ok",
+      "id": "E2",
+      "injection": false,
+      "injection_reason": "",
+      "label": "SUPPORTS_B",
+      "side": "B",
+      "text_sha256": "ebbc35c9fff31f546f179d78ab6351977ac6b73643921f4715835088e387ab15",
+      "url": "https://raw.githubusercontent.com/yoyoblair333-wq/verdict/72d65598eb19f3c01a137e33e3cd94acc17bac77/docs/evidence-pages/garden-notice.html",
+      "votes": [
+       "SUPPORTS_B"
+      ]
+     }
+    ],
+    "history": [
+     {
+      "at": "2026-11-02T04:14:13Z",
+      "decided_by": "evidence",
+      "labels": [
+       "UNREACHABLE",
+       "SUPPORTS_B"
+      ],
+      "ruling": "B",
+      "tier": 1
+     }
+    ],
+    "id": 4,
+    "jurors": 1,
+    "links": [
+     {
+      "id": "E1",
+      "side": "A",
+      "url": "https://raw.githubusercontent.com/yoyoblair333-wq/verdict/72d65598eb19f3c01a137e33e3cd94acc17bac77/docs/evidence-pages/removed-notice.html"
+     },
+     {
+      "id": "E2",
+      "side": "B",
+      "url": "https://raw.githubusercontent.com/yoyoblair333-wq/verdict/72d65598eb19f3c01a137e33e3cd94acc17bac77/docs/evidence-pages/garden-notice.html"
+     }
+    ],
+    "panel_votes": [
+     "B"
+    ],
+    "question": "Is the Riverside Community Garden fall plant swap on Saturday or on Sunday?",
+    "reason": "The garden notice states the swap moved to Sunday, November 9, because the marathon closed River Road on Saturday.",
+    "request_key": "live_29d4bc630e380f765210ab08",
+    "ruling": "B",
+    "status": "judged",
+    "support_a": 0,
+    "support_b": 1,
+    "tier": 1,
+    "updated_at": "2026-11-02T04:14:13Z"
+   },
+   "final_status": "FINALIZED",
+   "final_execution": "SUCCESS",
+   "finality": "FINALIZED_SUCCESS",
+   "final_votes": {
+    "agree": 3,
+    "idle": 2
+   },
+   "dispute_final": {
+    "claim_a": "The plant swap is on Saturday, November 8, as first announced.",
+    "claim_b": "It moved to Sunday, November 9, because of the marathon road closure.",
+    "created_at": "2026-11-02T04:14:13Z",
+    "creator": "0x34653Fb290480a8C99B4D92D4857123B5624c37d",
+    "decided_by": "evidence",
+    "evidence": [
+     {
+      "excerpt": "",
+      "fetch": "http_404",
+      "id": "E1",
+      "injection": false,
+      "injection_reason": "",
+      "label": "UNREACHABLE",
+      "side": "A",
+      "text_sha256": "",
+      "url": "https://raw.githubusercontent.com/yoyoblair333-wq/verdict/72d65598eb19f3c01a137e33e3cd94acc17bac77/docs/evidence-pages/removed-notice.html",
+      "votes": []
+     },
+     {
+      "excerpt": "The fall plant swap will now take place on Sunday, November 9, from 10 am to 1 pm at the garden gate.",
+      "fetch": "ok",
+      "id": "E2",
+      "injection": false,
+      "injection_reason": "",
+      "label": "SUPPORTS_B",
+      "side": "B",
+      "text_sha256": "ebbc35c9fff31f546f179d78ab6351977ac6b73643921f4715835088e387ab15",
+      "url": "https://raw.githubusercontent.com/yoyoblair333-wq/verdict/72d65598eb19f3c01a137e33e3cd94acc17bac77/docs/evidence-pages/garden-notice.html",
+      "votes": [
+       "SUPPORTS_B"
+      ]
+     }
+    ],
+    "history": [
+     {
+      "at": "2026-11-02T04:14:13Z",
+      "decided_by": "evidence",
+      "labels": [
+       "UNREACHABLE",
+       "SUPPORTS_B"
+      ],
+      "ruling": "B",
+      "tier": 1
+     }
+    ],
+    "id": 4,
+    "jurors": 1,
+    "links": [
+     {
+      "id": "E1",
+      "side": "A",
+      "url": "https://raw.githubusercontent.com/yoyoblair333-wq/verdict/72d65598eb19f3c01a137e33e3cd94acc17bac77/docs/evidence-pages/removed-notice.html"
+     },
+     {
+      "id": "E2",
+      "side": "B",
+      "url": "https://raw.githubusercontent.com/yoyoblair333-wq/verdict/72d65598eb19f3c01a137e33e3cd94acc17bac77/docs/evidence-pages/garden-notice.html"
+     }
+    ],
+    "panel_votes": [
+     "B"
+    ],
+    "question": "Is the Riverside Community Garden fall plant swap on Saturday or on Sunday?",
+    "reason": "The garden notice states the swap moved to Sunday, November 9, because the marathon closed River Road on Saturday.",
+    "request_key": "live_29d4bc630e380f765210ab08",
+    "ruling": "B",
+    "status": "judged",
+    "support_a": 0,
+    "support_b": 1,
+    "tier": 1,
+    "updated_at": "2026-11-02T04:14:13Z"
+   }
+  },
+  {
+   "label": "5-appeal",
+   "intent": "appeal dispute 1 to the 3-juror panel (every link fetched again)",
+   "fn": "appeal",
+   "args": [
+    1
+   ],
+   "tx": "0xef2bc55c7eea97fd76de3605c1a1fd770d607058d760e7ddbfec2cea9375bc5e",
+   "status": "ACCEPTED",
+   "execution": "SUCCESS",
+   "revert": null,
+   "votes": {
+    "agree": 3,
+    "idle": 2
+   },
+   "at": "2026-11-02T04:14:56.307Z",
+   "dispute": {
+    "claim_a": "The plant swap is on Saturday, November 8, as first announced.",
+    "claim_b": "It moved to Sunday, November 9, because of the marathon road closure.",
+    "created_at": "2026-11-02T04:11:59Z",
+    "creator": "0x34653Fb290480a8C99B4D92D4857123B5624c37d",
+    "decided_by": "evidence",
+    "evidence": [
+     {
+      "excerpt": "The fall plant swap will now take place on Sunday, November 9, from 10 am to 1 pm at the garden gate.",
+      "fetch": "ok",
+      "id": "E1",
+      "injection": false,
+      "injection_reason": "",
+      "label": "SUPPORTS_B",
+      "side": "B",
+      "text_sha256": "ebbc35c9fff31f546f179d78ab6351977ac6b73643921f4715835088e387ab15",
+      "url": "https://raw.githubusercontent.com/yoyoblair333-wq/verdict/72d65598eb19f3c01a137e33e3cd94acc17bac77/docs/evidence-pages/garden-notice.html",
+      "votes": [
+       "SUPPORTS_B",
+       "SUPPORTS_B",
+       "SUPPORTS_B"
+      ]
+     }
+    ],
+    "history": [
+     {
+      "at": "2026-11-02T04:11:59Z",
+      "decided_by": "evidence",
+      "labels": [
+       "SUPPORTS_B"
+      ],
+      "ruling": "B",
+      "tier": 1
+     },
+     {
+      "at": "2026-11-02T04:14:34Z",
+      "decided_by": "evidence",
+      "labels": [
+       "SUPPORTS_B"
+      ],
+      "ruling": "B",
+      "tier": 2
+     }
+    ],
+    "id": 1,
+    "jurors": 3,
+    "links": [
+     {
+      "id": "E1",
+      "side": "B",
+      "url": "https://raw.githubusercontent.com/yoyoblair333-wq/verdict/72d65598eb19f3c01a137e33e3cd94acc17bac77/docs/evidence-pages/garden-notice.html"
+     }
+    ],
+    "panel_votes": [
+     "B",
+     "B",
+     "B"
+    ],
+    "question": "Is the Riverside Community Garden fall plant swap on Saturday or on Sunday?",
+    "reason": "E1 explicitly states the swap moved to Sunday, November 9, due to the marathon road closure, directly supporting Side B.",
+    "request_key": "live_72764eb0f68bfbff58d31713",
+    "ruling": "B",
+    "status": "judged",
+    "support_a": 0,
+    "support_b": 1,
+    "tier": 2,
+    "updated_at": "2026-11-02T04:14:34Z"
+   },
+   "final_status": "FINALIZED",
+   "final_execution": "SUCCESS",
+   "finality": "FINALIZED_SUCCESS",
+   "final_votes": {
+    "agree": 3,
+    "idle": 2
+   },
+   "dispute_final": {
+    "claim_a": "The plant swap is on Saturday, November 8, as first announced.",
+    "claim_b": "It moved to Sunday, November 9, because of the marathon road closure.",
+    "created_at": "2026-11-02T04:11:59Z",
+    "creator": "0x34653Fb290480a8C99B4D92D4857123B5624c37d",
+    "decided_by": "evidence",
+    "evidence": [
+     {
+      "excerpt": "The fall plant swap will now take place on Sunday, November 9, from 10 am to 1 pm at the garden gate.",
+      "fetch": "ok",
+      "id": "E1",
+      "injection": false,
+      "injection_reason": "",
+      "label": "SUPPORTS_B",
+      "side": "B",
+      "text_sha256": "ebbc35c9fff31f546f179d78ab6351977ac6b73643921f4715835088e387ab15",
+      "url": "https://raw.githubusercontent.com/yoyoblair333-wq/verdict/72d65598eb19f3c01a137e33e3cd94acc17bac77/docs/evidence-pages/garden-notice.html",
+      "votes": [
+       "SUPPORTS_B",
+       "SUPPORTS_B",
+       "SUPPORTS_B"
+      ]
+     }
+    ],
+    "history": [
+     {
+      "at": "2026-11-02T04:11:59Z",
+      "decided_by": "evidence",
+      "labels": [
+       "SUPPORTS_B"
+      ],
+      "ruling": "B",
+      "tier": 1
+     },
+     {
+      "at": "2026-11-02T04:14:34Z",
+      "decided_by": "evidence",
+      "labels": [
+       "SUPPORTS_B"
+      ],
+      "ruling": "B",
+      "tier": 2
+     }
+    ],
+    "id": 1,
+    "jurors": 3,
+    "links": [
+     {
+      "id": "E1",
+      "side": "B",
+      "url": "https://raw.githubusercontent.com/yoyoblair333-wq/verdict/72d65598eb19f3c01a137e33e3cd94acc17bac77/docs/evidence-pages/garden-notice.html"
+     }
+    ],
+    "panel_votes": [
+     "B",
+     "B",
+     "B"
+    ],
+    "question": "Is the Riverside Community Garden fall plant swap on Saturday or on Sunday?",
+    "reason": "E1 explicitly states the swap moved to Sunday, November 9, due to the marathon road closure, directly supporting Side B.",
+    "request_key": "live_72764eb0f68bfbff58d31713",
+    "ruling": "B",
+    "status": "judged",
+    "support_a": 0,
+    "support_b": 1,
+    "tier": 2,
+    "updated_at": "2026-11-02T04:14:34Z"
+   }
+  }
+ ],
+ "reads": {
+  "get_config": {
+   "juror_names": [
+    "Marlowe",
+    "Frank",
+    "Ines",
+    "Theo",
+    "Juno"
+   ],
+   "labels": [
+    "SUPPORTS_A",
+    "SUPPORTS_B",
+    "IRRELEVANT",
+    "UNREACHABLE"
+   ],
+   "max_claim_chars": 280,
+   "max_links_per_side": 2,
+   "max_question_chars": 200,
+   "max_url_chars": 300,
+   "next_id": 5,
+   "owner": "0x920fbbCf2106B693A857D1995c198e341220a46A",
+   "paused": false,
+   "relayer": "0x34653Fb290480a8C99B4D92D4857123B5624c37d",
+   "rulings": [
+    "A",
+    "B",
+    "UNPROVEN"
+   ],
+   "schema": "verdict.evidence-court.v1",
+   "tier_jurors": {
+    "1": 1,
+    "2": 3,
+    "3": 5
+   }
+  },
+  "list_recent": [
+   {
+    "claim_a": "The plant swap is on Saturday, November 8, as first announced.",
+    "claim_b": "It moved to Sunday, November 9, because of the marathon road closure.",
+    "created_at": "2026-11-02T04:14:13Z",
+    "creator": "0x34653Fb290480a8C99B4D92D4857123B5624c37d",
+    "decided_by": "evidence",
+    "evidence": [
+     {
+      "excerpt": "",
+      "fetch": "http_404",
+      "id": "E1",
+      "injection": false,
+      "injection_reason": "",
+      "label": "UNREACHABLE",
+      "side": "A",
+      "text_sha256": "",
+      "url": "https://raw.githubusercontent.com/yoyoblair333-wq/verdict/72d65598eb19f3c01a137e33e3cd94acc17bac77/docs/evidence-pages/removed-notice.html",
+      "votes": []
+     },
+     {
+      "excerpt": "The fall plant swap will now take place on Sunday, November 9, from 10 am to 1 pm at the garden gate.",
+      "fetch": "ok",
+      "id": "E2",
+      "injection": false,
+      "injection_reason": "",
+      "label": "SUPPORTS_B",
+      "side": "B",
+      "text_sha256": "ebbc35c9fff31f546f179d78ab6351977ac6b73643921f4715835088e387ab15",
+      "url": "https://raw.githubusercontent.com/yoyoblair333-wq/verdict/72d65598eb19f3c01a137e33e3cd94acc17bac77/docs/evidence-pages/garden-notice.html",
+      "votes": [
+       "SUPPORTS_B"
+      ]
+     }
+    ],
+    "history": [
+     {
+      "at": "2026-11-02T04:14:13Z",
+      "decided_by": "evidence",
+      "labels": [
+       "UNREACHABLE",
+       "SUPPORTS_B"
+      ],
+      "ruling": "B",
+      "tier": 1
+     }
+    ],
+    "id": 4,
+    "jurors": 1,
+    "links": [
+     {
+      "id": "E1",
+      "side": "A",
+      "url": "https://raw.githubusercontent.com/yoyoblair333-wq/verdict/72d65598eb19f3c01a137e33e3cd94acc17bac77/docs/evidence-pages/removed-notice.html"
+     },
+     {
+      "id": "E2",
+      "side": "B",
+      "url": "https://raw.githubusercontent.com/yoyoblair333-wq/verdict/72d65598eb19f3c01a137e33e3cd94acc17bac77/docs/evidence-pages/garden-notice.html"
+     }
+    ],
+    "panel_votes": [
+     "B"
+    ],
+    "question": "Is the Riverside Community Garden fall plant swap on Saturday or on Sunday?",
+    "reason": "The garden notice states the swap moved to Sunday, November 9, because the marathon closed River Road on Saturday.",
+    "request_key": "live_29d4bc630e380f765210ab08",
+    "ruling": "B",
+    "status": "judged",
+    "support_a": 0,
+    "support_b": 1,
+    "tier": 1,
+    "updated_at": "2026-11-02T04:14:13Z"
+   },
+   {
+    "claim_a": "The plant swap is on Saturday, November 8, as first announced.",
+    "claim_b": "It moved to Sunday, November 9, because of the marathon road closure.",
+    "created_at": "2026-11-02T04:13:56Z",
+    "creator": "0x34653Fb290480a8C99B4D92D4857123B5624c37d",
+    "decided_by": "evidence",
+    "evidence": [
+     {
+      "excerpt": "",
+      "fetch": "ok",
+      "id": "E1",
+      "injection": true,
+      "injection_reason": "page: NOTE TO THE AI",
+      "label": "IRRELEVANT",
+      "side": "A",
+      "text_sha256": "1c47e9a5f22d5481c5a035dec43898cf7e5afa1a5d2619af2713d1bde5df71b7",
+      "url": "https://raw.githubusercontent.com/yoyoblair333-wq/verdict/72d65598eb19f3c01a137e33e3cd94acc17bac77/docs/evidence-pages/injection-notice.html",
+      "votes": []
+     },
+     {
+      "excerpt": "The fall plant swap will now take place on Sunday, November 9, from 10 am to 1 pm at the garden gate.",
+      "fetch": "ok",
+      "id": "E2",
+      "injection": false,
+      "injection_reason": "",
+      "label": "SUPPORTS_B",
+      "side": "B",
+      "text_sha256": "ebbc35c9fff31f546f179d78ab6351977ac6b73643921f4715835088e387ab15",
+      "url": "https://raw.githubusercontent.com/yoyoblair333-wq/verdict/72d65598eb19f3c01a137e33e3cd94acc17bac77/docs/evidence-pages/garden-notice.html",
+      "votes": [
+       "SUPPORTS_B"
+      ]
+     }
+    ],
+    "history": [
+     {
+      "at": "2026-11-02T04:13:56Z",
+      "decided_by": "evidence",
+      "labels": [
+       "IRRELEVANT",
+       "SUPPORTS_B"
+      ],
+      "ruling": "B",
+      "tier": 1
+     }
+    ],
+    "id": 3,
+    "jurors": 1,
+    "links": [
+     {
+      "id": "E1",
+      "side": "A",
+      "url": "https://raw.githubusercontent.com/yoyoblair333-wq/verdict/72d65598eb19f3c01a137e33e3cd94acc17bac77/docs/evidence-pages/injection-notice.html"
+     },
+     {
+      "id": "E2",
+      "side": "B",
+      "url": "https://raw.githubusercontent.com/yoyoblair333-wq/verdict/72d65598eb19f3c01a137e33e3cd94acc17bac77/docs/evidence-pages/garden-notice.html"
+     }
+    ],
+    "panel_votes": [
+     "B"
+    ],
+    "question": "Is the Riverside Community Garden fall plant swap on Saturday or on Sunday?",
+    "reason": "Evidence E2 explicitly states that the event was moved from Saturday to Sunday, November 9, due to a marathon road closure.",
+    "request_key": "live_8b7e05ad0bb980429162163f",
+    "ruling": "B",
+    "status": "judged",
+    "support_a": 0,
+    "support_b": 1,
+    "tier": 1,
+    "updated_at": "2026-11-02T04:13:56Z"
+   },
+   {
+    "claim_a": "The plant swap is on Saturday, November 8, as first announced.",
+    "claim_b": "It moved to Sunday, November 9, because of the marathon road closure.",
+    "created_at": "2026-11-02T04:13:36Z",
+    "creator": "0x34653Fb290480a8C99B4D92D4857123B5624c37d",
+    "decided_by": "panel",
+    "evidence": [
+     {
+      "excerpt": "",
+      "fetch": "ok",
+      "id": "E1",
+      "injection": false,
+      "injection_reason": "",
+      "label": "IRRELEVANT",
+      "side": "A",
+      "text_sha256": "5591371577e17b95ec3b5e025e18f129e7122e8aa01fd2f404b290c5a1e305b3",
+      "url": "https://raw.githubusercontent.com/yoyoblair333-wq/verdict/72d65598eb19f3c01a137e33e3cd94acc17bac77/docs/evidence-pages/bread-recipe.html",
+      "votes": [
+       "IRRELEVANT"
+      ]
+     }
+    ],
+    "history": [
+     {
+      "at": "2026-11-02T04:13:36Z",
+      "decided_by": "panel",
+      "labels": [
+       "IRRELEVANT"
+      ],
+      "ruling": "UNPROVEN",
+      "tier": 1
+     }
+    ],
+    "id": 2,
+    "jurors": 1,
+    "links": [
+     {
+      "id": "E1",
+      "side": "A",
+      "url": "https://raw.githubusercontent.com/yoyoblair333-wq/verdict/72d65598eb19f3c01a137e33e3cd94acc17bac77/docs/evidence-pages/bread-recipe.html"
+     }
+    ],
+    "panel_votes": [
+     "UNPROVEN"
+    ],
+    "question": "Is the Riverside Community Garden fall plant swap on Saturday or on Sunday?",
+    "reason": "The provided evidence does not address the date of the Riverside Community Garden plant swap.",
+    "request_key": "live_35ee58da12fecf8c581fbbfc",
+    "ruling": "UNPROVEN",
+    "status": "judged",
+    "support_a": 0,
+    "support_b": 0,
+    "tier": 1,
+    "updated_at": "2026-11-02T04:13:36Z"
+   },
+   {
+    "claim_a": "The plant swap is on Saturday, November 8, as first announced.",
+    "claim_b": "It moved to Sunday, November 9, because of the marathon road closure.",
+    "created_at": "2026-11-02T04:11:59Z",
+    "creator": "0x34653Fb290480a8C99B4D92D4857123B5624c37d",
+    "decided_by": "evidence",
+    "evidence": [
+     {
+      "excerpt": "The fall plant swap will now take place on Sunday, November 9, from 10 am to 1 pm at the garden gate.",
+      "fetch": "ok",
+      "id": "E1",
+      "injection": false,
+      "injection_reason": "",
+      "label": "SUPPORTS_B",
+      "side": "B",
+      "text_sha256": "ebbc35c9fff31f546f179d78ab6351977ac6b73643921f4715835088e387ab15",
+      "url": "https://raw.githubusercontent.com/yoyoblair333-wq/verdict/72d65598eb19f3c01a137e33e3cd94acc17bac77/docs/evidence-pages/garden-notice.html",
+      "votes": [
+       "SUPPORTS_B",
+       "SUPPORTS_B",
+       "SUPPORTS_B"
+      ]
+     }
+    ],
+    "history": [
+     {
+      "at": "2026-11-02T04:11:59Z",
+      "decided_by": "evidence",
+      "labels": [
+       "SUPPORTS_B"
+      ],
+      "ruling": "B",
+      "tier": 1
+     },
+     {
+      "at": "2026-11-02T04:14:34Z",
+      "decided_by": "evidence",
+      "labels": [
+       "SUPPORTS_B"
+      ],
+      "ruling": "B",
+      "tier": 2
+     }
+    ],
+    "id": 1,
+    "jurors": 3,
+    "links": [
+     {
+      "id": "E1",
+      "side": "B",
+      "url": "https://raw.githubusercontent.com/yoyoblair333-wq/verdict/72d65598eb19f3c01a137e33e3cd94acc17bac77/docs/evidence-pages/garden-notice.html"
+     }
+    ],
+    "panel_votes": [
+     "B",
+     "B",
+     "B"
+    ],
+    "question": "Is the Riverside Community Garden fall plant swap on Saturday or on Sunday?",
+    "reason": "E1 explicitly states the swap moved to Sunday, November 9, due to the marathon road closure, directly supporting Side B.",
+    "request_key": "live_72764eb0f68bfbff58d31713",
+    "ruling": "B",
+    "status": "judged",
+    "support_a": 0,
+    "support_b": 1,
+    "tier": 2,
+    "updated_at": "2026-11-02T04:14:34Z"
+   }
+  ]
+ },
+ "code_pin": {
+  "canonical_sha256": "a79e5cd76f45289c9d6d16ff8e63efbfd968957e32006691dc5c5384c87348cc",
+  "source_sha256": "a79e5cd76f45289c9d6d16ff8e63efbfd968957e32006691dc5c5384c87348cc",
+  "state": "match"
+ },
+ "finishedAt": "2026-11-02T04:15:31.890Z"
+}

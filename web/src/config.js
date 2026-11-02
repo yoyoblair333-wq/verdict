@@ -62,3 +62,11 @@ export const MY_CASES_KEY = "verdict.my-cases.v1";
 // unless REDFLAG_ENABLED or the page URL carries ?redflag=1.
 export const REDFLAG_ADDRESS = "0x997E686B2A5A83e1C8f8E9F15CCB487b1893DDb0";
 export const REDFLAG_ENABLED = false;
+
+// Evidence Court (Milestone 2, contracts/evidence_court.py). Owner = the owner's
+// wallet 0x920fbbCf…a46A (constructor `owner`), relayer = the VERDICT relayer
+// key, which deployed it; stored code matches the source (canonical sha256
+// in docs/live/evidence-court-run.json). The section is off unless
+// EVIDENCE_ENABLED or the page URL carries ?evidence=1.
+export const EVIDENCE_ADDRESS = "0x893aF11134BA268f922aB454DDd53123DF82A3E5";
+export const EVIDENCE_ENABLED = false;

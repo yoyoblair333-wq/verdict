@@ -26,6 +26,7 @@
       <a href="#ledger">Scam ledger</a>
       <a href="#try">Try it</a>
       <a href="#redflag" id="nav-redflag" hidden>Scam check</a>
+      <a href="#evidence" id="nav-evidence" hidden>Evidence court</a>
       <a href="rig.html" id="nav-rig">Try to rig it</a>
       <a href="ledger.html" id="nav-ledger">Ledger explorer</a>
     </nav>
@@ -82,6 +83,51 @@
       <p class="lede">The owner deployment's test run, written by the relayer. Check each one live: the third was refused on-chain because its summary contained digits.</p>
       <ul class="txs" id="ledgertxs"></ul>
     </details>
+  </section>
+
+  <section id="evidence" class="try" aria-labelledby="evidence-h" hidden>
+    <h2 class="sect" id="evidence-h">Who's right? Show your sources.</h2>
+    <p class="lede"><b>New in Milestone 2: Evidence Court.</b> Each side may cite up to two public web pages. Every GenLayer validator fetches each page itself, an AI juror labels it (supports A, supports B, or irrelevant) and must quote the page word for word, and the contract checks every quote against the page. Then the <b>contract counts the labels</b>: the side with more verified evidence wins. A page that tries to give the court orders is flagged and hidden from the jurors, so it cannot decide anything.</p>
+    <p class="sub">Contract: <span id="ev-addr"></span> · EvidenceCourt on studionet (a testnet), no real value.</p>
+    <form id="ev-form" class="caseform" novalidate>
+      <div class="evsamples">
+        <button class="link" id="ev-sample" type="button">Fill in a sample dispute</button>
+        <button class="link" id="ev-sample-inj" type="button">Try the injection page</button>
+      </div>
+      <label class="slip"><span class="tag">The question</span>
+        <input id="ev-q" maxlength="200" autocomplete="off" placeholder="What are the two of you arguing about?">
+      </label>
+      <label class="slip"><span class="tag">Side A says</span>
+        <textarea id="ev-ca" rows="2" maxlength="280"></textarea>
+      </label>
+      <label class="slip"><span class="tag">Side B says</span>
+        <textarea id="ev-cb" rows="2" maxlength="280"></textarea>
+      </label>
+      <fieldset class="evlinks">
+        <legend>Evidence links (optional, https only, up to 2 per side)</legend>
+        <label><span>Side A, link 1</span><input id="ev-a1" type="url" inputmode="url" placeholder="https://" autocomplete="off"><span class="err" id="ev-a1-err"></span></label>
+        <label><span>Side A, link 2</span><input id="ev-a2" type="url" inputmode="url" placeholder="https://" autocomplete="off"><span class="err" id="ev-a2-err"></span></label>
+        <label><span>Side B, link 1</span><input id="ev-b1" type="url" inputmode="url" placeholder="https://" autocomplete="off"><span class="err" id="ev-b1-err"></span></label>
+        <label><span>Side B, link 2</span><input id="ev-b2" type="url" inputmode="url" placeholder="https://" autocomplete="off"><span class="err" id="ev-b2-err"></span></label>
+      </fieldset>
+      <label class="check"><input type="checkbox" id="ev-consent"> <span>I understand the question, both claims and the links will be published on a <b>public test blockchain</b> and <b>cannot be erased</b>. They name no private person.</span></label>
+      <label class="check"><input type="checkbox" id="ev-adult"> <span>I am <b>18 or older</b>.</span></label>
+      <p class="err" id="ev-formerr" role="alert"></p>
+      <button class="cta" id="ev-send" type="submit">Ask the Evidence Court</button>
+      <p class="sub" id="ev-burner"></p>
+      <ol class="rail" id="ev-rail" aria-label="Evidence Court status" hidden>
+        <li data-k="submitted"><i></i>Submitted</li>
+        <li data-k="judging"><i></i>Fetching and judging</li>
+        <li data-k="agreeing"><i></i>Network agreeing</li>
+        <li data-k="final"><i></i>Final</li>
+      </ol>
+      <p class="sub" id="ev-status" aria-live="polite"></p>
+    </form>
+    <ul class="log" id="ev-log" aria-live="polite"></ul>
+    <div id="ev-err"></div>
+    <div id="ev-result"></div>
+    <h3 class="group">Recent disputes</h3>
+    <div id="ev-recent" class="cases" aria-live="polite"><p class="empty">Loading…</p></div>
   </section>
 
   <section id="redflag" class="try" aria-labelledby="redflag-h" hidden>

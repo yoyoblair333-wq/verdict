@@ -295,3 +295,35 @@ a.plain{font-size:13px;font-weight:700}
 #rf-rail{margin:14px auto 4px}
 #rf-rail[hidden]{display:none}
 #rf-count[data-over="true"]{color:var(--stamp-text);font-weight:700}
+
+/* Evidence Court (Milestone 2) */
+.evsamples{display:flex;flex-wrap:wrap;gap:4px 16px}
+.evlinks{border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;margin:12px 0;display:grid;gap:10px;min-width:0}
+.evlinks legend{font-weight:800;font-size:14px;padding:0 4px}
+.evlinks label{display:grid;gap:4px;font-size:13px;font-weight:700;min-width:0}
+.evlinks input{font:inherit;font-weight:400;font-size:15px;width:100%;min-width:0;box-sizing:border-box;padding:8px 10px;border:1.5px solid var(--line);border-radius:8px;background:var(--surface);color:var(--fg)}
+.evlinks input[aria-invalid="true"]{border-color:var(--stamp-text)}
+.evlinks .err{font-weight:600}
+.evsides{display:grid;gap:4px;margin:0 0 10px;font-size:14px}
+.evsides p{margin:0;padding:6px 8px;border-left:3px solid var(--line);overflow-wrap:anywhere}
+.evsides p.win{border-left-color:var(--ok)}
+.ev-r-A,.ev-r-B{color:var(--ok)}
+.ev-r-UNPROVEN{color:var(--warn)}
+.evh{font-size:13px;letter-spacing:.06em;text-transform:uppercase;margin:12px 0 6px}
+.evlist{list-style:none;margin:0 0 10px;padding:0;display:grid;gap:8px}
+.evitem{border:1.5px solid var(--line);border-radius:10px;padding:8px 10px;display:grid;gap:4px;min-width:0}
+.evitem[data-injection="true"]{border-color:var(--stamp-text);border-style:dashed}
+.evhead{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.evid{font-size:12px;font-weight:800}
+.evurl{font-size:13px;overflow-wrap:anywhere;color:var(--fg)}
+.evurl code{font-size:12px;color:var(--muted)}
+.evitem .quote{margin:2px 0;padding:4px 8px;border-left:3px solid var(--ok);font-size:14px;overflow-wrap:anywhere}
+.evitem .meta{margin:0}
+.chip.ev-SUPPORTS_A,.chip.ev-SUPPORTS_B{color:var(--ok)}
+.chip.ev-IRRELEVANT{color:var(--muted)}
+.chip.ev-UNREACHABLE{color:var(--warn)}
+#ev-rail{margin:14px auto 4px}
+#ev-rail[hidden]{display:none}
+.slip input{display:block;width:100%;box-sizing:border-box;border:0;background:transparent;font-size:16px;line-height:1.45;padding:6px 0;color:var(--robe)}
+.slip input::placeholder{color:rgba(27,19,64,.55)}
+#evidence .slip textarea{min-height:56px}

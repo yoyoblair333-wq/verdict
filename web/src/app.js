@@ -915,4 +915,8 @@ loadEvidence().then(() => {
 if (C.REDFLAG_ENABLED || new URLSearchParams(location.search).get("redflag") === "1") {
   import("./redflag.js").then((m) => m.init()).catch((e) => console.warn("red flag court preview failed to load", e));
 }
+// Feature flag: Evidence Court (Milestone 2).
+if (C.EVIDENCE_ENABLED || new URLSearchParams(location.search).get("evidence") === "1") {
+  import("./evidence.js").then((m) => m.init()).catch((e) => console.warn("evidence court failed to load", e));
+}
 $("ledgerrefresh")?.addEventListener("click", () => renderLedger());
