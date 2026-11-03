@@ -11,7 +11,7 @@
     "build": "node scripts/build.mjs",
     "snapshot": "node scripts/snapshot.mjs",
     "browser:install": "playwright install chromium",
-    "test": "node --test --test-concurrency=1 test/offline.test.mjs test/ledger.test.mjs test/evidence.test.mjs",
+    "test": "node --test --test-concurrency=1 test/offline.test.mjs test/ledger.test.mjs test/evidence.test.mjs test/settlement.test.mjs",
     "test:live": "node test/live.test.cjs"
   },
   "dependencies": {

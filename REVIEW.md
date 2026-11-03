@@ -1,8 +1,20 @@
 # VERDICT: Review and status
 
-**Current state: 2026-10-31, round 5** (AUDIT-2 engineering fixes; see "Round 5" below). Round 4 and earlier notes follow it.
+**Current state: 2026-11-02, VERDICT v2 / Milestone 3** (two new contracts; scope note below). The AUDIT-2 engineering round (round 5) and earlier notes follow it.
 
 **Requirement status of record: SPEC §9** (`docs/SPEC.md`). Every Y / P / N table in this file is an engineering note from its round, kept for history; where one differs from SPEC §9, SPEC wins.
+
+## VERDICT v2 / Milestone 3 — scope expansion and the "no reputation/escrow" rule (2026-11-02)
+
+VERDICT v2 adds two Intelligent Contracts — `contracts/settlement_court.py` (SettlementCourt, a verdict-only court for handshake / freelance agreements) and `contracts/reputation_ledger.py` (ReputationLedger, an opt-in, address-only settlement track record). Full writeup: [docs/MILESTONE_3.md](docs/MILESTONE_3.md); decision and reconciliation: [docs/DECISIONS.md](docs/DECISIONS.md) ADR-025; threats: [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md) §4.10.
+
+This reaches toward two things this review's first-round rule names. The **"ok" row of §2 Claims check (2026-10-30) still stands and is not changed**: *"No escrow, paid-work, credentials or reputation features. Text-only judging."* That line below is kept exactly as written. The v2 work is a **deliberate, bounded exception, not a reversal** of it, for these reasons (ADR-025):
+
+- **Verdict-only, no value moves.** Neither new contract has a payable method, holds funds or releases value. SettlementCourt produces a public, checkable *opinion* about whether promises were kept — not escrow, not paid-work verification, not arbitration. The escrow / paid-work bright line the rule protects is untouched.
+- **Opt-in and self-sovereign reputation.** A ReputationLedger scorecard exists for an address only after that address itself calls `set_participation(True)`, and it can `erase_me()`. Nobody is scored involuntarily, which is the credentials / reputation bright line the rule protects. This is an agent publishing a record about its *own* settlement outcomes, under its own control — the opposite of an involuntary credential file about people.
+- **Address-only, no PII, domain-scoped.** The ledger stores wallet addresses and bounded enum counts only; no names, no case text. It tallies *only* final, already-public SettlementCourt rulings for the named subject; the general courts (JudgeRouter / RedFlagCourt / EvidenceCourt) are never fed into it.
+
+**Honest status.** Both contracts compile and are covered by the project's direct-mode test tier (`genvm-lint` + `contracts/tests/direct/`, real GenVM v0.2.16 SDK, LLM mocked). **No new on-chain deployment is claimed** for them: the milestone evidence is the GitHub diff plus the existing owner-deployed `JudgeRouter` on studionet (`0xEe9AB3e45005E97dA53BFE570412f30D6F2C1e64`). No new transaction hashes or test counts are quoted until a real run produces them. Any future feature that moves value against an outcome, scores an address without its opt-in, stores PII, or scores the general courts falls outside this exception and needs a fresh ADR.
 
 ## Round 5 (AUDIT-2 engineering fixes)
 

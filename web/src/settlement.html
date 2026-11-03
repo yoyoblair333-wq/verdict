@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Settlement Court · VERDICT</title>
+<meta name="description" content="SettlementCourt and ReputationLedger, two GenLayer Intelligent Contracts in VERDICT v2: a verdict-only court that rules whether each promised deliverable was kept, and an opt-in, address-only settlement scorecard. Read live by your browser from studionet.">
+<meta name="theme-color" content="#1B1340">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@800;900&family=Schibsted+Grotesk:ital,wght@0,500;0,700;0,800;1,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="ledger.css">
+<link rel="stylesheet" href="settlement.css">
+</head>
+<body class="ledgerpage settlementpage">
+<a class="skip" href="#main">Skip to content</a>
+<div class="netbar" role="note"><b>GenLayer testnet (studionet)</b> · no real value · a public, checkable opinion, not a legal judgement</div>
+<div class="wrap">
+  <header class="top">
+    <a class="brand" href="./" aria-label="VERDICT live court">
+      <svg viewBox="0 0 128 128" aria-hidden="true"><circle cx="64" cy="64" r="60" fill="#1B1340"/><circle cx="64" cy="64" r="52.8" fill="none" stroke="#F7E26B" stroke-width="2.16"/><circle cx="30.91" cy="91.77" r="4.08" fill="#F7E26B"/><circle cx="45.74" cy="103.15" r="4.08" fill="#F7E26B"/><circle cx="64" cy="107.2" r="4.08" fill="#F7E26B"/><circle cx="82.26" cy="103.15" r="4.08" fill="#F7E26B"/><circle cx="97.09" cy="91.77" r="4.08" fill="#F7E26B"/><path d="M40.38 44.22 L52.19 44.22 L64 73.74 L58.1 87.52 Z" fill="#F7E26B"/><path d="M58.1 87.52 L64 73.74 L79.74 42.26 L85.65 46.19 L65.97 87.52 Z" fill="#F7E26B"/><g transform="translate(82.7 40.29) rotate(27)"><rect x="-14.76" y="-6.4" width="29.52" height="12.79" rx="1.97" fill="#F7E26B"/><rect x="-7.87" y="-6.4" width="2.36" height="12.79" fill="#1B1340"/><rect x="5.51" y="-6.4" width="2.36" height="12.79" fill="#1B1340"/></g></svg>
+      <span class="word">VERDICT</span>
+    </a>
+    <nav class="tabs" aria-label="Sections">
+      <a href="./">Court</a>
+      <a href="ledger.html">Scam ledger</a>
+      <a href="settlement.html" aria-current="page">Settlement</a>
+    </nav>
+  </header>
+  <main id="main" tabindex="-1">
+  <div id="settlement-main"></div>
+
+  <section class="hero">
+    <h1>Settlement<br>Court.</h1>
+    <p>Did they hold up their end? SettlementCourt is a GenLayer Intelligent Contract for handshake and freelance agreements. A claimant describes the deal and lists the promises; an AI jury rules on each one — kept, broken or disputed — and the contract derives one overall ruling. Validators each re-run the jury and the ruling is written only when they reach the same result. Everything below the explainer is read live from the contract by your browser.</p>
+    <ul class="legend" aria-label="Proof labels">
+      <li><span class="proof" data-kind="live">Live</span> read by your browser now</li>
+      <li><span class="proof" data-kind="tested">Verdict-only</span> no money, no escrow</li>
+    </ul>
+  </section>
+
+  <section class="rigsect" id="explain" aria-labelledby="explain-h">
+    <h2 class="sect" id="explain-h">How it works</h2>
+    <p class="lede">The court produces a public, checkable <b>opinion</b> about whether promises were kept. There are no payable methods, no escrow and no funds — nothing is settled financially on-chain.</p>
+    <div class="lgrid">
+      <article class="lcard" aria-labelledby="rules-h">
+        <h3 id="rules-h">How a ruling is reached</h3>
+        <ul class="ticks">
+          <li><b>Per-deliverable labels.</b> The jury labels each promise <b>kept</b>, <b>broken</b> or <b>disputed</b> on its own.</li>
+          <li><b>One derived ruling.</b> The overall ruling — Fulfilled, Partially fulfilled, Not fulfilled or Undecided — is computed deterministically from the per-deliverable majority, not from the model's prose. That derivation is the consensus anchor every validator re-computes.</li>
+          <li><b>Bigger panels on appeal.</b> Tier 1 is 3 jurors; an appeal re-hears with 5, then 7 independent jurors.</li>
+          <li><b>Appeals that change nothing are recorded.</b> If a larger panel returns the same ruling, that round is marked <b>upheld</b> and the case's <code>appeals_upheld</code> tally rises — the public cost of a frivolous appeal.</li>
+        </ul>
+      </article>
+      <article class="lcard" aria-labelledby="privacy-h">
+        <h3 id="privacy-h">Privacy and scope</h3>
+        <ul class="ticks no">
+          <li>No digit, "@", currency symbol, link or bare domain reaches the jury: the agreement and every deliverable pass the same PII screen as the scam ledger, and the redaction placeholders ([LINK], [NUMBER], [AMOUNT], …) stand in.</li>
+          <li>If the jury's majority says the redacted text still identifies a private person, the case is refused and nothing is stored.</li>
+          <li>A <code>subject</code> is a wallet address, never a name. A case may have none (advisory-only).</li>
+          <li>This is a testnet opinion for entertainment and tooling, not legal or financial advice.</li>
+        </ul>
+      </article>
+    </div>
+  </section>
+
+  <section class="panel rigsect" id="court" aria-labelledby="court-h">
+    <div class="panelhead">
+      <h2 id="court-h">The court, live</h2>
+      <span class="source" id="courtsrc" data-state="loading">Connecting…</span>
+    </div>
+    <p class="lede">Read with <code>get_config</code> and <code>list_recent</code> over the studionet RPC. Each case shows its redacted terms, every deliverable with the jury's label, the derived overall ruling, the appeal history and whether an appeal overturned the first-tier ruling.</p>
+    <div id="court-notdeployed" aria-live="polite"></div>
+    <dl class="facts" id="courtfacts"></dl>
+    <button class="btn2 small" id="courtrefresh" type="button">Read the court again</button>
+    <div id="cases" class="cases" aria-live="polite"><p class="empty">Loading…</p></div>
+  </section>
+
+  <section class="panel rigsect" id="reputation" aria-labelledby="rep-h">
+    <div class="panelhead">
+      <h2 id="rep-h">Reputation lookup</h2>
+      <span class="proof" data-kind="live">Opt-in · read-only</span>
+    </div>
+    <p class="lede">ReputationLedger is an opt-in, address-only settlement track record. A scorecard exists for an address only after that address itself opts in; the ledger stores wallet addresses and bounded counts, never names or case text. Paste an address to read its scorecard with <code>get_scorecard</code>.</p>
+    <div id="rep-notdeployed" aria-live="polite"></div>
+    <form id="rep-form" class="replookup" novalidate>
+      <label for="rep-addr">Wallet address</label>
+      <div class="reprow">
+        <input id="rep-addr" type="text" inputmode="text" autocomplete="off" spellcheck="false" placeholder="0x…" aria-describedby="rep-err">
+        <button id="rep-go" class="btn2 small" type="submit">Look up</button>
+      </div>
+      <p id="rep-err" class="formerr" role="alert"></p>
+    </form>
+    <div id="rep-result" aria-live="polite"></div>
+  </section>
+
+  <section class="rigsect" id="build" aria-labelledby="build-h">
+    <h2 class="sect" id="build-h">Build with it</h2>
+    <ul class="links" id="buildlinks">
+      <li><a id="court-source-link" href="https://github.com/yoyoblair333-wq/verdict/blob/main/contracts/settlement_court.py" target="_blank" rel="noopener">SettlementCourt source</a> <span>contracts/settlement_court.py: the court that rules on each deliverable and derives the overall ruling.</span></li>
+      <li><a id="ledger-source-link" href="https://github.com/yoyoblair333-wq/verdict/blob/main/contracts/reputation_ledger.py" target="_blank" rel="noopener">ReputationLedger source</a> <span>contracts/reputation_ledger.py: the opt-in, address-only settlement scorecard.</span></li>
+      <li><a href="https://docs.genlayer.com/" target="_blank" rel="noopener">GenLayer docs</a> <span>Intelligent Contracts and the equivalence principle.</span></li>
+    </ul>
+  </section>
+
+  <section class="rigsect" id="limits" aria-labelledby="limits-h">
+    <h2 class="sect" id="limits-h">What this does NOT do</h2>
+    <ul class="claims">
+      <li class="claim"><span class="ctext">It moves no money. There is no escrow, no payment and no release of funds; the ruling is an opinion, not a settlement.</span></li>
+      <li class="claim"><span class="ctext">It scores no one involuntarily. A reputation scorecard exists only for an address that opted itself in, and the court never scores anyone on its own.</span></li>
+      <li class="claim"><span class="ctext">The overall ruling is derived by the contract from the per-deliverable majority. Whether each label is right is the judgement of the validators' AI models; models can be wrong.</span></li>
+      <li class="claim"><span class="ctext">This is GenLayer's studionet test network. No real value, no money, no tokens.</span></li>
+    </ul>
+  </section>
+
+  </main>
+  <footer>
+    <span>VERDICT · Settlement Court · testnet only · a public opinion, not legal or financial advice</span>
+    <span><a href="./">Court record</a> · <a href="ledger.html">Scam ledger</a> · <a href="https://github.com/yoyoblair333-wq/verdict">Source</a> · <a href="https://docs.genlayer.com/">GenLayer docs</a></span>
+  </footer>
+</div>
+<script type="module" src="settlement.js"></script>
+</body>
+</html>

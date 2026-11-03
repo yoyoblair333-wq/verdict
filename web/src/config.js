@@ -71,3 +71,14 @@ export const REDFLAG_ENABLED = false;
 // to it. `?evidence=1` still forces it on if this is ever switched off.
 export const EVIDENCE_ADDRESS = "0x893aF11134BA268f922aB454DDd53123DF82A3E5";
 export const EVIDENCE_ENABLED = true;
+
+// VERDICT v2 / Milestone 3. SettlementCourt (contracts/settlement_court.py), a
+// verdict-only court for "did they hold up their end?", and its companion opt-in
+// ReputationLedger (contracts/reputation_ledger.py). Neither is deployed yet, so
+// both addresses are '' and settlement.html shows a clear "not yet deployed"
+// state instead of inventing an address. Fill these with the real owner
+// deployment (and keep the same format as the addresses above) once they exist;
+// the page then reads them live over the studionet RPC, exactly like the ledger
+// page reads PatternLedger. No visitor write is ever offered against either.
+export const SETTLEMENT_COURT_ADDRESS = "";
+export const REPUTATION_LEDGER_ADDRESS = "";

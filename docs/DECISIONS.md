@@ -3,8 +3,8 @@
 | Field | Value |
 |---|---|
 | Document | `docs/DECISIONS.md` |
-| Version | v1.7 |
-| Date | 2026-10-31 |
+| Version | v1.9 |
+| Date | 2026-11-02 |
 | Owner | Specifications lead (decisions are Blair's; this log records them) |
 | Status | Living log. Append new ADRs; never edit an accepted ADR's decision, supersede it. |
 
@@ -35,6 +35,8 @@ Each ADR: **Context** (forces), **Decision**, **Alternatives** (and why not), **
 | 021 | Lead calls on the ADR-019/020 conflicts | Accepted | 2026-10-31 |
 | 022 | Global publish budget and queue | Accepted (context and item 5 revised in v1.7) | 2026-10-31 |
 | 023 | Web app trust model | Accepted | 2026-10-31 |
+| 024 | Lead calls on the docs/code inconsistencies (AUDIT-2 follow-up) | Accepted | 2026-10-31 |
+| 025 | VERDICT v2 scope expansion: Settlement Court + opt-in Reputation Ledger | Accepted | 2026-11-02 |
 
 ---
 
@@ -642,10 +644,44 @@ SPEC V-SEC-12 said the relayer creates every consumer case. With the web app tha
 
 ---
 
+## ADR-025 VERDICT v2 scope expansion: Settlement Court and the opt-in Reputation Ledger
+
+**Context.** VERDICT v2 / Milestone 3 adds two Intelligent Contracts: `contracts/settlement_court.py` (SettlementCourt, a verdict-only court for handshake / freelance agreements) and `contracts/reputation_ledger.py` (ReputationLedger, an opt-in, address-only settlement track record). See [docs/MILESTONE_3.md](MILESTONE_3.md).
+
+This reaches toward two things the project's founding rule names. REVIEW.md records it in the first review (2026-10-30), the "ok" row of §2 Claims check: *"No escrow, paid-work, credentials or reputation features."* ADR-001's Context states the same force: *"GenLayer projects must stay out of hiring, credentials and paid-work escrow or verification."* That rule is **not** repealed by this ADR, and its text stays in REVIEW.md and ADR-001 unchanged. This ADR records why the v2 work is consistent with it rather than a reversal of it, and must be read against it honestly.
+
+The rule was protecting two bright lines: **(1) no value settles against an outcome** (the escrow / paid-work line), and **(2) nobody is given an involuntary credential or reputation score** (the credentials line). The v2 work is designed to hold both.
+
+**Decision.** Accept the two contracts into VERDICT, bounded as follows. These bounds are the decision; relaxing any of them reopens the ADR.
+
+1. **Verdict-only, no value moves (holds line 1).** Neither contract has a payable method, holds funds, or releases value; the relayer sends `value: 0` as everywhere else (ADR-004, REVIEW "ok" row). SettlementCourt produces a public, checkable *opinion* about whether promises were kept — VERDICT's core remit, "a verdict you can check" — applied to a new question, "did they hold up their end?" Nothing is settled financially on-chain. It is not arbitration and not escrow.
+2. **Reputation is opt-in and self-sovereign (holds line 2).** A ReputationLedger scorecard exists for an address only after that address itself calls `set_participation(True)`. No address is scored involuntarily; an address may `set_participation(False)` and `erase_me()` at any time. This is the opposite of an involuntary credential file: it is an agent publishing a track record about *its own* settlement outcomes, under its own control.
+3. **Address-only, no PII.** The ledger stores wallet addresses and bounded enum counts; the only free string, `case_ref`, is charset-restricted and never judged. No names, no case text, no contents. SettlementCourt's inputs pass the same deterministic PII screen as PatternLedger, plus a consensus refusal gate for a redacted case that still identifies a private person.
+4. **Domain-scoped to published settlement verdicts.** The ledger only ever tallies SettlementCourt rulings that are already final and already public on-chain, and only for the named subject. The general courts (JudgeRouter / RedFlagCourt / EvidenceCourt) are never fed into it. There is no reputation score over entertainment verdicts.
+5. **Not wired contract-to-contract.** SettlementCourt never calls ReputationLedger. A trusted off-chain relayer carries a final outcome across (`record_outcome`), and the ledger accepts it only for an opted-in subject; the court then records the bridge result (`mark_bridged`). This keeps the opt-in gate and the policy bounds on the ledger side, where the subject controls them.
+6. **No new on-chain claim yet.** As of 2026-11-02 the two contracts compile and are covered by the direct-mode test tier; they are not deployed. No README, doc or user-facing copy may claim a deployment, address or live run for them until one exists (same discipline as ADR-022 item 5 on the creator fee share). The milestone evidence is the GitHub diff plus the existing `JudgeRouter` studionet deployment.
+
+**Alternatives.**
+- Keep v1 scope (no settlement domain, no reputation): rejected. It leaves VERDICT's distinctive capability — a verdict other agents can act on — unused, and the "adjudication layer for the agentic economy" fit unproven. The bounds above let VERDICT add the domain without crossing either bright line.
+- A settlement court that also moves escrow or releases payment on FULFILLED: rejected. That is the paid-work / escrow line the founding rule forbids (ADR-001, ADR-004).
+- An automatic reputation score over all VERDICT verdicts, or an involuntary one keyed to people: rejected. That is the credentials / reputation line; it also reintroduces the real-name and consequential-use harms the project already rules out (ADR-005, ADR-006, THREAT_MODEL T21, T47).
+- Store a name or case text with the subject for readability: rejected. Address-only is what keeps it PII-free and non-credentialing.
+
+**Consequences.**
+- The founding "no reputation/escrow" rule now has a recorded, bounded exception for *opt-in, address-only, verdict-only* reputation. Any future feature that moves value against an outcome, scores an address without its opt-in, stores PII, or scores the general courts is outside this exception and needs a new ADR.
+- A self-sovereign ledger means a subject can opt out or erase to dodge a bad mark (THREAT_MODEL T75). This is accepted and by design: an opt-in record cannot also be involuntary. Consumers of the score must read "opted out / erased" as a signal, not a clean record; the UI says so.
+- SettlementCourt publishes a redacted dispute that may name a counterparty's wallet (THREAT_MODEL T74); mitigated by address-only subjects, the opt-in ledger gate, and opinion-not-fact framing.
+- The reconciliation is cross-referenced from REVIEW.md (dated v2 note), THREAT_MODEL.md §4.10 (ADR-025) and MILESTONE_3.md, so the rule and its exception are read together.
+
+**Requirements.** New (to be numbered when these contracts enter SPEC §9): settlement derivation-as-consensus-anchor, opt-in gate, address-only ledger, bridge via relayer. Relates to V-LEGAL-01 (no value on outcomes), V-PRIV-04/05 (no PII, handles/addresses not names), V-SAFE-02, and the REVIEW "ok" row.
+
+---
+
 ## Change log
 
 | Version | Date | Change |
 |---|---|---|
+| v1.9 | 2026-11-02 | VERDICT v2 / Milestone 3. Added ADR-025 (scope expansion: SettlementCourt + opt-in ReputationLedger, with the reconciliation to the founding "no reputation/escrow" rule, which is kept unchanged). Added ADR-024 and ADR-025 to the index (ADR-024 had been added in v1.8 without an index row) and corrected the stale header version (it read v1.7 after v1.8 was logged). |
 | v1.8 | 2026-10-31 | Added ADR-024 (lead calls on the docs/code inconsistencies listed after AUDIT-2). |
 | v1.7 | 2026-10-31 | AUDIT-2 follow-up (P2-2, P2-4). Added ADR-023 (web app trust model). Added ADR-021, -022 and -023 to the index and fixed the header version (it said v1.4 after v1.6 was logged). **Privacy:** removed underwriting figures and funding conditions from ADR-022's context and item 5, and replaced paths to private business, underwriting and backlog files in ADR-001, -008, -013, -017 and -018 with "the private underwriting model" or "the business plan". **Consistency notes:** receipt is "receipt number (packageDigest)", not `VR-` (ADR-013 item 3, ADR-015 item 6, ADR-019 item 6); ADR-020 item 2 flag source not yet true in code (fix in progress, V-PL-17); ADR-020 item 9 GenLayer line is LIVE mode only; ADR-020 item 13 "(no submissions)" corrected; ADR-022 creator fee share is per GenLayer's portal, UNVERIFIED as to form and timing; ADR-022 item 4 weekly report not built. |
 | v1.6 | 2026-10-31 | Added ADR-022 (global publish budget and queue). |

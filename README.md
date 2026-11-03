@@ -8,6 +8,22 @@
 
 ---
 
+## What's new in v2
+
+VERDICT v2 / **Milestone 3** adds two new Intelligent Contracts and a new verdict domain: **"Did they hold up their end?"** Full writeup, consensus model and honest scope in [docs/MILESTONE_3.md](docs/MILESTONE_3.md).
+
+* **[`contracts/settlement_court.py`](contracts/settlement_court.py) — SettlementCourt.** A verdict-only court for handshake / freelance agreements. A claimant describes a redacted agreement and lists the promised **deliverables**; an AI jury labels each one `kept` / `broken` / `disputed`, and the contract **derives** one overall ruling — `FULFILLED` / `PARTIAL` / `NOT_FULFILLED` / `UNDECIDED` — from the per-deliverable majority. That derivation, not the model's prose, is what the validators agree on. Appeal ladder 3 → 5 → 7 jurors; a larger panel that returns the same ruling is recorded as `appeals_upheld` (a public, non-monetary cost of a frivolous appeal). **No money, no escrow, no payable methods.**
+* **[`contracts/reputation_ledger.py`](contracts/reputation_ledger.py) — ReputationLedger.** An ERC-8004-style, **opt-in, address-only** settlement track record. An address is scored only after it itself calls `set_participation(True)`, and it can `erase_me()` at any time. Deterministic (no LLM): every validator computes the identical tally. Score is `(fulfilled*100 + partial*50) // decided`.
+* **The appeal → reputation bridge.** Once a settlement case is final, the relayer can carry its outcome — address-only — into the opt-in ledger, the first time a VERDICT ruling feeds a downstream record. The contracts are not wired together on-chain; the ledger records a subject only if that subject opted in.
+
+**Policy note (2026-11-02).** The original review rule — *"No escrow, paid-work, credentials or reputation features"* (REVIEW.md) — still stands and is not deleted. v2's reputation is **opt-in, self-sovereign, address-only and domain-scoped** to settlement outcomes the agent itself published, and the new domain is **verdict-only (no money moves)**. The reconciliation is recorded as a dated v2 note in [docs/DECISIONS.md](docs/DECISIONS.md) (ADR-025) and [REVIEW.md](REVIEW.md); see also [MILESTONE_3.md](docs/MILESTONE_3.md#policy-reconciliation).
+
+**Status (honest).** Both contracts compile and are covered by the direct-mode test tier; **no new on-chain deployment is claimed** for them. The milestone evidence is the GitHub diff plus the existing owner-deployed `JudgeRouter` at studionet `0xEe9AB3e45005E97dA53BFE570412f30D6F2C1e64`.
+
+**Fork it / build on it.** VERDICT is meant to be forked. If you ship a GenLayer Intelligent Contract starting from this repo, use GenLayer referral code **`JTR01FHP`** so the referral is credited.
+
+---
+
 > **About GitHub's "hidden or bidirectional Unicode" warning on `contracts/judge_router.py` and `contracts/pattern_ledger.py`:** it is expected and harmless. Each file has one regex, `_INVISIBLE_RE` (line 148 in judge_router.py, line 131 in pattern_ledger.py), whose character class lists zero-width and bidi control characters so the contract can **strip them from user input**, which is a defence against exactly the "Trojan Source" trick the warning is about. Click "Show hidden characters" to see them: they appear only inside that one character class, never in code logic. They stay as literal characters so the deployed code keeps matching the repo byte for byte (the code pin); a future redeploy will switch them to `\u` escapes.
 
 > **Building on PatternLedger?** [docs/PATTERN_LEDGER.md](docs/PATTERN_LEDGER.md) is a standalone builder's guide to the scam-pattern ledger contract: state design, API, how consensus and the validator rule work, limits, and how to adapt it to other crowd-reported data.
